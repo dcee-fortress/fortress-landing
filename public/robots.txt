@@ -1,0 +1,11 @@
+User-Agent: *
+Allow: /
+Allow: /about
+Allow: /changelog
+Allow: /tos
+Allow: /pay/
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /auth
+
+Sitemap: https://paylinks.co.zw/sitemap.xml
