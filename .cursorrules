@@ -1,0 +1,24 @@
+# Cursor project rules for QS Next.js app
+
+## Project overview
+- This workspace is a Next.js 16 app using React 19 and Tailwind CSS.
+- The app is organized around the app/ directory for routes and components/ for reusable UI and feature modules.
+- The main business domain is project tracking, reporting, and dashboards.
+
+## Development workflow
+- Use npm for package management and scripts.
+- Run the app with `npm run dev`.
+- Build for production with `npm run build`.
+- Prefer existing components and utilities over creating new ones when possible.
+
+## Code conventions
+- Keep components focused and reusable.
+- Use functional React components and hooks.
+- Preserve existing project structure unless a change clearly improves it.
+- Prefer simple, readable code over clever abstractions.
+- Avoid introducing new dependencies unless necessary.
+
+## Important notes
+- The project already contains a large set of page and component files; follow existing patterns in nearby files.
+- When editing UI, preserve the current styling approach and existing Tailwind classes.
+- When working with data and reporting features, keep behavior consistent with the current app patterns.

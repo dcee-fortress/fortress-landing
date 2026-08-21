@@ -1,0 +1,28 @@
+{
+  "name": "qs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "predev": "node scripts/clean-dev-lock.mjs",
+    "dev": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next dev --turbopack",
+    "dev:webpack": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@next/swc-win32-x64-msvc": "^16.2.2",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4"
+  }
+}
