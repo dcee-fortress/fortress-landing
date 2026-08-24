@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import ActivityDescriptionInput from "@/components/project/ActivityDescriptionInput"
@@ -17,15 +17,16 @@ import {
   getMaterialFormulaFieldKey,
   getMaterialRawFieldKey,
   normalizeMaterialScheduleRows,
-  readRawMaterialScheduleRows,
+  readMaterialScheduleEditorRows,
   saveMaterialScheduleRows,
+  writeMaterialScheduleDraftRows,
 } from "@/lib/materialSchedule"
 import { getMaterialFormulaHelpText } from "@/lib/materialScheduleFormulas"
 import { sortSlots } from "@/lib/dailySlots"
 import { formatMaterialCurrencyAmount, formatMaterialAmount } from "@/lib/plantCostCalculations"
 
 function loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType) {
-  return readRawMaterialScheduleRows(projectId, dayId, slotId, scheduleType)
+  return readMaterialScheduleEditorRows(projectId, dayId, slotId, scheduleType)
 }
 
 function MaterialScheduleEditor({
@@ -39,11 +40,52 @@ function MaterialScheduleEditor({
 }) {
   const { saveSlotsForDay, getSlotsForDay, version } = useProjectData()
   const schedule = MATERIAL_SCHEDULE_TYPES[scheduleType]
+  const hasEditedRef = useRef(false)
+  const rowsRef = useRef([])
   const [rows, setRows] = useState(() =>
     loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType)
   )
   const [savedMessage, setSavedMessage] = useState("")
   const [selectedCell, setSelectedCell] = useState(null)
+
+  rowsRef.current = rows
+
+  useEffect(() => {
+    hasEditedRef.current = false
+    setRows(loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType))
+    setSavedMessage("")
+    setSelectedCell(null)
+  }, [projectId, dayId, slotId, scheduleType, version])
+
+  useEffect(() => {
+    if (!hasEditedRef.current) return undefined
+
+    const timeoutId = window.setTimeout(() => {
+      writeMaterialScheduleDraftRows(projectId, dayId, slotId, scheduleType, rowsRef.current)
+    }, 250)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [projectId, dayId, slotId, scheduleType, rows])
+
+  useEffect(() => {
+    const flushDraft = () => {
+      if (!hasEditedRef.current) return
+      writeMaterialScheduleDraftRows(
+        projectId,
+        dayId,
+        slotId,
+        scheduleType,
+        rowsRef.current
+      )
+    }
+
+    window.addEventListener("pagehide", flushDraft)
+    return () => window.removeEventListener("pagehide", flushDraft)
+  }, [projectId, dayId, slotId, scheduleType])
+
+  const markEdited = () => {
+    hasEditedRef.current = true
+  }
 
   const resolvedRows = useMemo(() => normalizeMaterialScheduleRows(rows), [rows])
   const grandTotal = resolvedRows.reduce((sum, row) => sum + (row.totalCost ?? 0), 0)
@@ -53,6 +95,7 @@ function MaterialScheduleEditor({
   )
 
   const updateRow = (rowIndex, field, value, formula = "") => {
+    markEdited()
     setSavedMessage("")
     const formulaField = getMaterialFormulaFieldKey(field)
     setRows((current) =>
@@ -68,11 +111,13 @@ function MaterialScheduleEditor({
   }
 
   const addRow = () => {
+    markEdited()
     setSavedMessage("")
     setRows((current) => [...current, createMaterialRow("", dayId)])
   }
 
   const deleteRow = (rowId) => {
+    markEdited()
     setSavedMessage("")
     setRows((current) => current.filter((row) => row.id !== rowId))
     setSelectedCell(null)
@@ -80,6 +125,7 @@ function MaterialScheduleEditor({
 
   const handleSave = () => {
     saveMaterialScheduleRows(projectId, dayId, slotId, scheduleType, rows)
+    hasEditedRef.current = false
 
     const slots = getSlotsForDay(dayId)
     saveSlotsForDay(dayId, sortSlots(slots))
@@ -324,7 +370,9 @@ function MaterialScheduleEditor({
             {savedMessage ? (
               <p className="text-sm font-medium text-emerald-700">{savedMessage}</p>
             ) : (
-              <p className="text-sm text-zinc-500">Click Save to update the hourly dashboard.</p>
+              <p className="text-sm text-zinc-500">
+                Unsaved edits are kept automatically. Click Save to update the hourly dashboard.
+              </p>
             )}
             <ExportPdfButton onClick={exportToPdf} />
             <button

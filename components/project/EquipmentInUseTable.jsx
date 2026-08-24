@@ -6,9 +6,10 @@ import ExportPdfButton from "@/components/project/ExportPdfButton"
 import HoursFieldInput from "@/components/project/HoursFieldInput"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import {
-  calculateOperatingHours,
   formatOperatingHours,
   getDailyEquipmentHoursData,
+  getEquipmentOperatingHoursInputValue,
+  resolveEquipmentOperatingHours,
   saveDailyEquipmentHoursData,
 } from "@/lib/equipmentHoursData"
 import { resolveEquipmentPlantName } from "@/lib/equipmentPlantLink"
@@ -48,6 +49,8 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
     const current = hoursById[equipmentId] ?? {
       startHours: "",
       finishHours: "",
+      hoursOperating: "",
+      hoursOperatingEdited: false,
       plant: "",
       plantEdited: false,
     }
@@ -68,13 +71,16 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
       const stored = hoursById[item.id] ?? {
         startHours: "",
         finishHours: "",
+        hoursOperating: "",
+        hoursOperatingEdited: false,
         plant: "",
         plantEdited: false,
       }
       const startHours = stored.startHours ?? ""
       const finishHours = stored.finishHours ?? ""
       const plant = resolveEquipmentPlantName(projectId, fileId, item, index, stored)
-      const hoursOperating = calculateOperatingHours(startHours, finishHours)
+      const hoursOperating = resolveEquipmentOperatingHours(stored)
+      const hoursOperatingInput = getEquipmentOperatingHoursInputValue(stored)
 
       return {
         ...item,
@@ -83,15 +89,11 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
         startHours,
         finishHours,
         hoursOperating,
+        hoursOperatingInput,
+        hoursOperatingEdited: stored.hoursOperatingEdited,
       }
     })
   }, [report.equipment, hoursById, projectId, fileId, version])
-
-  const dailyTotal = useMemo(
-    () =>
-      Math.round(rows.reduce((sum, row) => sum + (row.hoursOperating ?? 0), 0) * 100) / 100,
-    [rows]
-  )
 
   return (
     <div className="space-y-4">
@@ -108,17 +110,13 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
               operator register
             </Link>
             . Plant names link from material schedule entries for this day — you can still edit them
-            here. Enter start and finish hour figures below.
+            here. Enter start and finish hours, or type hours operating directly.
           </p>
         </div>
 
         <ExportPdfButton
           onClick={() =>
-            exportEquipmentPdf(
-              projectName,
-              { ...report, equipment: rows, totalHours: dailyTotal },
-              "daily"
-            )
+            exportEquipmentPdf(projectName, { ...report, equipment: rows }, "daily")
           }
         />
       </div>
@@ -189,8 +187,25 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
                       placeholder="Finish"
                     />
                   </td>
-                  <td className="border border-zinc-200 px-3 py-2 text-right font-semibold tabular-nums text-zinc-900">
-                    {formatOperatingHours(item.hoursOperating)}
+                  <td className="border border-zinc-200 px-2 py-2">
+                    <HoursFieldInput
+                      value={item.hoursOperatingInput}
+                      onChange={(value) => {
+                        if (String(value).trim() === "") {
+                          updateEntry(item.id, {
+                            hoursOperating: "",
+                            hoursOperatingEdited: false,
+                          })
+                          return
+                        }
+
+                        updateEntry(item.id, {
+                          hoursOperating: value,
+                          hoursOperatingEdited: true,
+                        })
+                      }}
+                      placeholder="Hours"
+                    />
                   </td>
                 </tr>
               ))
