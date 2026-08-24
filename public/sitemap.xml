@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">
+
+    <!-- Landing - highest priority -->
+    <url>
+        <loc>https://paylinks.co.zw/</loc>
+        <lastmod>2026-06-13</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>1.0</priority>
+    </url>
+
+    <!-- Trust pages -->
+    <url>
+        <loc>https://paylinks.co.zw/about</loc>
+        <lastmod>2026-06-13</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://paylinks.co.zw/changelog</loc>
+        <lastmod>2026-06-13</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <url>
+        <loc>https://paylinks.co.zw/tos</loc>
+        <lastmod>2026-06-13</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+
+    <!-- Auth page -->
+    <url>
+        <loc>https://paylinks.co.zw/auth</loc>
+        <lastmod>2026-06-13</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+</urlset>
