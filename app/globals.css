@@ -111,9 +111,25 @@
     --brand-200: #cbd8ff;
     --brand-300: #9fb3ff;
     --brand-400: #6f8eff;
-    --brand-500: #4366ff; /* primary brand color */
+    --brand-500: #4366ff;
     --brand-600: #3956e6;
     --brand-700: #2f48b3;
     --brand-800: #243680;
     --brand-900: #19244d;
+}
+
+@keyframes brand-loading-flicker {
+    0%, 18%, 22%, 63%, 65%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    20%, 64% {
+        opacity: 0.35;
+        transform: scale(0.94);
+    }
+}
+
+.brand-loading-mark {
+    animation: brand-loading-flicker 1.15s steps(1, end) infinite;
 }

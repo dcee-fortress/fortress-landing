@@ -4,7 +4,7 @@ import { APP_BRAND } from '@/lib/appBrand'
 export default function RootLayout({ children }) {
 	return (
 		<html lang="en">
-			<body className="min-h-screen bg-zinc-100 font-sans text-zinc-950 antialiased">
+      <body className="min-h-screen bg-zinc-100 font-sans text-zinc-950 antialiased">
 				{children}
 			</body>
 		</html>
