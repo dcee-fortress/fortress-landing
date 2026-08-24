@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@netlify/plugin-nextjs": "^6.0.0",
+    "@netlify/plugin-nextjs": "^5.15.13",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4"
