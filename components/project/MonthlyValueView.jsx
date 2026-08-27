@@ -98,7 +98,7 @@ export default function MonthlyValueView({ projectName, projectId }) {
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
         <p className="max-w-2xl text-zinc-500">
           Monthly reports roll up from saved hourly dashboards. In-progress months show cumulative
-          totals and update each time hourly data is saved.
+          totals and update each time hourly data is saved
         </p>
       </header>
 
