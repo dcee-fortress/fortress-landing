@@ -13,6 +13,7 @@ import {
 } from "@/lib/groveDatabase"
 import { APP_BRAND } from "@/lib/appBrand"
 import { PROJECT_STATUS } from "@/lib/projectRegistry"
+import { getDeletedSavedProjects } from "@/lib/projectRegistry"
 
 function ConfirmNotice({ tone = "amber", title, message }) {
   const tones = {
@@ -65,6 +66,7 @@ export default function SettingsPanel() {
   const [endProjectId, setEndProjectId] = useState("")
   const [endDate, setEndDate] = useState(formatDateInputValue())
   const [statusMessage, setStatusMessage] = useState("")
+  const deletedProjects = getDeletedSavedProjects()
 
   const selectedProject = projects.find((project) => project.id === selectedProjectId)
   const projectToEnd = projects.find((project) => project.id === endProjectId)
@@ -207,6 +209,36 @@ export default function SettingsPanel() {
             Download backup
           </button>
         </div>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
+          <h2 className="text-lg font-semibold text-zinc-900">Deleted saved projects</h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Deleted projects are removed from the menus but retained here with their saved project files.
+          </p>
+        </div>
+        {deletedProjects.length > 0 ? (
+          <ul className="divide-y divide-zinc-200">
+            {deletedProjects.map((entry) => (
+              <li key={`${entry.project.id}-${entry.deletedAt}`} className="px-6 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-zinc-900">{entry.project.name}</p>
+                    <p className="text-sm text-zinc-500">
+                      Deleted {new Date(entry.deletedAt).toLocaleString()} · {entry.project.id}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700">
+                    Saved archive
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="px-6 py-8 text-sm text-zinc-500">No deleted saved projects.</p>
+        )}
       </section>
 
       <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
