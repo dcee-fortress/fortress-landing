@@ -70,3 +70,18 @@ export async function POST(request) {
     )
   }
 }
+
+export async function DELETE(request) {
+  try {
+    const { key } = await request.json()
+    if (!allowedKeys.has(key)) {
+      return Response.json({ error: "Invalid shared storage key." }, { status: 400 })
+    }
+
+    await ensureStorageTable()
+    await sql`DELETE FROM grove_shared_storage WHERE storage_key = ${key}`
+    return Response.json({ ok: true })
+  } catch {
+    return Response.json({ error: "Could not clear shared storage." }, { status: 503 })
+  }
+}
