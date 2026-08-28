@@ -28,6 +28,7 @@ export default function ProjectMenu() {
   const pathname = usePathname()
   const activeProjectId = getActiveProjectId(pathname)
   const { projects } = useProjects()
+  const activeProjects = projects.filter((project) => project.status !== "ended")
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -101,7 +102,7 @@ export default function ProjectMenu() {
                 </div>
 
                 <ul className="py-1">
-                  {projects.map((project) => {
+                  {activeProjects.map((project) => {
                     const isCurrent = activeProjectId === project.id
 
                     return (

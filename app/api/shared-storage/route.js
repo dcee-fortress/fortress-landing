@@ -7,7 +7,6 @@ const allowedKeys = new Set([
   "grove-material-schedules",
   "grove-material-schedule-drafts",
   "grove-projects-registry",
-  "grove-deleted-saved-projects",
   "grove-boq",
   "grove-boq-description-memory",
   "grove-plant-cost",

@@ -13,7 +13,6 @@ import {
 } from "@/lib/groveDatabase"
 import { APP_BRAND } from "@/lib/appBrand"
 import { PROJECT_STATUS } from "@/lib/projectRegistry"
-import { getDeletedSavedProjects } from "@/lib/projectRegistry"
 
 function ConfirmNotice({ tone = "amber", title, message }) {
   const tones = {
@@ -66,7 +65,6 @@ export default function SettingsPanel() {
   const [endProjectId, setEndProjectId] = useState("")
   const [endDate, setEndDate] = useState(formatDateInputValue())
   const [statusMessage, setStatusMessage] = useState("")
-  const deletedProjects = getDeletedSavedProjects()
 
   const selectedProject = projects.find((project) => project.id === selectedProjectId)
   const projectToEnd = projects.find((project) => project.id === endProjectId)
@@ -213,36 +211,6 @@ export default function SettingsPanel() {
 
       <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
-          <h2 className="text-lg font-semibold text-zinc-900">Deleted saved projects</h2>
-          <p className="mt-1 text-sm text-zinc-500">
-            Deleted projects are removed from the menus but retained here with their saved project files.
-          </p>
-        </div>
-        {deletedProjects.length > 0 ? (
-          <ul className="divide-y divide-zinc-200">
-            {deletedProjects.map((entry) => (
-              <li key={`${entry.project.id}-${entry.deletedAt}`} className="px-6 py-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-zinc-900">{entry.project.name}</p>
-                    <p className="text-sm text-zinc-500">
-                      Deleted {new Date(entry.deletedAt).toLocaleString()} · {entry.project.id}
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700">
-                    Saved archive
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="px-6 py-8 text-sm text-zinc-500">No deleted saved projects.</p>
-        )}
-      </section>
-
-      <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
           <h2 className="text-lg font-semibold text-zinc-900">End a project</h2>
           <p className="mt-1 text-sm text-zinc-500">
             Stops new daily, weekly, and monthly files from being created. All saved data is kept
@@ -349,47 +317,57 @@ export default function SettingsPanel() {
 
       <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
-          <h2 className="text-lg font-semibold text-zinc-900">Delete a project</h2>
+          <h2 className="text-lg font-semibold text-zinc-900">Ended projects</h2>
           <p className="mt-1 text-sm text-zinc-500">
-            Permanently remove a project and all of its dashboards and material schedules.
+            Ended projects are removed from the menu but remain available here for review or permanent deletion.
           </p>
         </div>
 
         <div className="space-y-4 px-6 py-6">
-          {deleteStep === 0 ? (
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-zinc-700">Available projects</p>
-              <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200">
-                {projects.map((project) => {
-                  const isSelected = selectedProjectId === project.id
-
-                  return (
-                    <li key={project.id}>
+          {projects.filter((project) => project.status === PROJECT_STATUS.ENDED).length > 0 ? (
+            <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200">
+              {projects
+                .filter((project) => project.status === PROJECT_STATUS.ENDED)
+                .map((project) => (
+                  <li key={project.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                    <div>
+                      <p className="font-medium text-zinc-900">{project.name}</p>
+                      <ProjectStatusBadge project={project} />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={`/project/${project.id}`}
+                        prefetch={false}
+                        className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+                      >
+                        <Icon name="external-link" size={16} />
+                        Open project
+                      </Link>
                       <button
                         type="button"
                         onClick={() => {
                           setSelectedProjectId(project.id)
+                          setDeleteStep(1)
                           setStatusMessage("")
                         }}
-                        className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm transition ${
-                          isSelected ? "bg-zinc-100" : "hover:bg-zinc-50"
-                        }`}
+                        className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-700"
                       >
-                        <span className="font-medium text-zinc-900">{project.name}</span>
-                        <ProjectStatusBadge project={project} />
+                        <Icon name="trash-2" size={16} />
+                        Delete project
                       </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          ) : null}
+                    </div>
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-zinc-500">No ended projects.</p>
+          )}
 
           {deleteStep === 1 && selectedProject ? (
             <ConfirmNotice
               tone="amber"
               title="First confirmation"
-              message={`Delete "${selectedProject.name}" and all of its dashboards and material schedules?`}
+              message={`Permanently delete "${selectedProject.name}" and all of its saved data?`}
             />
           ) : null}
 
@@ -397,12 +375,12 @@ export default function SettingsPanel() {
             <ConfirmNotice
               tone="red"
               title="Final confirmation"
-              message={`Last chance: permanently delete "${selectedProject.name}"? This cannot be undone.`}
+              message={`Last chance: permanently delete "${selectedProject.name}" from the whole database? This cannot be undone.`}
             />
           ) : null}
 
-          <div className="flex flex-wrap gap-3">
-            {deleteStep > 0 ? (
+          {deleteStep > 0 ? (
+            <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={resetDeleteFlow}
@@ -410,20 +388,15 @@ export default function SettingsPanel() {
               >
                 Cancel
               </button>
-            ) : null}
-            <button
-              type="button"
-              disabled={!selectedProject}
-              onClick={handleDeleteStep}
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
-            >
-              {deleteStep === 0
-                ? "Continue with selected project"
-                : deleteStep === 1
-                  ? "Yes, continue"
-                  : "Delete project now"}
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={handleDeleteStep}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
+              >
+                {deleteStep === 1 ? "Yes, continue" : "Delete project permanently"}
+              </button>
+            </div>
+          ) : null}
         </div>
       </section>
 
