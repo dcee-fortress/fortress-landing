@@ -1,8 +1,9 @@
 "use client"
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { getAllProjects, getProjectById } from "@/lib/projectList"
 import { createCustomProject } from "@/lib/projectRegistry"
+import { startSharedPersistence } from "@/lib/sharedPersistence"
 
 const ProjectsContext = createContext(null)
 
@@ -12,6 +13,17 @@ export function ProjectsProvider({ children }) {
   const refresh = useCallback(() => {
     setVersion((current) => current + 1)
   }, [])
+
+  useEffect(() => {
+    const stopSharedPersistence = startSharedPersistence()
+    const handleSharedStorageChange = () => refresh()
+
+    window.addEventListener("grove-shared-storage-change", handleSharedStorageChange)
+    return () => {
+      stopSharedPersistence()
+      window.removeEventListener("grove-shared-storage-change", handleSharedStorageChange)
+    }
+  }, [refresh])
 
   const value = useMemo(() => {
     void version
