@@ -54,6 +54,9 @@ export default function DailyHourlyDashboard({
               <input
                 type="time"
                 value={slot.startTime}
+                step="900"
+                inputMode="numeric"
+                aria-label="Hourly dashboard start time"
                 onChange={(event) => handleTimeChange("startTime", event.target.value)}
                 className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
@@ -65,6 +68,9 @@ export default function DailyHourlyDashboard({
               <input
                 type="time"
                 value={slot.endTime}
+                step="900"
+                inputMode="numeric"
+                aria-label="Hourly dashboard end time"
                 onChange={(event) => handleTimeChange("endTime", event.target.value)}
                 className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
