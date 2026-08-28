@@ -75,9 +75,13 @@ export default function SettingsPanel() {
     projectData?.refresh()
   }
 
-  const handleBackup = () => {
-    exportGroveDatabaseBackup()
-    setStatusMessage("Backup downloaded. Keep this file safe for your CEO showcase.")
+  const handleBackup = async () => {
+    try {
+      await exportGroveDatabaseBackup()
+      setStatusMessage("Live database backup downloaded.")
+    } catch {
+      setStatusMessage("Could not download the live database backup.")
+    }
   }
 
   const handleClearStep = () => {
@@ -160,10 +164,7 @@ export default function SettingsPanel() {
   return (
     <div className="mx-auto max-w-2xl space-y-8 p-6">
       <div className="space-y-2">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
-        >
+        <Link href="/" className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800">
           <Icon name="arrow-left" size={16} />
           Back to {APP_BRAND}
         </Link>
@@ -175,8 +176,7 @@ export default function SettingsPanel() {
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">Settings</h1>
           </div>
           <p className="text-sm text-zinc-500">
-            Manage projects and local data stored in this browser. Your entries are kept until you
-            delete them or clear the database.
+            Manage projects and shared live data. Changes are available to everyone using this site.
           </p>
         </header>
       </div>
@@ -189,14 +189,14 @@ export default function SettingsPanel() {
         <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
           <h2 className="text-lg font-semibold text-zinc-900">Save your data</h2>
           <p className="mt-1 text-sm text-zinc-500">
-            Download a backup of all projects, dashboards, and material schedules from this browser.
+            Download a backup of all projects, dashboards, and material schedules from the live database.
           </p>
         </div>
         <div className="space-y-4 px-6 py-6">
           <ConfirmNotice
             tone="sky"
-            title="Data stays on this device"
-            message="Everything you enter is saved automatically in this browser. Download a backup before clearing browser data or switching computers so your CEO showcase is safe."
+            title="Live database backup"
+            message="The backup is taken from the shared live database, so it includes data entered by everyone using this site."
           />
           <button
             type="button"
