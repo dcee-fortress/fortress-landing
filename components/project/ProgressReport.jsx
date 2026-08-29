@@ -4,6 +4,7 @@ import { useState, useRef, useMemo } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import WeeklyReport from "@/components/project/WeeklyReport"
+import DailyReport from "@/components/project/DailyReport"
 import EquipmentInUseTable from "@/components/project/EquipmentInUseTable"
 import RichTextEditor, { countPlainText } from "@/components/project/RichTextEditor"
 import {
@@ -23,7 +24,7 @@ import {
   getWeeklyProgressReportsHref,
   getWeeklyFileHref,
 } from "@/lib/projectRoutes"
-import { getWeeklyFile } from "@/lib/projects"
+import { getDailyFile, getWeeklyFile } from "@/lib/projects"
 import { getPlantOnSitePeriodFileHref } from "@/lib/plantOnSiteModules"
 import {
   dedupeProgressPhotos,
@@ -236,6 +237,10 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
     () => (reportType === "weekly" && projectId && reportId ? getWeeklyFile(projectId, reportId) : null),
     [projectId, reportId, reportType]
   )
+  const dailyFile = useMemo(
+    () => (reportType === "daily" && projectId && reportId ? getDailyFile(projectId, reportId) : null),
+    [projectId, reportId, reportType]
+  )
 
   if (!report) {
     return (
@@ -369,6 +374,55 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
               </p>
             </div>
           </section>
+
+          {isActualProgressUpdate && reportType === "daily" && (
+            <>
+              <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+                <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                    Daily Valuation Dashboard
+                  </h2>
+                  <p className="mt-1 text-xs text-zinc-600">
+                    Enter and save the valuation data for this exact report day.
+                  </p>
+                </div>
+                <div className="p-6">
+                  {dailyFile ? (
+                    <DailyReport
+                      embedded
+                      projectName={projectName}
+                      projectId={projectId}
+                      file={dailyFile}
+                    />
+                  ) : (
+                    <p className="text-sm text-amber-800">
+                      No daily valuation file exists for this report date yet.
+                    </p>
+                  )}
+                </div>
+              </section>
+
+              <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+                <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                    Daily Equipment in Use
+                  </h2>
+                  <p className="mt-1 text-xs text-zinc-600">
+                    Record equipment hours for this exact report day.
+                  </p>
+                </div>
+                <div className="p-6">
+                  <EquipmentInUseTable
+                    embedded
+                    projectId={projectId}
+                    projectName={projectName}
+                    period="daily"
+                    fileId={reportId}
+                  />
+                </div>
+              </section>
+            </>
+          )}
 
           {isActualProgressUpdate && reportType === "weekly" && (
             <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
