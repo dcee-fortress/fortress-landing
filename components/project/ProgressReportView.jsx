@@ -6,11 +6,15 @@ import ReportFileSearchBar, { useReportFileSearch } from "@/components/project/R
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import {
   getActualProgressUpdateHref,
-  getProgressReportFileHref,
+  getDailyProgressReportFileHref,
+  getWeeklyProgressReportFileHref,
   getWeeklyFileHref,
 } from "@/lib/projectRoutes"
 import { getPlantOnSitePeriodFileHref } from "@/lib/plantOnSiteModules"
-import { getProjectProgressReports } from "@/lib/progressReports"
+import {
+  getProjectDailyProgressReports,
+  getProjectWeeklyProgressReports,
+} from "@/lib/progressReports"
 import { isProgressUpdateEmpty, isTargetPlanEmpty } from "@/lib/progressReportDemo"
 import { useMemo } from "react"
 
@@ -33,9 +37,15 @@ function getProgressReportFileDescription(_projectId, file) {
 
   return `Completed ${file.completedAt}`
 }
-function ProgressReportFileRow({ file, projectId }) {
+function ProgressReportFileRow({ file, projectId, reportType }) {
   const inProgress = file.status === "in-progress"
   const description = getProgressReportFileDescription(projectId, file)
+  const reportFileHref = reportType === "daily"
+    ? getDailyProgressReportFileHref(projectId, file.id)
+    : getWeeklyProgressReportFileHref(projectId, file.id)
+  const actualHref = reportType === "daily"
+    ? getActualProgressUpdateHref(projectId, file.id)
+    : `${reportFileHref}/actual-progress-update`
   const weeklyValuationHref = getWeeklyFileHref(projectId, file.id)
   const equipmentInUseHref = getPlantOnSitePeriodFileHref(
     projectId,
@@ -85,7 +95,7 @@ function ProgressReportFileRow({ file, projectId }) {
             {inProgress ? "In progress" : "Completed"}
           </span>
           <Link
-            href={getProgressReportFileHref(projectId, file.id)}
+            href={reportFileHref}
             prefetch={false}
             className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
           >
@@ -93,7 +103,7 @@ function ProgressReportFileRow({ file, projectId }) {
             <Icon name="chevron-right" size={14} />
           </Link>
           <Link
-            href={getActualProgressUpdateHref(projectId, file.id)}
+            href={actualHref}
             prefetch={false}
             className="inline-flex items-center gap-1 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-zinc-800"
           >
@@ -106,13 +116,66 @@ function ProgressReportFileRow({ file, projectId }) {
   )
 }
 
-export default function ProgressReportView({ projectName, projectId }) {
+function ReportTypeSelector({ projectName, onSelect }) {
+  return (
+    <div className="space-y-6">
+      <header className="space-y-2">
+        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+          Progress Reports
+        </p>
+        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
+        <p className="max-w-2xl text-zinc-500">
+          Choose a report interval to search saved files and open the target plan or actual progress.
+        </p>
+      </header>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => onSelect("daily")}
+          className="group rounded-xl border border-zinc-200 bg-white p-6 text-left shadow-sm transition hover:border-amber-300 hover:shadow-md"
+        >
+          <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+            <Icon name="clock" size={20} />
+          </span>
+          <span className="mt-4 block text-lg font-semibold text-zinc-900">Daily Report Files</span>
+          <span className="mt-1 block text-sm text-zinc-500">
+            Search by day or date, then open the target plan or actual progress.
+          </span>
+          <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-zinc-700">
+            Open daily reports <Icon name="arrow-right" size={14} />
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onSelect("weekly")}
+          className="group rounded-xl border border-zinc-200 bg-white p-6 text-left shadow-sm transition hover:border-violet-300 hover:shadow-md"
+        >
+          <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+            <Icon name="calendar-range" size={20} />
+          </span>
+          <span className="mt-4 block text-lg font-semibold text-zinc-900">Weekly Report Files</span>
+          <span className="mt-1 block text-sm text-zinc-500">
+            Search by week range, then open the target plan or actual progress.
+          </span>
+          <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-zinc-700">
+            Open weekly reports <Icon name="arrow-right" size={14} />
+          </span>
+        </button>
+      </section>
+    </div>
+  )
+}
+
+function ProgressReportFiles({ projectName, projectId, reportType, onSelectType }) {
   const { version } = useProjectData()
 
   const progressReports = useMemo(() => {
-    const reports = getProjectProgressReports(projectId)
+    const reports = reportType === "daily"
+      ? getProjectDailyProgressReports(projectId)
+      : getProjectWeeklyProgressReports(projectId)
     return [...reports].sort((a, b) => b.id.localeCompare(a.id))
-  }, [projectId, version]) // eslint-disable-line react-hooks/exhaustive-deps -- version refreshes list after saves
+  }, [projectId, reportType, version]) // eslint-disable-line react-hooks/exhaustive-deps -- version refreshes list after saves
 
   const search = useReportFileSearch(progressReports)
   const displayFiles = search.activeQuery ? search.filteredFiles : progressReports
@@ -124,32 +187,42 @@ export default function ProgressReportView({ projectName, projectId }) {
           Progress Reports
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
-        <p className="max-w-2xl text-zinc-500">
-          A new weekly progress report is created automatically for each project week, matching the
-          valuation weekly files. Open the target plan or actual progress update for each week — both
-          duplicate and link to the weekly valuation report and weekly equipment in use.
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="max-w-2xl text-zinc-500">
+          {reportType === "daily"
+            ? "A daily report file is created automatically for each project day. Search by date or day id to reopen saved target and actual progress."
+            : "Weekly reports roll up the same target and actual progress workflow into 7-day project intervals."}
+          </p>
+          <button
+            type="button"
+            onClick={() => onSelectType?.(null)}
+            className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
+          >
+            Change interval
+            <Icon name="arrow-left" size={14} />
+          </button>
+        </div>
       </header>
 
       <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-            Weekly Progress Reports ({displayFiles.length}
+            {reportType === "daily" ? "Daily Report Files" : "Weekly Report Files"} ({displayFiles.length}
             {search.activeQuery ? ` of ${progressReports.length}` : ""})
           </h2>
         </div>
 
         <ReportFileSearchBar
           {...search}
-          getFileHref={getProgressReportFileHref}
+          getFileHref={reportType === "daily" ? getDailyProgressReportFileHref : getWeeklyProgressReportFileHref}
           projectId={projectId}
-          placeholder="Search progress reports by week or date…"
+          placeholder={reportType === "daily" ? "Search daily reports by date or id…" : "Search weekly reports by range or id…"}
         />
 
         {displayFiles.length > 0 ? (
           <ul className="divide-y divide-zinc-200">
-            {displayFiles.map((file) => (
-              <ProgressReportFileRow key={file.id} file={file} projectId={projectId} />
+              {displayFiles.map((file) => (
+                <ProgressReportFileRow key={file.id} file={file} projectId={projectId} reportType={reportType} />
             ))}
           </ul>
         ) : (
@@ -161,5 +234,20 @@ export default function ProgressReportView({ projectName, projectId }) {
         )}
       </section>
     </div>
+  )
+}
+
+export default function ProgressReportView({ projectName, projectId, reportType = null, onSelectType }) {
+  if (!reportType) {
+    return <ReportTypeSelector projectName={projectName} onSelect={onSelectType} />
+  }
+
+  return (
+    <ProgressReportFiles
+      projectName={projectName}
+      projectId={projectId}
+      reportType={reportType}
+      onSelectType={onSelectType}
+    />
   )
 }

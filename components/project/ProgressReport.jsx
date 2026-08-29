@@ -8,6 +8,7 @@ import EquipmentInUseTable from "@/components/project/EquipmentInUseTable"
 import RichTextEditor, { countPlainText } from "@/components/project/RichTextEditor"
 import {
   getProjectProgressReport,
+  getProjectDailyProgressReport,
   saveProgressReport,
   formatWeekRange,
   addAttachment,
@@ -16,8 +17,10 @@ import {
 import { resolveActualProgressUpdateContent } from "@/lib/progressReportDemo"
 import {
   getActualProgressUpdateHref,
-  getProgressReportFileHref,
+  getDailyProgressReportFileHref,
   getProgressReportsHref,
+  getWeeklyProgressReportFileHref,
+  getWeeklyProgressReportsHref,
   getWeeklyFileHref,
 } from "@/lib/projectRoutes"
 import { getWeeklyFile } from "@/lib/projects"
@@ -30,8 +33,10 @@ import {
   prepareProgressPhoto,
 } from "@/lib/progressReportPhotos"
 
-function buildInitialReport(projectId, reportId) {
-  const reportData = getProjectProgressReport(projectId, reportId)
+function buildInitialReport(projectId, reportId, reportType) {
+  const reportData = reportType === "daily"
+    ? getProjectDailyProgressReport(projectId, reportId)
+    : getProjectProgressReport(projectId, reportId)
   if (!reportData) return null
 
   return {
@@ -43,8 +48,8 @@ function buildInitialReport(projectId, reportId) {
   }
 }
 
-function ProgressReportEditor({ projectName, projectId, reportId, pageVariant = "target-plan" }) {
-  const [report, setReport] = useState(() => buildInitialReport(projectId, reportId))
+function ProgressReportEditor({ projectName, projectId, reportId, reportType = "weekly", pageVariant = "target-plan" }) {
+  const [report, setReport] = useState(() => buildInitialReport(projectId, reportId, reportType))
   const [isSaving, setIsSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState(null)
   const [showAttachmentForm, setShowAttachmentForm] = useState(false)
@@ -104,7 +109,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, pageVariant = 
       setIsSaving(true)
 
       try {
-        if (!saveProgressReport(projectId, next)) {
+        if (!saveProgressReport(projectId, { ...next, reportType })) {
           throw new Error("Could not save progress report.")
         }
 
@@ -228,8 +233,8 @@ function ProgressReportEditor({ projectName, projectId, reportId, pageVariant = 
   }
 
   const weeklyFile = useMemo(
-    () => (projectId && reportId ? getWeeklyFile(projectId, reportId) : null),
-    [projectId, reportId]
+    () => (reportType === "weekly" && projectId && reportId ? getWeeklyFile(projectId, reportId) : null),
+    [projectId, reportId, reportType]
   )
 
   if (!report) {
@@ -251,7 +256,9 @@ function ProgressReportEditor({ projectName, projectId, reportId, pageVariant = 
         <header className="space-y-2 flex-1">
           <div className="flex items-center gap-3">
             <Link
-              href={getProgressReportsHref(projectId)}
+              href={reportType === "daily"
+                ? getProgressReportsHref(projectId)
+                : getWeeklyProgressReportsHref(projectId)}
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
             >
               <Icon name="chevron-left" size={18} />
@@ -261,7 +268,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, pageVariant = 
             </p>
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
-            {isActualProgressUpdate ? "Actual Progress Update" : "Target Plan"} · {formatWeekRange(report.id)}
+            {isActualProgressUpdate ? "Actual Progress Update" : "Target Plan"} · {reportType === "daily" ? report.date : formatWeekRange(report.id)}
           </h1>
           <p className="max-w-2xl text-zinc-500">{projectName}</p>
         </header>
@@ -275,9 +282,20 @@ function ProgressReportEditor({ projectName, projectId, reportId, pageVariant = 
               Saved {lastSaved.toLocaleTimeString()}
             </span>
           )}
+          <button
+            type="button"
+            onClick={() => saveChanges((currentReport) => currentReport)}
+            disabled={isSaving}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Icon name="save" size={14} />
+            Save
+          </button>
           {!isActualProgressUpdate && (
             <Link
-              href={getActualProgressUpdateHref(projectId, reportId)}
+              href={reportType === "daily"
+                ? `${getDailyProgressReportFileHref(projectId, reportId)}/actual-progress-update`
+                : `${getWeeklyProgressReportFileHref(projectId, reportId)}/actual-progress-update`}
               className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
             >
               Actual Progress Update
@@ -285,7 +303,9 @@ function ProgressReportEditor({ projectName, projectId, reportId, pageVariant = 
           )}
           {isActualProgressUpdate && (
             <Link
-              href={getProgressReportFileHref(projectId, reportId)}
+              href={reportType === "daily"
+                ? getDailyProgressReportFileHref(projectId, reportId)
+                : getWeeklyProgressReportFileHref(projectId, reportId)}
               className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
             >
               Target Plan
@@ -350,7 +370,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, pageVariant = 
             </div>
           </section>
 
-          {isActualProgressUpdate && (
+          {isActualProgressUpdate && reportType === "weekly" && (
             <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
               <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -392,7 +412,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, pageVariant = 
             </section>
           )}
 
-          {isActualProgressUpdate && (
+          {isActualProgressUpdate && reportType === "weekly" && (
             <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
               <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -694,7 +714,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, pageVariant = 
 }
 
 export default function ProgressReport(props) {
-  const { projectId, reportId } = props
+  const { projectId, reportId, reportType } = props
 
-  return <ProgressReportEditor key={`${projectId}-${reportId}`} {...props} />
+  return <ProgressReportEditor key={`${projectId}-${reportId}-${reportType}`} {...props} />
 }

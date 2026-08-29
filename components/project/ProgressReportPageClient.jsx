@@ -1,10 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import ProgressReportView from "@/components/project/ProgressReportView"
 
-export default function ProgressReportsPageClient({ projectId }) {
+export default function ProgressReportsPageClient({ projectId, reportType = null }) {
   const { getProject } = useProjects()
+  const [selectedReportType, setSelectedReportType] = useState(reportType)
   const project = getProject(projectId)
 
   if (!project) {
@@ -17,7 +19,12 @@ export default function ProgressReportsPageClient({ projectId }) {
       style={{ scrollPaddingTop: "5rem" }}
     >
       <div className="mx-auto max-w-4xl">
-        <ProgressReportView projectName={project.name} projectId={projectId} />
+        <ProgressReportView
+          projectName={project.name}
+          projectId={projectId}
+          reportType={selectedReportType}
+          onSelectType={setSelectedReportType}
+        />
       </div>
     </div>
   )
