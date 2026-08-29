@@ -6,6 +6,7 @@ import ReportFileSearchBar, { useReportFileSearch } from "@/components/project/R
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import {
   getActualProgressUpdateHref,
+  getDailyFileHref,
   getDailyProgressReportFileHref,
   getWeeklyProgressReportFileHref,
   getWeeklyFileHref,
@@ -46,11 +47,20 @@ function ProgressReportFileRow({ file, projectId, reportType }) {
   const actualHref = reportType === "daily"
     ? getActualProgressUpdateHref(projectId, file.id)
     : `${reportFileHref}/actual-progress-update`
-  const weeklyValuationHref = getWeeklyFileHref(projectId, file.id)
+  const valuationHref = reportType === "daily"
+    ? getDailyFileHref(projectId, file.id)
+    : getWeeklyFileHref(projectId, file.id)
+  const valuationLabel = reportType === "daily"
+    ? "Daily valuation report"
+    : "Weekly valuation report"
+  const equipmentPeriod = reportType === "daily" ? "daily" : "weekly"
+  const equipmentLabel = reportType === "daily"
+    ? "Daily equipment in use"
+    : "Weekly equipment in use"
   const equipmentInUseHref = getPlantOnSitePeriodFileHref(
     projectId,
     "equipment-in-use",
-    "weekly",
+    equipmentPeriod,
     file.id
   )
 
@@ -66,11 +76,11 @@ function ProgressReportFileRow({ file, projectId, reportType }) {
             <p className="text-sm text-zinc-500">{description}</p>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
               <Link
-                href={weeklyValuationHref}
+                href={valuationHref}
                 prefetch={false}
                 className="font-medium text-blue-600 transition hover:text-blue-700 hover:underline"
               >
-                Weekly valuation report
+                {valuationLabel}
               </Link>
               <span className="text-zinc-300">·</span>
               <Link
@@ -78,7 +88,7 @@ function ProgressReportFileRow({ file, projectId, reportType }) {
                 prefetch={false}
                 className="font-medium text-blue-600 transition hover:text-blue-700 hover:underline"
               >
-                Weekly equipment in use
+                {equipmentLabel}
               </Link>
             </div>
           </div>
