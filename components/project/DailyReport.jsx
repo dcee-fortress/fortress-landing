@@ -13,7 +13,7 @@ import { createSlotFromTemplate } from "@/lib/projectData"
 import { getDailyFileEntryStatus } from "@/lib/dailyFileSync"
 import { getDailyValueHref } from "@/lib/projectRoutes"
 
-export default function DailyReport({ projectName, projectId, file }) {
+export default function DailyReport({ projectName, projectId, file, hideHourlyDashboards = false }) {
   const { version, getSlotsForDay, saveSlotsForDay, getDaySummary } = useProjectData()
   void version
 
@@ -111,7 +111,7 @@ export default function DailyReport({ projectName, projectId, file }) {
         </div>
       </article>
 
-      <section className="space-y-4">
+      {!hideHourlyDashboards && <section className="space-y-4">
         <div className="no-print flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-zinc-900">Hourly Dashboards</h2>
@@ -152,7 +152,7 @@ export default function DailyReport({ projectName, projectId, file }) {
             material schedule to enter and save today&apos;s data.
           </div>
         )}
-      </section>
+      </section>}
     </div>
   )
 }

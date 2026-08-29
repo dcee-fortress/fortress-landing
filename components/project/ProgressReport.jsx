@@ -389,10 +389,10 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                 <div className="p-6">
                   {dailyFile ? (
                     <DailyReport
-                      embedded
                       projectName={projectName}
                       projectId={projectId}
                       file={dailyFile}
+                      hideHourlyDashboards
                     />
                   ) : (
                     <p className="text-sm text-amber-800">
