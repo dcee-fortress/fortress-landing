@@ -355,7 +355,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                 editorKey={`${projectId}-${reportId}-${pageVariant}`}
                 value={
                   isActualProgressUpdate
-                    ? resolveActualProgressUpdateContent(report, dailySummary)
+                    ? resolveActualProgressUpdateContent(report, dailySummary, reportType === "daily")
                     : report.progressSummary
                 }
                 onChange={
@@ -373,7 +373,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
               <p className="mt-2 text-xs text-zinc-500">
                 {countPlainText(
                   isActualProgressUpdate
-                    ? resolveActualProgressUpdateContent(report, dailySummary)
+                    ? resolveActualProgressUpdateContent(report, dailySummary, reportType === "daily")
                     : report.progressSummary
                 )}{" "}
                 characters · Shortcuts: Ctrl+B bold, Ctrl+I italic, Ctrl+U underline, Ctrl+Z undo
