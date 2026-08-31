@@ -244,8 +244,8 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
     [projectId, reportId, reportType]
   )
   const dailySummary = useMemo(
-    () => (reportType === "daily" && reportId ? getDaySummary(reportId) : null),
-    [getDaySummary, reportId, reportType]
+    () => (reportType === "daily" && report?.date ? getDaySummary(report.date) : null),
+    [getDaySummary, report?.date, reportType]
   )
 
   if (!report) {
