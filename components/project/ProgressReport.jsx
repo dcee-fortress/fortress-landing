@@ -7,6 +7,7 @@ import WeeklyReport from "@/components/project/WeeklyReport"
 import DailyReport from "@/components/project/DailyReport"
 import EquipmentInUseTable from "@/components/project/EquipmentInUseTable"
 import RichTextEditor, { countPlainText } from "@/components/project/RichTextEditor"
+import { useProjectData } from "@/components/project/ProjectDataProvider"
 import {
   getProjectProgressReport,
   getProjectDailyProgressReport,
@@ -50,6 +51,7 @@ function buildInitialReport(projectId, reportId, reportType) {
 }
 
 function ProgressReportEditor({ projectName, projectId, reportId, reportType = "weekly", pageVariant = "target-plan" }) {
+  const { getDaySummary } = useProjectData()
   const [report, setReport] = useState(() => buildInitialReport(projectId, reportId, reportType))
   const [isSaving, setIsSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState(null)
@@ -241,6 +243,10 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
     () => (reportType === "daily" && projectId && reportId ? getDailyFile(projectId, reportId) : null),
     [projectId, reportId, reportType]
   )
+  const dailySummary = useMemo(
+    () => (reportType === "daily" && reportId ? getDaySummary(reportId) : null),
+    [getDaySummary, reportId, reportType]
+  )
 
   if (!report) {
     return (
@@ -349,7 +355,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                 editorKey={`${projectId}-${reportId}-${pageVariant}`}
                 value={
                   isActualProgressUpdate
-                    ? resolveActualProgressUpdateContent(report)
+                    ? resolveActualProgressUpdateContent(report, dailySummary)
                     : report.progressSummary
                 }
                 onChange={
@@ -367,7 +373,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
               <p className="mt-2 text-xs text-zinc-500">
                 {countPlainText(
                   isActualProgressUpdate
-                    ? resolveActualProgressUpdateContent(report)
+                    ? resolveActualProgressUpdateContent(report, dailySummary)
                     : report.progressSummary
                 )}{" "}
                 characters · Shortcuts: Ctrl+B bold, Ctrl+I italic, Ctrl+U underline, Ctrl+Z undo
