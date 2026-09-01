@@ -178,7 +178,7 @@ export default function RichTextEditor({
   const isEmpty = !value || value === "<br>" || countPlainText(value) === 0
 
   return (
-    <div className="rich-text-editor overflow-hidden rounded-lg border border-zinc-200 bg-white">
+    <div className="rich-text-editor overflow-hidden rounded-none border border-zinc-300 bg-white shadow-none">
       <div className="no-print flex flex-wrap items-center gap-1 border-b border-zinc-200 bg-zinc-50 px-2 py-2">
         <ToolbarButton icon="undo" label="Undo (Ctrl+Z)" onClick={() => runCommand("undo")} />
         <ToolbarButton icon="redo" label="Redo (Ctrl+Y)" onClick={() => runCommand("redo")} />

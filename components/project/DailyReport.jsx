@@ -14,60 +14,13 @@ import { createSlotFromTemplate } from "@/lib/projectData"
 import { getDailyFileEntryStatus } from "@/lib/dailyFileSync"
 import { getDailyValueHref } from "@/lib/projectRoutes"
 
-function makeDailyReportRow() {
-  return {
-    id: `daily-report-row-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    description: "",
-    cost: "",
-    production: "",
-    rate: "",
-  }
-}
-
 export default function DailyReport({ projectName, projectId, file, hideHourlyDashboards = false }) {
   const { version, getSlotsForDay, saveSlotsForDay, getDaySummary } = useProjectData()
   void version
 
-  const storageKey = `daily-report-word-editor-${projectId}-${file.id}`
-  const [reportRows, setReportRows] = useState([])
-  const [saveMessage, setSaveMessage] = useState("")
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      setReportRows([])
-      return
-    }
-
-    try {
-      const raw = window.localStorage.getItem(storageKey)
-      const parsed = raw ? JSON.parse(raw) : []
-      setReportRows(Array.isArray(parsed) ? parsed : [])
-    } catch {
-      setReportRows([])
-    }
-  }, [storageKey])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(storageKey, JSON.stringify(reportRows))
-    }
-  }, [storageKey, reportRows])
-
-  useEffect(() => {
-    if (typeof window === "undefined") return undefined
-
-    const handlePageHide = () => {
-      window.localStorage.setItem(storageKey, JSON.stringify(reportRows))
-    }
-
-    window.addEventListener("pagehide", handlePageHide)
-    return () => window.removeEventListener("pagehide", handlePageHide)
-  }, [storageKey, reportRows])
-
   const slots = getSlotsForDay(file.id)
   const summary = getDaySummary(file.id)
   const status = getDailyFileEntryStatus(projectId, file)
-  const reportRowsWithIds = reportRows.length > 0 ? reportRows : [makeDailyReportRow()]
 
   const missingSlots = getMissingSlotTemplates(slots)
 

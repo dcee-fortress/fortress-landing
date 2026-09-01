@@ -261,9 +261,8 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
   const sitePhotos = dedupeProgressPhotos(report.progressUpdate?.photos)
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+    <div className="space-y-6 bg-zinc-50/60 p-2 md:p-4">
+      <div className="flex items-start justify-between gap-4 rounded-none border border-zinc-200 bg-white px-4 py-3 shadow-sm">
         <header className="space-y-2 flex-1">
           <div className="flex items-center gap-3">
             <Link
@@ -334,12 +333,10 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Progress Summary Editor */}
         <div className="lg:col-span-2 space-y-6">
-          <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-            <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
+          <section className="overflow-hidden rounded-none border border-zinc-200 bg-white shadow-none min-h-[720px]">
+            <div className="border-b border-zinc-200 bg-white px-6 py-4">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
                 {isActualProgressUpdate ? "Actual Progress Update" : "Progress Summary"}
               </h2>
@@ -350,7 +347,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
               </p>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 md:p-6">
               <RichTextEditor
                 editorKey={`${projectId}-${reportId}-${pageVariant}`}
                 value={
@@ -368,7 +365,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                     ? "Document actual progress, milestones, and updates for this week…"
                     : "Type your progress summary for this week…"
                 }
-                minHeight={320}
+                minHeight={640}
               />
               <p className="mt-2 text-xs text-zinc-500">
                 {countPlainText(
@@ -383,31 +380,6 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
 
           {isActualProgressUpdate && reportType === "daily" && (
             <>
-              <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-                <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-                    Daily Valuation Dashboard
-                  </h2>
-                  <p className="mt-1 text-xs text-zinc-600">
-                    Enter and save the valuation data for this exact report day.
-                  </p>
-                </div>
-                <div className="p-6">
-                  {dailyFile ? (
-                    <DailyReport
-                      projectName={projectName}
-                      projectId={projectId}
-                      file={dailyFile}
-                      hideHourlyDashboards
-                    />
-                  ) : (
-                    <p className="text-sm text-amber-800">
-                      No daily valuation file exists for this report date yet.
-                    </p>
-                  )}
-                </div>
-              </section>
-
               <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
                 <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
                   <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
