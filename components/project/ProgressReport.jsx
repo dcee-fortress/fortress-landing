@@ -19,6 +19,7 @@ import {
 import { resolveActualProgressUpdateContent } from "@/lib/progressReportDemo"
 import {
   getActualProgressUpdateHref,
+  getDailyFileHref,
   getDailyProgressReportFileHref,
   getProgressReportsHref,
   getWeeklyProgressReportFileHref,
@@ -260,6 +261,10 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
   const isActualProgressUpdate = pageVariant === "actual-progress-update"
   const sitePhotos = dedupeProgressPhotos(report.progressUpdate?.photos)
 
+  const saveNow = () => {
+    saveChanges((currentReport) => currentReport)
+  }
+
   return (
     <div className="space-y-6 bg-zinc-50/60 p-2 md:p-4">
       <div className="flex items-start justify-between gap-4 rounded-none border border-zinc-200 bg-white px-4 py-3 shadow-sm">
@@ -301,6 +306,22 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
             <Icon name="save" size={14} />
             Save
           </button>
+          {reportType === "daily" && (
+            <Link
+              href={getDailyFileHref(projectId, reportId)}
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
+            >
+              Daily Valuation
+            </Link>
+          )}
+          {reportType === "weekly" && (
+            <Link
+              href={getWeeklyFileHref(projectId, reportId)}
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
+            >
+              Weekly Valuation
+            </Link>
+          )}
           {!isActualProgressUpdate && (
             <Link
               href={reportType === "daily"
@@ -337,14 +358,30 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
         <div className="lg:col-span-2 space-y-6">
           <section className="overflow-hidden rounded-none border border-zinc-200 bg-white shadow-none min-h-[720px]">
             <div className="border-b border-zinc-200 bg-white px-6 py-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-                {isActualProgressUpdate ? "Actual Progress Update" : "Progress Summary"}
-              </h2>
-              <p className="mt-1 text-xs text-zinc-600">
-                {isActualProgressUpdate
-                  ? "This report starts from the target plan saved for this week. Edit freely — your changes are saved separately as the actual progress update."
-                  : "Use the Word-style toolbar to format your target plan. Content from the previous week is copied automatically each new week and can be edited freely."}
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                    {isActualProgressUpdate ? "Actual Progress Update" : "Progress Summary"}
+                  </h2>
+                  <p className="mt-1 text-xs text-zinc-600">
+                    {isActualProgressUpdate
+                      ? "This report starts from the target plan saved for this week. Edit freely — your changes are saved separately as the actual progress update."
+                      : "Use the Word-style toolbar to format your target plan. Content from the previous week is copied automatically each new week and can be edited freely."}
+                  </p>
+                </div>
+
+                {isActualProgressUpdate && (
+                  <button
+                    type="button"
+                    onClick={saveNow}
+                    disabled={isSaving}
+                    className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Icon name="save" size={14} />
+                    Save document
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="p-4 md:p-6">
