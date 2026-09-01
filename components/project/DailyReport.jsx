@@ -12,7 +12,7 @@ import {
 } from "@/lib/dailySlots"
 import { createSlotFromTemplate } from "@/lib/projectData"
 import { getDailyFileEntryStatus } from "@/lib/dailyFileSync"
-import { getDailyValueHref } from "@/lib/projectRoutes"
+import { getDailyFileHref, getDailyValueHref } from "@/lib/projectRoutes"
 
 export default function DailyReport({ projectName, projectId, file, hideHourlyDashboards = false }) {
   const { version, getSlotsForDay, saveSlotsForDay, getDaySummary } = useProjectData()
@@ -53,7 +53,8 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Link
             href={getDailyValueHref(projectId)}
             className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
@@ -61,12 +62,20 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
             <Icon name="arrow-left" size={16} />
             Back to daily files
           </Link>
-          <header className="space-y-1">
-            <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-              Daily cost
-            </p>
-            <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{file.label}</h1>
-          </header>
+          <Link
+            href={getDailyFileHref(projectId, file.id)}
+            className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
+          >
+            <Icon name="chart-bar" size={14} />
+            Daily Valuation Dashboard
+          </Link>
+        </div>
+        <header className="space-y-1">
+          <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+            Daily cost
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{file.label}</h1>
+        </header>
       </div>
 
       <article className="project-report overflow-hidden rounded-xl border border-zinc-300 bg-white shadow-sm">
