@@ -34,16 +34,16 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
 
   useEffect(() => {
     if (typeof window === "undefined") {
-      setReportRows([makeDailyReportRow()])
+      setReportRows([])
       return
     }
 
     try {
       const raw = window.localStorage.getItem(storageKey)
       const parsed = raw ? JSON.parse(raw) : []
-      setReportRows(Array.isArray(parsed) && parsed.length > 0 ? parsed : [makeDailyReportRow()])
+      setReportRows(Array.isArray(parsed) ? parsed : [])
     } catch {
-      setReportRows([makeDailyReportRow()])
+      setReportRows([])
     }
   }, [storageKey])
 
@@ -93,46 +93,6 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
     persistSlots(slots.map((slot) => (slot.id === updatedSlot.id ? updatedSlot : slot)))
   }
 
-  const updateReportRow = (rowId, field, value) => {
-    setReportRows((current) =>
-      current.map((row) => {
-        if (row.id !== rowId) return row
-
-        const nextRow = { ...row, [field]: value }
-        const costValue = Number.parseFloat(String(nextRow.cost ?? ""))
-        const productionValue = Number.parseFloat(String(nextRow.production ?? ""))
-
-        if (field === "cost" || field === "production") {
-          if (productionValue && productionValue !== 0) {
-            nextRow.rate = (costValue / productionValue).toFixed(2)
-          } else {
-            nextRow.rate = ""
-          }
-        }
-
-        return nextRow
-      })
-    )
-  }
-
-  const addReportRow = () => {
-    setReportRows((current) => [...current, makeDailyReportRow()])
-  }
-
-  const deleteReportRow = (rowId) => {
-    setReportRows((current) => {
-      const filtered = current.filter((row) => row.id !== rowId)
-      return filtered.length > 0 ? filtered : [makeDailyReportRow()]
-    })
-  }
-
-  const saveReportRows = () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(storageKey, JSON.stringify(reportRowsWithIds))
-    }
-    setSaveMessage("Saved locally for tomorrow. You can reopen this page and push it to the live website when ready.")
-  }
-
   const exportDailyTotal = async () => {
     const { exportDailyTotalPdf } = await import("@/lib/earnedValuePdf")
     exportDailyTotalPdf({ projectName, file, summary })
@@ -155,106 +115,6 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{file.label}</h1>
           </header>
       </div>
-
-      <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-zinc-900">Daily valuation notes</h2>
-              <p className="text-sm text-zinc-500">
-                This is the Word-style space for the description, cost, production and rate. Keep the linked valuation dashboard as it is and edit this section here.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={addReportRow}
-              className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
-            >
-              <Icon name="plus" size={16} />
-              Add row
-            </button>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto px-6 py-6">
-          <table className="w-full min-w-[820px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b-2 border-zinc-900 bg-zinc-900 text-left text-white">
-                <th className="px-3 py-3 font-semibold text-left">Description</th>
-                <th className="px-3 py-3 font-semibold text-right">Cost</th>
-                <th className="px-3 py-3 font-semibold text-right">Production</th>
-                <th className="px-3 py-3 font-semibold text-right">Rate</th>
-                <th className="px-3 py-3 text-right font-semibold"> </th>
-              </tr>
-            </thead>
-            <tbody>
-              {reportRowsWithIds.map((row) => (
-                <tr key={row.id} className="border-b border-zinc-200 align-top">
-                  <td className="px-3 py-3">
-                    <textarea
-                      rows={3}
-                      value={row.description}
-                      onChange={(event) => updateReportRow(row.id, "description", event.target.value)}
-                      placeholder="Type your daily valuation notes here..."
-                      className="w-full resize-y rounded-md border border-zinc-200 bg-white px-2 py-2 text-sm leading-snug text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                    />
-                  </td>
-                  <td className="px-3 py-3">
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      value={row.cost}
-                      onChange={(event) => updateReportRow(row.id, "cost", event.target.value)}
-                      className="w-full rounded-md border border-zinc-200 bg-white px-2 py-2 text-right text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                    />
-                  </td>
-                  <td className="px-3 py-3">
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      value={row.production}
-                      onChange={(event) => updateReportRow(row.id, "production", event.target.value)}
-                      className="w-full rounded-md border border-zinc-200 bg-white px-2 py-2 text-right text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                    />
-                  </td>
-                  <td className="px-3 py-3">
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      value={row.rate}
-                      onChange={(event) => updateReportRow(row.id, "rate", event.target.value)}
-                      className="w-full rounded-md border border-zinc-200 bg-white px-2 py-2 text-right text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                    />
-                  </td>
-                  <td className="px-3 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => deleteReportRow(row.id)}
-                      className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 bg-zinc-50 px-6 py-4">
-          <p className="text-sm text-zinc-600">
-            {saveMessage || "This is a draft only. It remains in the browser until you are ready to publish it to the live website."}
-          </p>
-          <button
-            type="button"
-            onClick={saveReportRows}
-            className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100"
-          >
-            <Icon name="save" size={16} />
-            Save daily text
-          </button>
-        </div>
-      </section>
 
       <article className="project-report overflow-hidden rounded-xl border border-zinc-300 bg-white shadow-sm">
         <div className="border-b border-zinc-200 bg-zinc-50 px-8 py-6">
