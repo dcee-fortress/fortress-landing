@@ -53,6 +53,17 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
     }
   }, [storageKey, reportRows])
 
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined
+
+    const handlePageHide = () => {
+      window.localStorage.setItem(storageKey, JSON.stringify(reportRows))
+    }
+
+    window.addEventListener("pagehide", handlePageHide)
+    return () => window.removeEventListener("pagehide", handlePageHide)
+  }, [storageKey, reportRows])
+
   const slots = getSlotsForDay(file.id)
   const summary = getDaySummary(file.id)
   const status = getDailyFileEntryStatus(projectId, file)
@@ -244,49 +255,6 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
           </button>
         </div>
       </section>
-
-      <article className="project-report overflow-hidden rounded-xl border border-zinc-300 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 bg-zinc-50 px-8 py-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
-                {projectName}
-              </p>
-              <h2 className="mt-1 text-2xl font-bold text-zinc-900">{file.label}</h2>
-              <p className="mt-1 text-sm text-zinc-500">
-                {status.key === "awaiting"
-                  ? "New daily file — add hourly dashboards and save material schedules to enter data."
-                  : status.key === "in-progress"
-                    ? "Today's data in progress — totals update as hourly material schedules are saved."
-                    : `File completed: ${file.completedAt}`}
-              </p>
-            </div>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-medium ring-1 ${
-                status.key === "awaiting"
-                  ? "bg-sky-50 text-sky-800 ring-sky-200"
-                  : status.key === "in-progress"
-                    ? "bg-amber-50 text-amber-800 ring-amber-200"
-                    : "bg-emerald-50 text-emerald-700 ring-emerald-200"
-              }`}
-            >
-              {status.label}
-            </span>
-          </div>
-        </div>
-
-        <div className="px-8 py-6">
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">
-            Daily Total (Roll-up from Hourly Dashboards)
-          </h3>
-          <p className="mb-4 text-sm text-zinc-500">
-            {status.key === "awaiting"
-              ? "No hourly data yet. Add hourly dashboards below, then enter and save material schedules."
-              : `Hourly dashboard entries roll up to daily, weekly, monthly, and project to date totals (${slots.length} active dashboard${slots.length === 1 ? "" : "s"}).`}
-          </p>
-          <EarnedValueReportTable summary={summary} onExportPdf={exportDailyTotal} />
-        </div>
-      </article>
 
       <article className="project-report overflow-hidden rounded-xl border border-zinc-300 bg-white shadow-sm">
         <div className="border-b border-zinc-200 bg-zinc-50 px-8 py-6">

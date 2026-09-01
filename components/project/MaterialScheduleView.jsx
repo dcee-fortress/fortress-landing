@@ -275,7 +275,9 @@ function MaterialScheduleEditor({
                         <td
                           key={column.key}
                           className={`px-3 py-3 ${
-                            column.key === "activityDescription" ? "min-w-[12rem] max-w-[20rem]" : ""
+                            column.key === "activityDescription" || column.key === "details"
+                              ? "min-w-[12rem] max-w-[20rem]"
+                              : ""
                           }`}
                         >
                           {column.key === "activityDescription" ? (
@@ -286,6 +288,14 @@ function MaterialScheduleEditor({
                               value={rawValue}
                               refreshKey={version}
                               onChange={(value) => updateRow(rowIndex, fieldKey, value)}
+                            />
+                          ) : column.key === "details" ? (
+                            <textarea
+                              rows={2}
+                              value={rawValue}
+                              onChange={(event) => updateRow(rowIndex, fieldKey, event.target.value)}
+                              placeholder="Add row details"
+                              className="w-full resize-y rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                             />
                           ) : (
                             <MaterialScheduleFormulaCell
@@ -339,17 +349,15 @@ function MaterialScheduleEditor({
                 </tr>
               )}
               <tr className="border-t-2 border-zinc-900 bg-zinc-50 font-semibold">
-                <td colSpan={8} className="px-3 py-4 text-zinc-900">
+                <td colSpan={MATERIAL_SCHEDULE_COLUMNS.length - 2} className="px-3 py-4 text-zinc-900">
                   Grand Total ({schedule.shortLabel})
                 </td>
                 <td className="px-3 py-4 text-right tabular-nums text-zinc-900">
                   {formatMaterialCurrencyAmount(grandTotal)}
                 </td>
-                <td />
                 <td className="px-3 py-4 text-right tabular-nums text-zinc-900">
                   {formatMaterialAmount(productionTotal)}
                 </td>
-                <td colSpan={2} />
                 <td />
               </tr>
             </tbody>
