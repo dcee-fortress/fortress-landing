@@ -4,10 +4,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { getAllProjects, getProjectById } from "@/lib/projectList"
 import { createCustomProject } from "@/lib/projectRegistry"
 import { startSharedPersistence } from "@/lib/sharedPersistence"
+import { useHasHydrated } from "@/hooks/useHasHydrated"
 
 const ProjectsContext = createContext(null)
 
 export function ProjectsProvider({ children }) {
+  const hasHydrated = useHasHydrated()
   const [version, setVersion] = useState(0)
 
   const refresh = useCallback(() => {
@@ -31,8 +33,8 @@ export function ProjectsProvider({ children }) {
     return {
       version,
       refresh,
-      projects: getAllProjects(),
-      getProject: (id) => getProjectById(id),
+      projects: hasHydrated ? getAllProjects() : [],
+      getProject: (id) => (hasHydrated ? getProjectById(id) : null),
       createProject: async (name, options = {}) => {
         const project = createCustomProject(name, options)
         if (!project) return null
@@ -56,7 +58,7 @@ export function ProjectsProvider({ children }) {
         return result
       },
     }
-  }, [version, refresh])
+  }, [hasHydrated, version, refresh])
 
   return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>
 }

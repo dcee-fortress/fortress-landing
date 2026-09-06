@@ -12,25 +12,12 @@ import {
   resolveEquipmentOperatingHours,
   saveDailyEquipmentHoursData,
 } from "@/lib/equipmentHoursData"
-import { resolveEquipmentPlantName } from "@/lib/equipmentPlantLink"
 import { getEquipmentInUseReport } from "@/lib/equipmentInUse"
 import { getPlantOperatorsHref } from "@/lib/plantOperatorRegisters"
 
 async function exportEquipmentPdf(projectName, report, period) {
   const { exportEquipmentInUsePdf } = await import("@/lib/equipmentInUsePdf")
   exportEquipmentInUsePdf({ projectName, report, period })
-}
-
-function PlantTextInput({ value, onChange, placeholder }) {
-  return (
-    <input
-      type="text"
-      value={value ?? ""}
-      onChange={(event) => onChange(event.target.value)}
-      placeholder={placeholder}
-      className="w-full min-w-[120px] rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
-    />
-  )
 }
 
 function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
@@ -51,8 +38,6 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
       finishHours: "",
       hoursOperating: "",
       hoursOperatingEdited: false,
-      plant: "",
-      plantEdited: false,
     }
 
     persist({
@@ -67,25 +52,20 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
   const rows = useMemo(() => {
     void version
 
-    return report.equipment.map((item, index) => {
+    return report.equipment.map((item) => {
       const stored = hoursById[item.id] ?? {
         startHours: "",
         finishHours: "",
         hoursOperating: "",
         hoursOperatingEdited: false,
-        plant: "",
-        plantEdited: false,
       }
       const startHours = stored.startHours ?? ""
       const finishHours = stored.finishHours ?? ""
-      const plant = resolveEquipmentPlantName(projectId, fileId, item, index, stored)
       const hoursOperating = resolveEquipmentOperatingHours(stored)
       const hoursOperatingInput = getEquipmentOperatingHoursInputValue(stored)
 
       return {
         ...item,
-        plant,
-        plantLinked: !stored.plantEdited,
         startHours,
         finishHours,
         hoursOperating,
@@ -93,7 +73,7 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
         hoursOperatingEdited: stored.hoursOperatingEdited,
       }
     })
-  }, [report.equipment, hoursById, projectId, fileId, version])
+  }, [report.equipment, hoursById, version])
 
   return (
     <div className="space-y-4">
@@ -109,8 +89,8 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
             >
               operator register
             </Link>
-            . Plant names link from material schedule entries for this day — you can still edit them
-            here. Enter start and finish hours, or type hours operating directly.
+            . Supplier, plant name, and plant number copy from each ticked operator for this date.
+            Enter start and finish hours, or type hours operating directly.
           </p>
         </div>
 
@@ -155,17 +135,8 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
                   <td className="border border-zinc-200 px-3 py-2 text-zinc-900">
                     {item.supplier || "—"}
                   </td>
-                  <td className="border border-zinc-200 px-2 py-2">
-                    <PlantTextInput
-                      value={item.plant}
-                      onChange={(value) =>
-                        updateEntry(item.id, { plant: value, plantEdited: true })
-                      }
-                      placeholder="Plant name"
-                    />
-                    {item.plantLinked ? (
-                      <p className="mt-1 text-xs text-zinc-500">Linked from material schedule</p>
-                    ) : null}
+                  <td className="border border-zinc-200 px-3 py-2 text-zinc-900">
+                    {item.plant || "—"}
                   </td>
                   <td className="border border-zinc-200 px-3 py-2 text-zinc-900">
                     {item.plantNumber || "—"}

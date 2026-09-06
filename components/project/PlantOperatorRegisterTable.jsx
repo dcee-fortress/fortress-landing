@@ -46,14 +46,14 @@ function RegisterTextInput({ value, onChange, placeholder }) {
 }
 
 export default function PlantOperatorRegisterTable({ projectId, monthId }) {
-  const { refresh } = useProjectData()
+  const { refresh, version } = useProjectData()
   const { daysInMonth, monthName } = getMonthRegisterMeta(monthId)
   const [register, setRegister] = useState(() => getPlantOperatorRegisterData(projectId, monthId))
 
   useEffect(() => {
     ensurePlantOperatorRegistersExist(projectId)
     setRegister(getPlantOperatorRegisterData(projectId, monthId))
-  }, [projectId, monthId])
+  }, [projectId, monthId, version])
 
   const persist = useCallback(
     (nextRegister) => {

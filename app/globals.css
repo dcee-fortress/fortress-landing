@@ -45,6 +45,7 @@
     font-size: 11pt;
     line-height: 1.5;
     color: #18181b;
+    white-space: pre-wrap;
 }
 
 .rich-text-editor__content:focus {
@@ -71,6 +72,7 @@
 
 .rich-text-editor__content p {
     margin: 0 0 0.5rem;
+    min-height: 1em;
 }
 
 .rich-text-editor__content ul,
@@ -103,6 +105,22 @@
     padding-left: 1rem;
     border-left: 3px solid #d4d4d8;
     color: #52525b;
+}
+
+.rich-text-editor__content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    table-layout: auto;
+}
+
+.rich-text-editor__content th,
+.rich-text-editor__content td {
+    border: 1px solid #d4d4d8;
+    padding: 8px 10px;
+    min-width: 1.5rem;
+    vertical-align: top;
+    word-break: break-word;
 }
 
 :root {

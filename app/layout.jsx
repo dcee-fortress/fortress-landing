@@ -3,8 +3,8 @@ import { APP_BRAND } from '@/lib/appBrand'
 
 export default function RootLayout({ children }) {
 	return (
-		<html lang="en">
-      <body className="min-h-screen bg-zinc-100 font-sans text-zinc-950 antialiased">
+		<html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-zinc-100 font-sans text-zinc-950 antialiased" suppressHydrationWarning>
 				{children}
 			</body>
 		</html>

@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useRef, useMemo } from "react"
+import { useState, useRef, useMemo, useEffect } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
-import WeeklyReport from "@/components/project/WeeklyReport"
-import DailyReport from "@/components/project/DailyReport"
-import EquipmentInUseTable from "@/components/project/EquipmentInUseTable"
+import WorkingHoursWeatherCard from "@/components/project/WorkingHoursWeatherCard"
 import RichTextEditor, { countPlainText } from "@/components/project/RichTextEditor"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
+import { useProjects } from "@/components/project/ProjectsProvider"
+import { getEquipmentInUseForDay, getEquipmentInUseForWeek, getOperatorRegisterForDay, getOperatorRegisterForWeek } from "@/lib/equipmentInUse"
 import {
   getProjectProgressReport,
   getProjectDailyProgressReport,
@@ -16,7 +16,10 @@ import {
   addAttachment,
   removeAttachment,
 } from "@/lib/progressReports"
-import { resolveActualProgressUpdateContent } from "@/lib/progressReportDemo"
+import {
+  mergeValuationNotesContent,
+  resolveActualProgressUpdateContent,
+} from "@/lib/progressReportDemo"
 import {
   getActualProgressUpdateHref,
   getDailyFileHref,
@@ -26,15 +29,24 @@ import {
   getWeeklyProgressReportsHref,
   getWeeklyFileHref,
 } from "@/lib/projectRoutes"
-import { getDailyFile, getWeeklyFile } from "@/lib/projects"
-import { getPlantOnSitePeriodFileHref } from "@/lib/plantOnSiteModules"
+import ExportPdfButton from "@/components/project/ExportPdfButton"
+import SiteCameraCapture from "@/components/project/SiteCameraCapture"
 import {
   dedupeProgressPhotos,
   downloadProgressPhoto,
+  hydrateProgressPhotos,
   normalizeProgressPhotos,
   openPhotoInNewTab,
+  persistProgressPhotos,
   prepareProgressPhoto,
+  removeStoredProgressPhoto,
 } from "@/lib/progressReportPhotos"
+import {
+  exportElementToPdf,
+  exportProgressDocumentPdf,
+  getDailyReportPdfFilename,
+  getWeeklyReportPdfFilename,
+} from "@/lib/progressReportPdf"
 
 function buildInitialReport(projectId, reportId, reportType) {
   const reportData = reportType === "daily"
@@ -52,7 +64,9 @@ function buildInitialReport(projectId, reportId, reportType) {
 }
 
 function ProgressReportEditor({ projectName, projectId, reportId, reportType = "weekly", pageVariant = "target-plan" }) {
-  const { getDaySummary } = useProjectData()
+  const { getProject } = useProjects()
+  const { getDaySummary, getWeekSummary, version } = useProjectData()
+  const displayProjectName = getProject(projectId)?.name || projectName
   const [report, setReport] = useState(() => buildInitialReport(projectId, reportId, reportType))
   const [isSaving, setIsSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState(null)
@@ -60,10 +74,46 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
   const [viewingPhoto, setViewingPhoto] = useState(null)
   const [photoUploadError, setPhotoUploadError] = useState("")
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [isCameraOpen, setIsCameraOpen] = useState(false)
+  const [isExportingPdf, setIsExportingPdf] = useState(false)
   const fileInputRef = useRef(null)
   const photoInputRef = useRef(null)
-  const cameraInputRef = useRef(null)
   const autoSaveTimeoutRef = useRef(null)
+  const pageRef = useRef(null)
+  const documentSectionRef = useRef(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function hydrate() {
+      const initial = buildInitialReport(projectId, reportId, reportType)
+      if (!initial) return
+
+      const photos = await hydrateProgressPhotos(initial.progressUpdate?.photos)
+      if (cancelled) return
+
+      setReport((prev) => {
+        const current = prev || initial
+        const hydratedById = new Map(photos.map((photo) => [photo.id, photo]))
+        const mergedPhotos = (current.progressUpdate?.photos || photos).map((photo) =>
+          photo?.data ? photo : hydratedById.get(photo.id) || photo
+        )
+
+        return {
+          ...current,
+          progressUpdate: {
+            ...current.progressUpdate,
+            photos: dedupeProgressPhotos(mergedPhotos),
+          },
+        }
+      })
+    }
+
+    hydrate()
+    return () => {
+      cancelled = true
+    }
+  }, [projectId, reportId, reportType])
 
   const handleProgressSummaryChange = (newContent) => {
     setReport((prev) => ({
@@ -85,6 +135,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
       const progressUpdate = {
         ...prev.progressUpdate,
         content: newContent,
+        userEdited: true,
         updatedAt: new Date().toISOString(),
       }
 
@@ -191,23 +242,34 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
     document.body.removeChild(link)
   }
 
-  const addPhotoToReport = async (file) => {
+  const addPhotosToReport = async (files) => {
+    const imageFiles = (files || []).filter((file) => file?.type?.startsWith("image/"))
+    if (imageFiles.length === 0) {
+      setPhotoUploadError("Please select image files")
+      return
+    }
+
     setPhotoUploadError("")
     setIsUploadingPhoto(true)
 
     try {
-      const photo = await prepareProgressPhoto(file)
+      const prepared = []
+      for (const file of imageFiles) {
+        prepared.push(await prepareProgressPhoto(file))
+      }
+
+      await persistProgressPhotos(prepared)
 
       saveChanges((prev) => ({
         progressUpdate: {
           ...prev.progressUpdate,
-          photos: dedupeProgressPhotos([...(prev.progressUpdate?.photos || []), photo]),
+          photos: dedupeProgressPhotos([...(prev.progressUpdate?.photos || []), ...prepared]),
           updatedAt: new Date().toISOString(),
         },
       }))
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Could not upload this photo. Please try again."
+        error instanceof Error ? error.message : "Could not add these photos. Please try again."
       setPhotoUploadError(message)
       window.alert(message)
     } finally {
@@ -216,13 +278,15 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
   }
 
   const handlePhotoUpload = async (e) => {
-    const file = e.target.files?.[0]
+    const files = Array.from(e.target.files || [])
     e.target.value = ""
-    if (!file) return
-    await addPhotoToReport(file)
+    if (files.length === 0) return
+    await addPhotosToReport(files)
   }
 
   const handleRemovePhoto = (photoId) => {
+    void removeStoredProgressPhoto(photoId)
+
     saveChanges((prev) => ({
       progressUpdate: {
         ...prev.progressUpdate,
@@ -236,18 +300,66 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
     }
   }
 
-  const weeklyFile = useMemo(
-    () => (reportType === "weekly" && projectId && reportId ? getWeeklyFile(projectId, reportId) : null),
-    [projectId, reportId, reportType]
+  const valuationSummary = useMemo(() => {
+    if (!reportId) return null
+    if (reportType === "daily") return getDaySummary(reportId)
+    if (reportType === "weekly") return getWeekSummary(reportId)
+    return null
+  }, [getDaySummary, getWeekSummary, reportId, reportType, version])
+
+  const equipmentReport = useMemo(() => {
+    if (!projectId || !reportId) return null
+    if (reportType === "daily") return getEquipmentInUseForDay(projectId, reportId)
+    if (reportType === "weekly") return getEquipmentInUseForWeek(projectId, reportId)
+    return null
+  }, [projectId, reportId, reportType, version])
+
+  const operatorRegister = useMemo(() => {
+    if (!projectId || !reportId) return null
+    if (reportType === "daily") return getOperatorRegisterForDay(projectId, reportId)
+    if (reportType === "weekly") return getOperatorRegisterForWeek(projectId, reportId)
+    return null
+  }, [projectId, reportId, reportType, version])
+
+  const actualProgressContent = useMemo(
+    () =>
+      resolveActualProgressUpdateContent(
+        report,
+        valuationSummary,
+        equipmentReport,
+        operatorRegister
+      ),
+    [report, valuationSummary, equipmentReport, operatorRegister]
   )
-  const dailyFile = useMemo(
-    () => (reportType === "daily" && projectId && reportId ? getDailyFile(projectId, reportId) : null),
-    [projectId, reportId, reportType]
-  )
-  const dailySummary = useMemo(
-    () => (reportType === "daily" && report?.date ? getDaySummary(report.date) : null),
-    [getDaySummary, report?.date, reportType]
-  )
+
+  useEffect(() => {
+    if (pageVariant !== "actual-progress-update") return
+
+    setReport((prev) => {
+      if (!prev) return prev
+      if (prev.progressUpdate?.userEdited) return prev
+
+      const nextContent = mergeValuationNotesContent(
+        prev.progressUpdate?.content,
+        valuationSummary,
+        equipmentReport,
+        operatorRegister
+      )
+      if (!nextContent || nextContent === (prev.progressUpdate?.content || "")) return prev
+
+      const next = {
+        ...prev,
+        progressUpdate: {
+          ...prev.progressUpdate,
+          content: nextContent,
+          updatedAt: new Date().toISOString(),
+        },
+      }
+
+      saveProgressReport(projectId, { ...next, reportType })
+      return next
+    })
+  }, [pageVariant, projectId, reportType, valuationSummary, equipmentReport, operatorRegister])
 
   if (!report) {
     return (
@@ -261,12 +373,49 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
   const isActualProgressUpdate = pageVariant === "actual-progress-update"
   const sitePhotos = dedupeProgressPhotos(report.progressUpdate?.photos)
 
-  const saveNow = () => {
-    saveChanges((currentReport) => currentReport)
+  const exportCurrentDocumentPdf = async () => {
+    const liveHtml =
+      documentSectionRef.current?.querySelector(".rich-text-editor__content")?.innerHTML ||
+      actualProgressContent
+
+    setIsExportingPdf(true)
+    try {
+      saveChanges((currentReport) => currentReport)
+      await exportProgressDocumentPdf({
+        projectName: displayProjectName,
+        title: isActualProgressUpdate ? "Actual Progress Update" : "Target Plan",
+        dateLabel: reportType === "daily" ? report.date : formatWeekRange(report.id),
+        html: liveHtml,
+      })
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not export this document to PDF.")
+    } finally {
+      setIsExportingPdf(false)
+    }
+  }
+
+  const exportFullReportPdf = async () => {
+    if (!pageRef.current) return
+
+    setIsExportingPdf(true)
+    try {
+      const filename = reportType === "weekly"
+        ? getWeeklyReportPdfFilename(displayProjectName, reportId)
+        : getDailyReportPdfFilename(displayProjectName, reportId)
+      await exportElementToPdf(pageRef.current, filename)
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : `Could not export this ${reportType === "weekly" ? "weekly" : "daily"} report to PDF.`
+      )
+    } finally {
+      setIsExportingPdf(false)
+    }
   }
 
   return (
-    <div className="space-y-6 bg-zinc-50/60 p-2 md:p-4">
+    <div ref={pageRef} className="space-y-6 bg-zinc-50/60 p-2 md:p-4">
       <div className="flex items-start justify-between gap-4 rounded-none border border-zinc-200 bg-white px-4 py-3 shadow-sm">
         <header className="space-y-2 flex-1">
           <div className="flex items-center gap-3">
@@ -283,9 +432,12 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
             </p>
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
-            {isActualProgressUpdate ? "Actual Progress Update" : "Target Plan"} · {reportType === "daily" ? report.date : formatWeekRange(report.id)}
+            {isActualProgressUpdate ? "Actual Progress Update" : "Target Plan"}
           </h1>
-          <p className="max-w-2xl text-zinc-500">{projectName}</p>
+          <p className="text-xl font-medium tracking-tight text-zinc-800">
+            {reportType === "daily" ? report.date : formatWeekRange(report.id)}
+            {displayProjectName ? ` · ${displayProjectName}` : ""}
+          </p>
         </header>
 
         <div className="flex items-center gap-2">
@@ -306,6 +458,12 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
             <Icon name="save" size={14} />
             Save
           </button>
+          {isActualProgressUpdate && (
+            <ExportPdfButton
+              className={`px-3 py-1.5 text-xs ${isExportingPdf ? "pointer-events-none opacity-60" : ""}`}
+              onClick={exportCurrentDocumentPdf}
+            />
+          )}
           {reportType === "daily" && (
             <Link
               href={getDailyFileHref(projectId, reportId)}
@@ -354,6 +512,14 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
         </div>
       </div>
 
+      {isActualProgressUpdate ? (
+        <WorkingHoursWeatherCard
+          projectName={displayProjectName}
+          reportType={reportType}
+          reportId={reportId}
+        />
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <section className="overflow-hidden rounded-none border border-zinc-200 bg-white shadow-none min-h-[720px]">
@@ -365,31 +531,26 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                   </h2>
                   <p className="mt-1 text-xs text-zinc-600">
                     {isActualProgressUpdate
-                      ? "This report starts from the target plan saved for this week. Edit freely — your changes are saved separately as the actual progress update."
+                      ? "Edit this page like a Word document: type anywhere, change headings, add or remove tables, insert new lines, and adjust spacing. Starting tables are copied in once from valuations, operator register, and equipment in use."
                       : "Use the Word-style toolbar to format your target plan. Content from the previous week is copied automatically each new week and can be edited freely."}
                   </p>
                 </div>
 
                 {isActualProgressUpdate && (
-                  <button
-                    type="button"
-                    onClick={saveNow}
-                    disabled={isSaving}
-                    className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Icon name="save" size={14} />
-                    Save document
-                  </button>
+                  <ExportPdfButton
+                    className={isExportingPdf ? "pointer-events-none opacity-60" : ""}
+                    onClick={exportCurrentDocumentPdf}
+                  />
                 )}
               </div>
             </div>
 
-            <div className="p-4 md:p-6">
+            <div ref={documentSectionRef} className="p-4 md:p-6">
               <RichTextEditor
                 editorKey={`${projectId}-${reportId}-${pageVariant}`}
                 value={
                   isActualProgressUpdate
-                    ? resolveActualProgressUpdateContent(report, dailySummary, reportType === "daily")
+                    ? actualProgressContent
                     : report.progressSummary
                 }
                 onChange={
@@ -407,126 +568,13 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
               <p className="mt-2 text-xs text-zinc-500">
                 {countPlainText(
                   isActualProgressUpdate
-                    ? resolveActualProgressUpdateContent(report, dailySummary, reportType === "daily")
+                    ? actualProgressContent
                     : report.progressSummary
                 )}{" "}
                 characters · Shortcuts: Ctrl+B bold, Ctrl+I italic, Ctrl+U underline, Ctrl+Z undo
               </p>
             </div>
           </section>
-
-          {isActualProgressUpdate && reportType === "daily" && (
-            <>
-              <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-                <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-                    Daily Equipment in Use
-                  </h2>
-                  <p className="mt-1 text-xs text-zinc-600">
-                    Record equipment hours for this exact report day.
-                  </p>
-                </div>
-                <div className="p-6">
-                  <EquipmentInUseTable
-                    embedded
-                    projectId={projectId}
-                    projectName={projectName}
-                    period="daily"
-                    fileId={reportId}
-                  />
-                </div>
-              </section>
-            </>
-          )}
-
-          {isActualProgressUpdate && reportType === "weekly" && (
-            <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-              <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-                      Weekly Valuation Report
-                    </h2>
-                    <p className="mt-1 text-xs text-zinc-600">
-                      Duplicated from the valuations weekly report for this week. Values update
-                      automatically from saved hourly dashboards.
-                    </p>
-                  </div>
-                  {weeklyFile && (
-                    <Link
-                      href={getWeeklyFileHref(projectId, report.id)}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 transition hover:text-blue-700 hover:underline"
-                    >
-                      Open full weekly valuation report
-                      <Icon name="arrow-right" size={12} />
-                    </Link>
-                  )}
-                </div>
-              </div>
-              <div className="p-6">
-                {weeklyFile ? (
-                  <WeeklyReport
-                    embedded
-                    projectName={projectName}
-                    projectId={projectId}
-                    file={weeklyFile}
-                  />
-                ) : (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                    No weekly valuation report exists for this exact week yet. Once the week is
-                    created in valuations, it will appear here.
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
-
-          {isActualProgressUpdate && reportType === "weekly" && (
-            <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-              <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-                      Weekly Equipment in Use
-                    </h2>
-                    <p className="mt-1 text-xs text-zinc-600">
-                      Duplicated from the equipment in use weekly dashboard for this week. Data
-                      updates automatically from operator register attendance ticks and daily hours.
-                    </p>
-                  </div>
-                  {weeklyFile && (
-                    <Link
-                      href={getPlantOnSitePeriodFileHref(
-                        projectId,
-                        "equipment-in-use",
-                        "weekly",
-                        report.id
-                      )}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 transition hover:text-blue-700 hover:underline"
-                    >
-                      Open full equipment in use report
-                      <Icon name="arrow-right" size={12} />
-                    </Link>
-                  )}
-                </div>
-              </div>
-              <div className="p-6">
-                {weeklyFile ? (
-                  <EquipmentInUseTable
-                    embedded
-                    projectId={projectId}
-                    projectName={projectName}
-                    period="weekly"
-                    fileId={report.id}
-                  />
-                ) : (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                    No weekly equipment in use report exists for this exact week yet.
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
         </div>
 
         {/* Sidebar */}
@@ -538,7 +586,8 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                   Site Photos
                 </h2>
                 <p className="mt-1 text-xs text-zinc-600">
-                  Upload photos or take pictures on site to document actual progress (max 10MB each).
+                  Upload from files or gallery, or take a live photo with the camera. There is no
+                  photo count limit — add as many as you need.
                 </p>
               </div>
 
@@ -547,14 +596,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                   ref={photoInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                />
-                <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
+                  multiple
                   onChange={handlePhotoUpload}
                   className="hidden"
                 />
@@ -567,11 +609,11 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                     className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Icon name="image" size={14} />
-                    {isUploadingPhoto ? "Uploading..." : "Upload Photo"}
+                    {isUploadingPhoto ? "Uploading..." : "Upload Photos"}
                   </button>
                   <button
                     type="button"
-                    onClick={() => cameraInputRef.current?.click()}
+                    onClick={() => setIsCameraOpen(true)}
                     disabled={isUploadingPhoto}
                     className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
@@ -585,7 +627,12 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                 ) : null}
 
                 {sitePhotos.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <p className="text-xs text-zinc-500">
+                      {sitePhotos.length} site photo{sitePhotos.length === 1 ? "" : "s"}
+                    </p>
+                    <div className="max-h-[32rem] overflow-y-auto pr-1">
+                      <div className="grid grid-cols-2 gap-3">
                     {sitePhotos.map((photo, index) => (
                       <div
                         key={`${photo.id}-${index}`}
@@ -615,6 +662,8 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                         <p className="truncate px-2 py-1.5 text-xs text-zinc-600">{photo.name}</p>
                       </div>
                     ))}
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-xs text-zinc-500">No site photos yet</p>
@@ -669,6 +718,15 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                     </div>
                   </div>
                 ) : null}
+
+                <SiteCameraCapture
+                  open={isCameraOpen}
+                  isBusy={isUploadingPhoto}
+                  onClose={() => setIsCameraOpen(false)}
+                  onCapture={async (file) => {
+                    await addPhotosToReport([file])
+                  }}
+                />
               </div>
             </section>
           ) : (
@@ -778,6 +836,20 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
           </section>
         </div>
       </div>
+
+      {isActualProgressUpdate && (reportType === "daily" || reportType === "weekly") ? (
+        <div className="no-print flex flex-col items-center gap-2 border-t border-zinc-200 pt-4 pb-2">
+          <p className="text-xs text-zinc-500">
+            {reportType === "weekly"
+              ? "Export the full weekly report page, including weather, the document, and site photos."
+              : "Export the full daily report page, including weather, the document, and site photos."}
+          </p>
+          <ExportPdfButton
+            className={isExportingPdf ? "pointer-events-none opacity-60" : "px-4 py-2.5"}
+            onClick={exportFullReportPdf}
+          />
+        </div>
+      ) : null}
     </div>
   )
 }

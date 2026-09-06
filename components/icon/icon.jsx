@@ -3,8 +3,11 @@ import icons from "./iconsUsed.js"
 
 const Icon = ({ name, size = 24, color = "currentColor", fill = "none", className, ...props }) => {
   const iconMarkup = (icons[name] || icons["circle-question-mark"]).replace(
-    /<svg/g,
-    `<svg width="${size}" height="${size}" fill="${fill || "transparent"}" `
+    /<svg([^>]*)>/,
+    (_, attrs) => {
+      const cleaned = String(attrs).replace(/\s(width|height|fill)="[^"]*"/g, "")
+      return `<svg width="${size}" height="${size}" fill="${fill || "none"}"${cleaned}>`
+    }
   )
 
   return (

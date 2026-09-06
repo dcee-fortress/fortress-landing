@@ -58,6 +58,68 @@ function ToolbarButton({ icon, label, active, onClick, disabled }) {
   )
 }
 
+function getClosestElement(node, selector) {
+  if (!node) return null
+  const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement
+  return element?.closest(selector) ?? null
+}
+
+function moveToTableCell(currentCell, previous) {
+  const row = currentCell.parentElement
+  const table = currentCell.closest("table")
+  if (!row || !table) return false
+
+  const cells = [...row.querySelectorAll("th, td")]
+  const index = cells.indexOf(currentCell)
+  let nextCell = previous ? cells[index - 1] : cells[index + 1]
+
+  if (!nextCell) {
+    const rows = [...table.querySelectorAll("tr")]
+    const rowIndex = rows.indexOf(row)
+    const targetRow = previous ? rows[rowIndex - 1] : rows[rowIndex + 1]
+    const targetCells = targetRow ? [...targetRow.querySelectorAll("th, td")] : []
+    nextCell = previous ? targetCells.at(-1) : targetCells[0]
+  }
+
+  if (!nextCell) return false
+
+  const selection = window.getSelection()
+  const range = document.createRange()
+  range.selectNodeContents(nextCell)
+  range.collapse(previous)
+  selection.removeAllRanges()
+  selection.addRange(range)
+  return true
+}
+
+function insertPlainTable() {
+  document.execCommand(
+    "insertHTML",
+    false,
+    `<table style="width:100%; border-collapse:collapse; margin:12px 0;">
+      <tbody>
+        <tr>
+          <td style="border:1px solid #d4d4d8; padding:8px 10px;">&nbsp;</td>
+          <td style="border:1px solid #d4d4d8; padding:8px 10px;">&nbsp;</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #d4d4d8; padding:8px 10px;">&nbsp;</td>
+          <td style="border:1px solid #d4d4d8; padding:8px 10px;">&nbsp;</td>
+        </tr>
+      </tbody>
+    </table><p><br></p>`
+  )
+}
+
+function deleteClosestTable() {
+  const selection = window.getSelection()
+  if (!selection || selection.rangeCount === 0) return false
+  const table = getClosestElement(selection.anchorNode, "table")
+  if (!table) return false
+  table.remove()
+  return true
+}
+
 function countPlainText(html) {
   if (typeof window === "undefined") {
     return html.replace(/<[^>]*>/g, "").length
@@ -114,7 +176,9 @@ export default function RichTextEditor({
     (command, commandValue = null) => {
       focusEditor()
 
-      if (command === "hiliteColor" && commandValue) {
+      if (command === "insertTable") {
+        insertPlainTable()
+      } else if (command === "hiliteColor" && commandValue) {
         if (!document.execCommand("hiliteColor", false, commandValue)) {
           document.execCommand("backColor", false, commandValue)
         }
@@ -129,11 +193,32 @@ export default function RichTextEditor({
 
   useEffect(() => {
     if (!editorRef.current) return
-    if (value !== lastHtmlRef.current) {
-      editorRef.current.innerHTML = value || ""
-      lastHtmlRef.current = value || ""
+
+    const next = value || ""
+    const currentDom = editorRef.current.innerHTML
+    const isFocused = document.activeElement === editorRef.current
+
+    if (isFocused && currentDom) {
+      lastHtmlRef.current = currentDom
+      return
+    }
+
+    const needsHydration = currentDom === "" && next !== ""
+
+    if (next !== lastHtmlRef.current || needsHydration) {
+      editorRef.current.innerHTML = next
+      lastHtmlRef.current = next
     }
   }, [value, editorKey])
+
+  useEffect(() => {
+    try {
+      document.execCommand("defaultParagraphSeparator", false, "p")
+      document.execCommand("styleWithCSS", false, true)
+    } catch {
+      // Older browsers may ignore these commands.
+    }
+  }, [])
 
   useEffect(() => {
     const handleSelectionChange = () => {
@@ -149,6 +234,17 @@ export default function RichTextEditor({
 
   const handleKeyDown = (event) => {
     const mod = event.ctrlKey || event.metaKey
+
+    if (event.key === "Tab") {
+      const cell = getClosestElement(window.getSelection()?.anchorNode, "th, td")
+      if (cell && editorRef.current?.contains(cell)) {
+        event.preventDefault()
+        if (moveToTableCell(cell, event.shiftKey)) {
+          emitChange()
+        }
+        return
+      }
+    }
 
     if (mod && event.key.toLowerCase() === "b") {
       event.preventDefault()
@@ -373,6 +469,15 @@ export default function RichTextEditor({
         <ToolbarDivider />
 
         <ToolbarButton icon="link" label="Insert link" onClick={insertLink} />
+        <ToolbarButton icon="table" label="Insert table" onClick={() => runCommand("insertTable")} />
+        <ToolbarButton
+          icon="trash-2"
+          label="Delete table"
+          onClick={() => {
+            focusEditor()
+            if (deleteClosestTable()) emitChange()
+          }}
+        />
         <ToolbarButton icon="minus" label="Horizontal line" onClick={() => runCommand("insertHorizontalRule")} />
         <ToolbarButton icon="remove-formatting" label="Clear formatting" onClick={() => runCommand("removeFormat")} />
       </div>
@@ -383,11 +488,12 @@ export default function RichTextEditor({
         ) : null}
         <div
           ref={editorRef}
-          contentEditable
+          contentEditable="true"
           suppressContentEditableWarning
           role="textbox"
           aria-multiline="true"
           aria-label={placeholder}
+          spellCheck
           onInput={emitChange}
           onKeyDown={handleKeyDown}
           onBlur={syncActiveStates}
