@@ -337,15 +337,16 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
 
     setReport((prev) => {
       if (!prev) return prev
-      if (prev.progressUpdate?.userEdited) return prev
 
+      const userEdited = Boolean(prev.progressUpdate?.userEdited)
       const nextContent = mergeValuationNotesContent(
         prev.progressUpdate?.content,
         valuationSummary,
         equipmentReport,
-        operatorRegister
+        operatorRegister,
+        { userEdited }
       )
-      if (!nextContent || nextContent === (prev.progressUpdate?.content || "")) return prev
+      if (nextContent === (prev.progressUpdate?.content || "")) return prev
 
       const next = {
         ...prev,
@@ -531,7 +532,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                   </h2>
                   <p className="mt-1 text-xs text-zinc-600">
                     {isActualProgressUpdate
-                      ? "Edit this page like a Word document: type anywhere, change headings, add or remove tables, insert new lines, and adjust spacing. Starting tables are copied in once from valuations, operator register, and equipment in use."
+                      ? "Tables are filled from this project's valuations, operator register, and equipment in use. You can edit the document anytime."
                       : "Use the Word-style toolbar to format your target plan. Content from the previous week is copied automatically each new week and can be edited freely."}
                   </p>
                 </div>
