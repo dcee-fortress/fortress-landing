@@ -274,7 +274,7 @@ export default function RichTextEditor({
   const isEmpty = !value || value === "<br>" || countPlainText(value) === 0
 
   return (
-    <div className="rich-text-editor overflow-hidden rounded-none border border-zinc-300 bg-white shadow-none">
+    <div className="rich-text-editor overflow-x-auto rounded-none border border-zinc-300 bg-white shadow-none">
       <div className="no-print flex flex-wrap items-center gap-1 border-b border-zinc-200 bg-zinc-50 px-2 py-2">
         <ToolbarButton icon="undo" label="Undo (Ctrl+Z)" onClick={() => runCommand("undo")} />
         <ToolbarButton icon="redo" label="Redo (Ctrl+Y)" onClick={() => runCommand("redo")} />
@@ -498,7 +498,7 @@ export default function RichTextEditor({
           onKeyDown={handleKeyDown}
           onBlur={syncActiveStates}
           onFocus={syncActiveStates}
-          className="rich-text-editor__content prose prose-sm max-w-none px-4 py-4 focus:outline-none"
+          className="rich-text-editor__content prose prose-sm max-w-none overflow-x-auto px-4 py-4 focus:outline-none"
           style={{
             minHeight,
             wordWrap: "break-word",

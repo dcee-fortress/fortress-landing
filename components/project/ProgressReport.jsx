@@ -523,7 +523,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <section className="overflow-hidden rounded-none border border-zinc-200 bg-white shadow-none min-h-[720px]">
+          <section className="overflow-x-auto rounded-none border border-zinc-200 bg-white shadow-none min-h-[720px]">
             <div className="border-b border-zinc-200 bg-white px-6 py-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>

@@ -109,6 +109,7 @@
 
 .rich-text-editor__content table {
     width: 100%;
+    min-width: 640px;
     border-collapse: collapse;
     margin: 12px 0;
     table-layout: auto;
