@@ -1,12 +1,19 @@
 import { sql } from "@vercel/postgres"
+import {
+  applyCalendarFilesToRegistry,
+  mergeProjectRegistries,
+  parseRegistryJson,
+} from "@/lib/projectCalendarEnsure"
 
 export const dynamic = "force-dynamic"
+
+const REGISTRY_KEY = "grove-projects-registry"
 
 const allowedKeys = new Set([
   "grove-primary-project-data",
   "grove-material-schedules",
   "grove-material-schedule-drafts",
-  "grove-projects-registry",
+  REGISTRY_KEY,
   "grove-boq",
   "grove-boq-description-memory",
   "grove-plant-cost",
@@ -15,14 +22,46 @@ const allowedKeys = new Set([
   "grove-plant-operator-registers",
 ])
 
+let tableReady = null
+
 async function ensureStorageTable() {
+  if (!tableReady) {
+    tableReady = sql`
+      CREATE TABLE IF NOT EXISTS grove_shared_storage (
+        storage_key TEXT PRIMARY KEY,
+        storage_value TEXT NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `.then(() => true)
+  }
+
+  await tableReady
+}
+
+async function upsertValue(key, value) {
   await sql`
-    CREATE TABLE IF NOT EXISTS grove_shared_storage (
-      storage_key TEXT PRIMARY KEY,
-      storage_value TEXT NOT NULL,
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
+    INSERT INTO grove_shared_storage (storage_key, storage_value, updated_at)
+    VALUES (${key}, ${value}, NOW())
+    ON CONFLICT (storage_key)
+    DO UPDATE SET storage_value = EXCLUDED.storage_value, updated_at = NOW()
   `
+}
+
+async function ensureRegistryCalendar(storage) {
+  const currentValue = storage[REGISTRY_KEY]
+  const { registry, changed } = applyCalendarFilesToRegistry(parseRegistryJson(currentValue))
+
+  if (!changed && typeof currentValue === "string") {
+    return storage
+  }
+
+  const nextValue = JSON.stringify(registry)
+  if (nextValue !== currentValue) {
+    await upsertValue(REGISTRY_KEY, nextValue)
+    storage[REGISTRY_KEY] = nextValue
+  }
+
+  return storage
 }
 
 export async function GET() {
@@ -35,6 +74,8 @@ export async function GET() {
     const storage = Object.fromEntries(
       result.rows.map(({ storage_key, storage_value }) => [storage_key, storage_value])
     )
+
+    await ensureRegistryCalendar(storage)
 
     return Response.json(storage, {
       headers: { "Cache-Control": "no-store" },
@@ -55,12 +96,23 @@ export async function POST(request) {
     }
 
     await ensureStorageTable()
-    await sql`
-      INSERT INTO grove_shared_storage (storage_key, storage_value, updated_at)
-      VALUES (${payload.key}, ${payload.value}, NOW())
-      ON CONFLICT (storage_key)
-      DO UPDATE SET storage_value = EXCLUDED.storage_value, updated_at = NOW()
-    `
+
+    let value = payload.value
+
+    if (payload.key === REGISTRY_KEY) {
+      const existing = await sql`
+        SELECT storage_value
+        FROM grove_shared_storage
+        WHERE storage_key = ${REGISTRY_KEY}
+      `
+      const merged = mergeProjectRegistries(
+        parseRegistryJson(existing.rows[0]?.storage_value),
+        parseRegistryJson(payload.value)
+      )
+      value = JSON.stringify(merged.registry)
+    }
+
+    await upsertValue(payload.key, value)
 
     return Response.json({ ok: true })
   } catch {

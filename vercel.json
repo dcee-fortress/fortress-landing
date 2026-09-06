@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/shared-storage",
+      "schedule": "5 22 * * *"
+    }
+  ]
+}

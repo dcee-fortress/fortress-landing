@@ -13,9 +13,11 @@ import {
 } from "@/lib/projectRoutes"
 import { getPlantOnSitePeriodFileHref } from "@/lib/plantOnSiteModules"
 import {
+  ensureProgressReportsExist,
   getProjectDailyProgressReports,
   getProjectWeeklyProgressReports,
 } from "@/lib/progressReports"
+import { ensureDailyFilesThroughToday } from "@/lib/dailyFileSync"
 import { isProgressUpdateEmpty, isTargetPlanEmpty } from "@/lib/progressReportDemo"
 import { useMemo } from "react"
 
@@ -181,6 +183,8 @@ function ProgressReportFiles({ projectName, projectId, reportType, onSelectType 
   const { version } = useProjectData()
 
   const progressReports = useMemo(() => {
+    ensureDailyFilesThroughToday(projectId)
+    ensureProgressReportsExist(projectId)
     const reports = reportType === "daily"
       ? getProjectDailyProgressReports(projectId)
       : getProjectWeeklyProgressReports(projectId)

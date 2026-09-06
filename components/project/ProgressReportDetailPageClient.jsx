@@ -5,9 +5,11 @@ import { notFound } from "next/navigation"
 import PageLoadingShell from "@/components/project/PageLoadingShell"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import {
+  ensureProgressReportsExist,
   getProjectDailyProgressReport,
   getProjectProgressReport,
 } from "@/lib/progressReports"
+import { ensureDailyFilesThroughToday } from "@/lib/dailyFileSync"
 
 const ProgressReportView = dynamic(() => import("@/components/project/ProgressReport"), {
   loading: () => <PageLoadingShell className="pt-20" />,
@@ -15,6 +17,10 @@ const ProgressReportView = dynamic(() => import("@/components/project/ProgressRe
 
 export default function ProgressReportDetailPageClient({ projectId, reportId, projectName, reportType = "daily" }) {
   const hasHydrated = useHasHydrated()
+  if (hasHydrated) {
+    ensureDailyFilesThroughToday(projectId)
+    ensureProgressReportsExist(projectId)
+  }
   const report = hasHydrated
     ? reportType === "daily"
       ? getProjectDailyProgressReport(projectId, reportId)
