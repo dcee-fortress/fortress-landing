@@ -75,8 +75,9 @@ export default function DailyValueView({ projectName, projectId }) {
   }, [projectId, version, hasHydrated])
   const dailyFiles = useMemo(() => {
     void version
+    if (!hasHydrated) return []
     return getDailyFiles(projectId)
-  }, [projectId, version])
+  }, [projectId, version, hasHydrated])
   const search = useReportFileSearch(dailyFiles)
   const displayFiles = search.activeQuery ? search.filteredFiles : dailyFiles
   const visibleFiles = useMemo(() => {

@@ -48,29 +48,94 @@ export function ProjectDataProvider({ children }) {
 
   useEffect(() => {
     if (!projectId) return
-    if (bootstrappedProjectsRef.current.has(projectId)) return
 
     const runBootstrap = async () => {
-      if (bootstrappedProjectsRef.current.has(projectId)) return
+      const [{ initializeGrovePersistence }, { ensureDailyFilesThroughToday }, { getTodayDayId }] =
+        await Promise.all([
+          import("@/lib/grovePersistence"),
+          import("@/lib/dailyFileSync"),
+          import("@/lib/dailyFiles"),
+        ])
+      const { ensureProgressReportsExist } = await import("@/lib/progressReports")
+      const dayKey = `${projectId}:${getTodayDayId()}`
+      const alreadyBootstrapped = bootstrappedProjectsRef.current.has(dayKey)
 
-      const { initializeGrovePersistence } = await import("@/lib/grovePersistence")
-      const result = initializeGrovePersistence({ projectId })
-      bootstrappedProjectsRef.current.add(projectId)
+      if (!alreadyBootstrapped) {
+        initializeGrovePersistence({ projectId })
+        bootstrappedProjectsRef.current.add(dayKey)
+      }
 
-      if (result.ok && result.changed) {
+      const filesChanged = ensureDailyFilesThroughToday(projectId)
+      ensureProgressReportsExist(projectId)
+
+      if (!alreadyBootstrapped || filesChanged) {
         startTransition(() => {
           refresh()
         })
       }
     }
 
-    if (typeof window.requestIdleCallback === "function") {
-      const idleId = window.requestIdleCallback(runBootstrap, { timeout: 2000 })
-      return () => window.cancelIdleCallback(idleId)
+    void runBootstrap()
+  }, [projectId, refresh])
+
+  useEffect(() => {
+    const syncCalendarFiles = () => {
+      void import("@/lib/dailyFileSync").then(
+        ({ ensureAllActiveProjectsDailyFiles, ensureDailyFilesThroughToday }) => {
+          return projectId
+            ? ensureDailyFilesThroughToday(projectId)
+            : ensureAllActiveProjectsDailyFiles()
+        }
+      )
     }
 
-    const timeoutId = window.setTimeout(runBootstrap, 0)
-    return () => window.clearTimeout(timeoutId)
+    const refreshIfFilesChanged = () => {
+      void import("@/lib/dailyFileSync").then(
+        ({ ensureAllActiveProjectsDailyFiles, ensureDailyFilesThroughToday }) => {
+          const changed = projectId
+            ? ensureDailyFilesThroughToday(projectId)
+            : ensureAllActiveProjectsDailyFiles()
+          if (changed) {
+            startTransition(() => {
+              refresh()
+            })
+          }
+        }
+      )
+    }
+
+    const onSharedStorageChange = () => {
+      syncCalendarFiles()
+      startTransition(() => {
+        refresh()
+      })
+    }
+
+    const msUntilMidnight = () => {
+      const now = new Date()
+      return (
+        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime() + 500
+      )
+    }
+
+    let midnightId = window.setTimeout(function onNewDay() {
+      refreshIfFilesChanged()
+      startTransition(() => {
+        refresh()
+      })
+      midnightId = window.setTimeout(onNewDay, msUntilMidnight())
+    }, msUntilMidnight())
+
+    window.addEventListener("grove-shared-storage-change", onSharedStorageChange)
+    window.addEventListener("focus", refreshIfFilesChanged)
+    document.addEventListener("visibilitychange", refreshIfFilesChanged)
+
+    return () => {
+      window.clearTimeout(midnightId)
+      window.removeEventListener("grove-shared-storage-change", onSharedStorageChange)
+      window.removeEventListener("focus", refreshIfFilesChanged)
+      document.removeEventListener("visibilitychange", refreshIfFilesChanged)
+    }
   }, [projectId, refresh])
 
   const getSlotsForDayFn = useCallback(
