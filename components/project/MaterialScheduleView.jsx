@@ -55,16 +55,18 @@ function MaterialScheduleEditor({
     setRows(loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType))
     setSavedMessage("")
     setSelectedCell(null)
+  }, [projectId, dayId, slotId, scheduleType])
+
+  useEffect(() => {
+    if (hasEditedRef.current) return
+    setRows(loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType))
   }, [projectId, dayId, slotId, scheduleType, version])
 
   useEffect(() => {
     if (!hasEditedRef.current) return undefined
 
-    const timeoutId = window.setTimeout(() => {
-      writeMaterialScheduleDraftRows(projectId, dayId, slotId, scheduleType, rowsRef.current)
-    }, 250)
-
-    return () => window.clearTimeout(timeoutId)
+    writeMaterialScheduleDraftRows(projectId, dayId, slotId, scheduleType, rowsRef.current)
+    return undefined
   }, [projectId, dayId, slotId, scheduleType, rows])
 
   useEffect(() => {
@@ -113,13 +115,21 @@ function MaterialScheduleEditor({
   const addRow = () => {
     markEdited()
     setSavedMessage("")
-    setRows((current) => [...current, createMaterialRow("", dayId)])
+    setRows((current) => {
+      const next = [...current, createMaterialRow("", dayId)]
+      writeMaterialScheduleDraftRows(projectId, dayId, slotId, scheduleType, next)
+      return next
+    })
   }
 
   const deleteRow = (rowId) => {
     markEdited()
     setSavedMessage("")
-    setRows((current) => current.filter((row) => row.id !== rowId))
+    setRows((current) => {
+      const next = current.filter((row) => row.id !== rowId)
+      writeMaterialScheduleDraftRows(projectId, dayId, slotId, scheduleType, next)
+      return next
+    })
     setSelectedCell(null)
   }
 
@@ -286,7 +296,7 @@ function MaterialScheduleEditor({
                               dayId={dayId}
                               slotId={slotId}
                               value={rawValue}
-                              refreshKey={version}
+                              refreshKey={`${dayId}-${slotId}`}
                               onChange={(value) => updateRow(rowIndex, fieldKey, value)}
                             />
                           ) : column.key === "details" ? (
