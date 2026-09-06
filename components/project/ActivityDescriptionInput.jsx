@@ -11,27 +11,29 @@ export default function ActivityDescriptionInput({
   slotId,
   value,
   onChange,
+  extraDescriptions = null,
   refreshKey = 0,
 }) {
   const containerRef = useRef(null)
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
 
-  const extraDescriptions = useMemo(() => {
+  const extraDescriptionsResolved = useMemo(() => {
+    if (extraDescriptions) return extraDescriptions
     void refreshKey
 
     const fromBoq = getAllBoqItemNames(projectId)
     const fromSlot = getActivityDescriptionsForSlot(projectId, dayId, slotId)
     return [...fromBoq, ...fromSlot]
-  }, [projectId, dayId, slotId, refreshKey])
+  }, [projectId, dayId, slotId, refreshKey, extraDescriptions])
 
   const suggestions = useMemo(
     () =>
       searchDescriptionSuggestions(projectId, value, {
-        extraDescriptions,
+        extraDescriptions: extraDescriptionsResolved,
         limit: 8,
       }),
-    [projectId, value, extraDescriptions]
+    [projectId, value, extraDescriptionsResolved]
   )
 
   const highlightedIndex = Math.min(

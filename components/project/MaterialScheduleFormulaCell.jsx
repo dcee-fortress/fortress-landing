@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef } from "react"
 import { commitFormulaInput } from "@/lib/materialScheduleFormulas"
 
 export default function MaterialScheduleFormulaCell({
@@ -9,78 +9,86 @@ export default function MaterialScheduleFormulaCell({
   fallbackDisplay = "",
   formatDisplay,
   onChange,
+  onLiveChange,
   align = "left",
   numeric = false,
   onSelect,
   isSelected = false,
   columnLabel = "",
 }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const editSource = formulaValue || String(rawValue ?? "")
-  const [draft, setDraft] = useState(editSource)
+  const inputRef = useRef(null)
+  const focusedRef = useRef(false)
+  const draftRef = useRef("")
+  const source = formulaValue || String(rawValue ?? "")
+  const sourceRef = useRef(source)
+  sourceRef.current = source
 
   const storedText = String(rawValue ?? "").trim()
-  const formatStoredValue = (value) => {
-    if (formatDisplay) {
-      return formatDisplay(value)
+  const idleValue =
+    storedText !== ""
+      ? formatDisplay
+        ? formatDisplay(rawValue)
+        : String(rawValue ?? "")
+      : ""
+
+  useEffect(() => {
+    if (focusedRef.current || !inputRef.current) return
+    inputRef.current.value = idleValue
+  }, [idleValue])
+
+  const showFormatted = (value) => {
+    if (!inputRef.current) return
+    const text = String(value ?? "").trim()
+    if (!text) {
+      inputRef.current.value = ""
+      return
     }
-    return String(value ?? "")
-  }
-  const visibleValue =
-    storedText !== "" ? formatStoredValue(rawValue) : fallbackDisplay
-
-  const startEditing = () => {
-    onSelect?.()
-    setDraft(formulaValue || String(rawValue ?? ""))
-    setIsEditing(true)
-  }
-
-  const commit = () => {
-    setIsEditing(false)
-    const { value, formula } = commitFormulaInput(draft, numeric)
-    onChange(value, formula)
+    inputRef.current.value = formatDisplay ? formatDisplay(value) : text
   }
 
   return (
-    <div
-      className={`min-w-[7rem] ${isSelected ? "ring-2 ring-blue-400 ring-offset-1 rounded-md" : ""}`}
-      onClick={() => onSelect?.()}
-    >
-      {isEditing ? (
-        <input
-          type="text"
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={commit}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault()
-              commit()
-            }
-            if (event.key === "Escape") {
-              event.preventDefault()
-              setDraft(editSource)
-              setIsEditing(false)
-            }
-          }}
-          aria-label={columnLabel}
-          placeholder={numeric ? "12 or =3*4" : undefined}
-          className={`w-full rounded-md border border-blue-500 bg-white px-2 py-1.5 text-sm outline-none ring-2 ring-blue-500/20 ${
-            align === "right" ? "text-right tabular-nums" : "text-left"
-          }`}
-          autoFocus
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={startEditing}
-          className={`w-full rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm transition hover:border-zinc-300 hover:bg-zinc-50 ${
-            align === "right" ? "text-right tabular-nums" : "text-left"
-          } text-zinc-900`}
-        >
-          {visibleValue || "—"}
-        </button>
-      )}
-    </div>
+    <input
+      ref={inputRef}
+      type="text"
+      inputMode={numeric ? "decimal" : "text"}
+      defaultValue={idleValue}
+      placeholder={fallbackDisplay || (numeric ? "0 or =3*4" : "")}
+      aria-label={columnLabel}
+      className={`w-full min-w-[7rem] rounded-md border bg-white px-2 py-1.5 text-sm outline-none ${
+        isSelected
+          ? "border-blue-500 ring-2 ring-blue-500/20"
+          : "border-zinc-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+      } ${align === "right" ? "text-right tabular-nums" : "text-left"} text-zinc-900`}
+      onFocus={(event) => {
+        focusedRef.current = true
+        draftRef.current = sourceRef.current
+        event.target.value = sourceRef.current
+        onSelect?.()
+        onLiveChange?.(sourceRef.current)
+      }}
+      onChange={(event) => {
+        draftRef.current = event.target.value
+        onLiveChange?.(event.target.value)
+      }}
+      onBlur={() => {
+        focusedRef.current = false
+        const { value, formula } = commitFormulaInput(draftRef.current, numeric)
+        onChange(value, formula)
+        onLiveChange?.(null)
+        showFormatted(value)
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault()
+          event.currentTarget.blur()
+        }
+        if (event.key === "Escape") {
+          event.preventDefault()
+          draftRef.current = sourceRef.current
+          event.currentTarget.value = sourceRef.current
+          event.currentTarget.blur()
+        }
+      }}
+    />
   )
 }

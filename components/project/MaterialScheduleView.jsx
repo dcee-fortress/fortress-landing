@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import ActivityDescriptionInput from "@/components/project/ActivityDescriptionInput"
@@ -20,10 +20,12 @@ import {
   readMaterialScheduleEditorRows,
   saveMaterialScheduleRows,
   writeMaterialScheduleDraftRows,
+  getActivityDescriptionsForSlot,
 } from "@/lib/materialSchedule"
-import { getMaterialFormulaHelpText } from "@/lib/materialScheduleFormulas"
+import { commitFormulaInput, getMaterialFormulaHelpText } from "@/lib/materialScheduleFormulas"
 import { sortSlots } from "@/lib/dailySlots"
 import { formatMaterialCurrencyAmount, formatMaterialAmount } from "@/lib/plantCostCalculations"
+import { getAllBoqItemNames } from "@/lib/boqData"
 
 function loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType) {
   return readMaterialScheduleEditorRows(projectId, dayId, slotId, scheduleType)
@@ -47,6 +49,8 @@ function MaterialScheduleEditor({
   )
   const [savedMessage, setSavedMessage] = useState("")
   const [selectedCell, setSelectedCell] = useState(null)
+  const [liveDraft, setLiveDraft] = useState(null)
+  const boqDescriptions = useMemo(() => getAllBoqItemNames(projectId), [projectId])
 
   rowsRef.current = rows
 
@@ -65,8 +69,11 @@ function MaterialScheduleEditor({
   useEffect(() => {
     if (!hasEditedRef.current) return undefined
 
-    writeMaterialScheduleDraftRows(projectId, dayId, slotId, scheduleType, rowsRef.current)
-    return undefined
+    const timeoutId = window.setTimeout(() => {
+      writeMaterialScheduleDraftRows(projectId, dayId, slotId, scheduleType, rowsRef.current)
+    }, 400)
+
+    return () => window.clearTimeout(timeoutId)
   }, [projectId, dayId, slotId, scheduleType, rows])
 
   useEffect(() => {
@@ -96,8 +103,8 @@ function MaterialScheduleEditor({
     0
   )
 
-  const updateRow = (rowIndex, field, value, formula = "") => {
-    markEdited()
+  const updateRow = useCallback((rowIndex, field, value, formula = "") => {
+    hasEditedRef.current = true
     setSavedMessage("")
     const formulaField = getMaterialFormulaFieldKey(field)
     setRows((current) =>
@@ -110,7 +117,7 @@ function MaterialScheduleEditor({
         }
       })
     )
-  }
+  }, [])
 
   const addRow = () => {
     markEdited()
@@ -131,6 +138,7 @@ function MaterialScheduleEditor({
       return next
     })
     setSelectedCell(null)
+    setLiveDraft(null)
   }
 
   const handleSave = () => {
@@ -177,7 +185,25 @@ function MaterialScheduleEditor({
       ? rows[selectedCell.rowIndex][selectedFieldKey] ?? ""
       : ""
 
-  const formulaBarValue = selectedFormulaValue || selectedRawValue
+  const formulaBarValue =
+    liveDraft !== null
+      ? liveDraft
+      : selectedFormulaValue || selectedRawValue
+
+  const commitFormulaBar = () => {
+    if (!selectedCell || liveDraft === null) return
+    const column = MATERIAL_SCHEDULE_COLUMNS.find((item) => item.key === selectedCell.columnKey)
+    if (!column || column.key === "activityDescription" || column.key === "details") {
+      updateRow(selectedCell.rowIndex, getMaterialRawFieldKey(selectedCell.columnKey), liveDraft, "")
+      setLiveDraft(null)
+      return
+    }
+
+    const fieldKey = getMaterialRawFieldKey(selectedCell.columnKey)
+    const { value, formula } = commitFormulaInput(liveDraft, Boolean(column.numeric))
+    updateRow(selectedCell.rowIndex, fieldKey, value, formula)
+    setLiveDraft(null)
+  }
 
   const selectedColumn = selectedCell
     ? MATERIAL_SCHEDULE_COLUMNS.find((column) => column.key === selectedCell.columnKey)
@@ -239,10 +265,21 @@ function MaterialScheduleEditor({
             </span>
             <input
               type="text"
-              readOnly
               value={formulaBarValue}
-              placeholder="Click a cell to see its formula or value"
-              className="min-w-[16rem] flex-1 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-mono text-zinc-800"
+              onChange={(event) => {
+                if (!selectedCell) return
+                hasEditedRef.current = true
+                setLiveDraft(event.target.value)
+              }}
+              onBlur={commitFormulaBar}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault()
+                  event.currentTarget.blur()
+                }
+              }}
+              placeholder="Click a cell, then type a number or formula such as =3*4"
+              className="min-w-[16rem] flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-mono text-zinc-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
             {selectedResultDisplay ? (
               <span className="text-sm tabular-nums text-zinc-500">
@@ -270,15 +307,19 @@ function MaterialScheduleEditor({
               </tr>
             </thead>
             <tbody>
-              {resolvedRows.length > 0 ? (
-                resolvedRows.map((resolvedRow, rowIndex) => (
-                  <tr key={resolvedRow.id} className="border-b border-zinc-200 align-top">
+              {rows.length > 0 ? (
+                rows.map((row, rowIndex) => {
+                  const resolvedRow = resolvedRows[rowIndex]
+                  return (
+                  <tr key={row.id} className="border-b border-zinc-200 align-top">
                     {MATERIAL_SCHEDULE_COLUMNS.map((column) => {
                       const fieldKey = getMaterialRawFieldKey(column.key)
                       const formulaKey = getMaterialFormulaFieldKey(fieldKey)
-                      const rawValue = rows[rowIndex]?.[fieldKey] ?? ""
-                      const formulaValue = rows[rowIndex]?.[formulaKey] ?? ""
-                      const resolvedDisplay = formatMaterialScheduleResolvedValue(resolvedRow, column.key)
+                      const rawValue = row[fieldKey] ?? ""
+                      const formulaValue = row[formulaKey] ?? ""
+                      const resolvedDisplay = resolvedRow
+                        ? formatMaterialScheduleResolvedValue(resolvedRow, column.key)
+                        : ""
                       const showAutoValue = column.computed && String(rawValue).trim() === ""
 
                       return (
@@ -296,7 +337,7 @@ function MaterialScheduleEditor({
                               dayId={dayId}
                               slotId={slotId}
                               value={rawValue}
-                              refreshKey={`${dayId}-${slotId}`}
+                              extraDescriptions={boqDescriptions}
                               onChange={(value) => updateRow(rowIndex, fieldKey, value)}
                             />
                           ) : column.key === "details" ? (
@@ -325,9 +366,11 @@ function MaterialScheduleEditor({
                                 selectedCell?.rowIndex === rowIndex &&
                                 selectedCell?.columnKey === column.key
                               }
-                              onSelect={() =>
+                              onSelect={() => {
                                 setSelectedCell({ rowIndex, columnKey: column.key })
-                              }
+                                setLiveDraft(null)
+                              }}
+                              onLiveChange={setLiveDraft}
                               onChange={(value, formula) =>
                                 updateRow(rowIndex, fieldKey, value, formula)
                               }
@@ -339,7 +382,7 @@ function MaterialScheduleEditor({
                     <td className="px-3 py-3 text-right">
                       <button
                         type="button"
-                        onClick={() => deleteRow(resolvedRow.id)}
+                        onClick={() => deleteRow(row.id)}
                         className="rounded-md p-1.5 text-zinc-400 transition hover:bg-red-50 hover:text-red-600"
                         aria-label="Delete row"
                       >
@@ -347,7 +390,8 @@ function MaterialScheduleEditor({
                       </button>
                     </td>
                   </tr>
-                ))
+                  )
+                })
               ) : (
                 <tr>
                   <td
