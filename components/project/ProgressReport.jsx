@@ -13,6 +13,7 @@ import {
   getProjectDailyProgressReport,
   saveProgressReport,
   formatWeekRange,
+  formatDayLabelFromId,
   addAttachment,
   removeAttachment,
 } from "@/lib/progressReports"
@@ -372,6 +373,8 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
 
   const inProgress = report.status === "in-progress"
   const isActualProgressUpdate = pageVariant === "actual-progress-update"
+  const isDailyReport = reportType === "daily"
+  const dateHeading = isDailyReport ? formatDayLabelFromId(report.id) : formatWeekRange(report.id)
   const sitePhotos = dedupeProgressPhotos(report.progressUpdate?.photos)
 
   const exportCurrentDocumentPdf = async () => {
@@ -385,7 +388,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
       await exportProgressDocumentPdf({
         projectName: displayProjectName,
         title: isActualProgressUpdate ? "Actual Progress Update" : "Target Plan",
-        dateLabel: reportType === "daily" ? report.date : formatWeekRange(report.id),
+        dateLabel: dateHeading,
         html: liveHtml,
       })
     } catch (error) {
@@ -436,7 +439,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
             {isActualProgressUpdate ? "Actual Progress Update" : "Target Plan"}
           </h1>
           <p className="text-xl font-medium tracking-tight text-zinc-800">
-            {reportType === "daily" ? report.date : formatWeekRange(report.id)}
+            {dateHeading}
             {displayProjectName ? ` · ${displayProjectName}` : ""}
           </p>
         </header>
@@ -521,9 +524,9 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
         />
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <section className="overflow-x-auto rounded-none border border-zinc-200 bg-white shadow-none min-h-[720px]">
+      <div className={isDailyReport ? "space-y-6" : "grid gap-6 lg:grid-cols-3"}>
+        <div className={isDailyReport ? "space-y-6" : "lg:col-span-2 space-y-6"}>
+          <section className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm min-h-[720px]">
             <div className="border-b border-zinc-200 bg-white px-6 py-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -632,8 +635,8 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                     <p className="text-xs text-zinc-500">
                       {sitePhotos.length} site photo{sitePhotos.length === 1 ? "" : "s"}
                     </p>
-                    <div className="max-h-[32rem] overflow-y-auto pr-1">
-                      <div className="grid grid-cols-2 gap-3">
+                    <div className={isDailyReport ? "" : "max-h-[32rem] overflow-y-auto pr-1"}>
+                      <div className={`grid gap-3 ${isDailyReport ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4" : "grid-cols-2"}`}>
                     {sitePhotos.map((photo, index) => (
                       <div
                         key={`${photo.id}-${index}`}
@@ -823,7 +826,9 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
             <div className="flex gap-3">
               <Icon name="info" size={18} className="shrink-0 text-blue-600" />
               <div>
-                <h3 className="text-xs font-semibold text-blue-900">Week Information</h3>
+                <h3 className="text-xs font-semibold text-blue-900">
+                  {isDailyReport ? "Day information" : "Week Information"}
+                </h3>
                 <p className="mt-1 text-xs text-blue-700">
                   Created {new Date(report.createdAt).toLocaleDateString()}
                 </p>

@@ -14,6 +14,7 @@ import {
 import { getPlantOnSitePeriodFileHref } from "@/lib/plantOnSiteModules"
 import {
   ensureProgressReportsExist,
+  formatDayLabelFromId,
   getProjectDailyProgressReports,
   getProjectWeeklyProgressReports,
 } from "@/lib/progressReports"
@@ -74,7 +75,9 @@ function ProgressReportFileRow({ file, projectId, reportType }) {
             <Icon name="file-text" size={20} />
           </div>
           <div className="min-w-0">
-            <p className="text-lg font-semibold text-zinc-900">{file.label}</p>
+            <p className="text-lg font-semibold text-zinc-900">
+              {reportType === "daily" ? `Daily Report - ${formatDayLabelFromId(file.id)}` : file.label}
+            </p>
             <p className="text-sm text-zinc-500">{description}</p>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
               <Link

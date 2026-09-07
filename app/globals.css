@@ -113,6 +113,12 @@
     border-collapse: collapse;
     margin: 12px 0;
     table-layout: auto;
+    background: #fff;
+}
+
+.rich-text-editor {
+    scrollbar-width: thin;
+    scrollbar-color: #a1a1aa #f4f4f5;
 }
 
 .rich-text-editor__content th,
@@ -151,4 +157,38 @@
 
 .brand-loading-mark {
     animation: brand-loading-flicker 1.15s steps(1, end) infinite;
+}
+
+.report-page-scroll {
+    height: calc(100vh - 4.25rem);
+    overflow: auto;
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: #a1a1aa #f4f4f5;
+}
+
+.report-page-scroll::-webkit-scrollbar,
+.report-page-scroll *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    display: block;
+}
+
+.report-page-scroll::-webkit-scrollbar-track,
+.report-page-scroll *::-webkit-scrollbar-track {
+    background-color: #f4f4f5;
+    border-radius: 999px;
+    width: 10px;
+    height: 10px;
+    display: block;
+}
+
+.report-page-scroll::-webkit-scrollbar-thumb,
+.report-page-scroll *::-webkit-scrollbar-thumb {
+    background-color: #a1a1aa;
+    border-radius: 999px;
+    width: 10px;
+    height: 10px;
+    display: block;
 }
