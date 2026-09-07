@@ -50,7 +50,9 @@ function MaterialScheduleEditor({
   const [savedMessage, setSavedMessage] = useState("")
   const [selectedCell, setSelectedCell] = useState(null)
   const [liveDraft, setLiveDraft] = useState(null)
-  const boqDescriptions = useMemo(() => getAllBoqItemNames(projectId), [projectId])
+  const activitySuggestions = useMemo(() => {
+    return [...getAllBoqItemNames(projectId), ...getActivityDescriptionsForSlot(projectId, dayId, slotId)]
+  }, [projectId, dayId, slotId])
 
   rowsRef.current = rows
 
@@ -282,7 +284,7 @@ function MaterialScheduleEditor({
               className="min-w-[16rem] flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-mono text-zinc-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
             {selectedResultDisplay ? (
-              <span className="text-sm tabular-nums text-zinc-500">
+              <span className="text-sm font-bold tabular-nums text-zinc-900">
                 Result: {selectedResultDisplay}
               </span>
             ) : null}
@@ -320,7 +322,15 @@ function MaterialScheduleEditor({
                       const resolvedDisplay = resolvedRow
                         ? formatMaterialScheduleResolvedValue(resolvedRow, column.key)
                         : ""
-                      const showAutoValue = column.computed && String(rawValue).trim() === ""
+                      const hasMeaningfulAutoValue =
+                        Boolean(resolvedDisplay) &&
+                        resolvedDisplay !== "—" &&
+                        resolvedDisplay !== "$0.00" &&
+                        resolvedDisplay !== "0.00"
+                      const showAutoValue =
+                        column.computed &&
+                        String(rawValue).trim() === "" &&
+                        hasMeaningfulAutoValue
 
                       return (
                         <td
@@ -337,7 +347,7 @@ function MaterialScheduleEditor({
                               dayId={dayId}
                               slotId={slotId}
                               value={rawValue}
-                              extraDescriptions={boqDescriptions}
+                              extraDescriptions={activitySuggestions}
                               onChange={(value) => updateRow(rowIndex, fieldKey, value)}
                             />
                           ) : column.key === "details" ? (

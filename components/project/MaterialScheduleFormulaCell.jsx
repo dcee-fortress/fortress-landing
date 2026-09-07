@@ -24,12 +24,14 @@ export default function MaterialScheduleFormulaCell({
   sourceRef.current = source
 
   const storedText = String(rawValue ?? "").trim()
+  const autoAnswer = storedText === "" ? String(fallbackDisplay ?? "").trim() : ""
   const idleValue =
     storedText !== ""
       ? formatDisplay
         ? formatDisplay(rawValue)
         : String(rawValue ?? "")
-      : ""
+      : autoAnswer
+  const showAnswerWeight = numeric && Boolean(idleValue)
 
   useEffect(() => {
     if (focusedRef.current || !inputRef.current) return
@@ -40,7 +42,7 @@ export default function MaterialScheduleFormulaCell({
     if (!inputRef.current) return
     const text = String(value ?? "").trim()
     if (!text) {
-      inputRef.current.value = ""
+      inputRef.current.value = autoAnswer
       return
     }
     inputRef.current.value = formatDisplay ? formatDisplay(value) : text
@@ -52,13 +54,15 @@ export default function MaterialScheduleFormulaCell({
       type="text"
       inputMode={numeric ? "decimal" : "text"}
       defaultValue={idleValue}
-      placeholder={fallbackDisplay || (numeric ? "0 or =3*4" : "")}
+      placeholder={autoAnswer ? "" : numeric ? "0 or =3*4" : ""}
       aria-label={columnLabel}
       className={`w-full min-w-[7rem] rounded-md border bg-white px-2 py-1.5 text-sm outline-none ${
         isSelected
           ? "border-blue-500 ring-2 ring-blue-500/20"
           : "border-zinc-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-      } ${align === "right" ? "text-right tabular-nums" : "text-left"} text-zinc-900`}
+      } ${align === "right" ? "text-right tabular-nums" : "text-left"} ${
+        showAnswerWeight ? "font-bold text-zinc-900" : "text-zinc-900"
+      }`}
       onFocus={(event) => {
         focusedRef.current = true
         draftRef.current = sourceRef.current
