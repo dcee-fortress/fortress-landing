@@ -107,7 +107,6 @@ export function ProjectDataProvider({ children }) {
     }
 
     const onSharedStorageChange = () => {
-      syncCalendarFiles()
       startTransition(() => {
         refresh()
       })

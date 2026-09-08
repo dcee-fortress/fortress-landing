@@ -20,7 +20,7 @@ import {
 } from "@/lib/progressReports"
 import { ensureDailyFilesThroughToday } from "@/lib/dailyFileSync"
 import { isProgressUpdateEmpty, isTargetPlanEmpty } from "@/lib/progressReportDemo"
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 
 function getProgressReportFileDescription(_projectId, file) {
   const inProgress = file.status === "in-progress"
@@ -185,14 +185,17 @@ function ReportTypeSelector({ projectName, onSelect }) {
 function ProgressReportFiles({ projectName, projectId, reportType, onSelectType }) {
   const { version } = useProjectData()
 
-  const progressReports = useMemo(() => {
+  useEffect(() => {
     ensureDailyFilesThroughToday(projectId)
     ensureProgressReportsExist(projectId)
+  }, [projectId])
+
+  const progressReports = useMemo(() => {
     const reports = reportType === "daily"
       ? getProjectDailyProgressReports(projectId)
       : getProjectWeeklyProgressReports(projectId)
     return [...reports].sort((a, b) => b.id.localeCompare(a.id))
-  }, [projectId, reportType, version]) // eslint-disable-line react-hooks/exhaustive-deps -- version refreshes list after saves
+  }, [projectId, reportType, version])
 
   const search = useReportFileSearch(progressReports)
   const displayFiles = search.activeQuery ? search.filteredFiles : progressReports
