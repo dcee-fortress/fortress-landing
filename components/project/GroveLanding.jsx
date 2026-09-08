@@ -23,7 +23,8 @@ export default function GroveLanding() {
             {APP_BRAND}
           </h1>
           <p className="text-sm text-zinc-500 sm:text-base">
-            Open a live project. Everyone who uses this link sees the same data.
+            Open a live project. Data entered on any device with the public link is the same data
+            shown here.
           </p>
         </header>
 

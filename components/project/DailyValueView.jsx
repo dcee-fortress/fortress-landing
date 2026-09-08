@@ -116,8 +116,8 @@ export default function DailyValueView({ projectName, projectId }) {
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
         <p className="max-w-2xl text-zinc-500">
-          A new daily file is created automatically each day, ready for hourly dashboards and
-          material schedule entry. Open today&apos;s file to start entering data.
+          Daily files are created from the project start date through today. Open any day to enter
+          or edit hourly dashboards and material schedules.
         </p>
       </header>
 

@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic"
 import { APP_BRAND } from "@/lib/appBrand"
+import { isLocalCodeChannel } from "@/lib/liveDataConfig"
 
 const ProjectMenu = dynamic(() => import("@/components/project/ProjectMenu"), {
   ssr: false,
@@ -26,7 +27,15 @@ export default function DashboardShell({ children }) {
   return (
     <div className="relative min-h-dvh overflow-x-clip">
       <ProjectMenu />
-      <div className="pt-[var(--app-header-height)]">{children}</div>
+      <div className="pt-[var(--app-header-height)]">
+        {isLocalCodeChannel() ? (
+          <div className="border-b border-sky-200 bg-sky-50 px-4 py-2 text-center text-sm text-sky-950">
+            This computer uses the same live project data as the public website. Code and layout
+            changes stay here until you ask to publish them.
+          </div>
+        ) : null}
+        {children}
+      </div>
     </div>
   )
 }

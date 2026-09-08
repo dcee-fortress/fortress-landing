@@ -5,6 +5,7 @@ import {
   writeSharedValue,
 } from "@/lib/serverSharedStore"
 import { SHARED_STORAGE_KEYS } from "@/lib/sharedStorageMerge"
+import { readRequestJson } from "@/lib/safeJson"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -27,7 +28,7 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const payload = await request.json()
+    const payload = await readRequestJson(request, {})
     if (!allowedKeys.has(payload?.key) || typeof payload.value !== "string") {
       return Response.json({ error: "Invalid shared storage payload." }, { status: 400 })
     }
@@ -46,7 +47,7 @@ export async function POST(request) {
 
 export async function PUT(request) {
   try {
-    const payload = await request.json()
+    const payload = await readRequestJson(request, {})
     if (payload?.replace !== true || !payload.storage || typeof payload.storage !== "object") {
       return Response.json({ error: "Invalid shared storage replacement." }, { status: 400 })
     }
@@ -63,12 +64,12 @@ export async function PUT(request) {
 
 export async function DELETE(request) {
   try {
-    const { key } = await request.json()
-    if (!allowedKeys.has(key)) {
+    const payload = await readRequestJson(request, {})
+    if (!allowedKeys.has(payload?.key)) {
       return Response.json({ error: "Invalid shared storage key." }, { status: 400 })
     }
 
-    await removeSharedValue(key)
+    await removeSharedValue(payload.key)
     return Response.json({ ok: true })
   } catch {
     return Response.json({ error: "Could not clear shared storage." }, { status: 503 })

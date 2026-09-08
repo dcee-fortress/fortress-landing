@@ -1,8 +1,11 @@
 "use client"
 
 import { notFound } from "next/navigation"
+import PageLoadingShell from "@/components/project/PageLoadingShell"
 import PlantCostScheduleView from "@/components/project/PlantCostScheduleView"
 import { useProjects } from "@/components/project/ProjectsProvider"
+import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
+import { ensureHourlyDashboardsForDay } from "@/lib/projectData"
 import { getPlantCostSlotsForDay } from "@/lib/plantCostData"
 
 export default function PlantCostSchedulePageClient({
@@ -11,9 +14,16 @@ export default function PlantCostSchedulePageClient({
   dayLabel,
   slotId,
 }) {
-  const { getProject } = useProjects()
-  const project = getProject(projectId)
-  const slot = getPlantCostSlotsForDay(projectId, dayId).find((item) => item.id === slotId)
+  const { version } = useProjects()
+  const { isReady, project, item: slot } = useHydratedProjectRoute(projectId, () => {
+    void version
+    ensureHourlyDashboardsForDay(projectId, dayId)
+    return getPlantCostSlotsForDay(projectId, dayId).find((item) => item.id === slotId) ?? null
+  })
+
+  if (!isReady) {
+    return <PageLoadingShell />
+  }
 
   if (!project || !slot) {
     notFound()

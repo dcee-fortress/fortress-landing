@@ -89,9 +89,7 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
               <p className="mt-1 text-sm text-zinc-500">
                 {status.key === "awaiting"
                   ? "New daily file — add hourly dashboards and save material schedules to enter data."
-                  : status.key === "in-progress"
-                    ? "Today's data in progress — totals update as hourly material schedules are saved."
-                    : `File completed: ${file.completedAt}`}
+                  : "You can edit this file at any time — totals update as hourly material schedules are saved."}
               </p>
             </div>
             <span

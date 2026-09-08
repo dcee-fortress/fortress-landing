@@ -3,43 +3,43 @@
 import dynamic from "next/dynamic"
 import { notFound } from "next/navigation"
 import PageLoadingShell from "@/components/project/PageLoadingShell"
-import { useHasHydrated } from "@/hooks/useHasHydrated"
+import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
 import {
   ensureProgressReportsExist,
   getProjectDailyProgressReport,
   getProjectProgressReport,
 } from "@/lib/progressReports"
-import { ensureDailyFilesThroughToday } from "@/lib/dailyFileSync"
 
 const ProgressReportView = dynamic(() => import("@/components/project/ProgressReport"), {
   loading: () => <PageLoadingShell />,
 })
 
-export default function ProgressReportDetailPageClient({ projectId, reportId, projectName, reportType = "daily" }) {
-  const hasHydrated = useHasHydrated()
-  if (hasHydrated) {
-    ensureDailyFilesThroughToday(projectId)
+export default function ProgressReportDetailPageClient({
+  projectId,
+  reportId,
+  projectName,
+  reportType = "daily",
+}) {
+  const { isReady, project, item: report } = useHydratedProjectRoute(projectId, () => {
     ensureProgressReportsExist(projectId)
-  }
-  const report = hasHydrated
-    ? reportType === "daily"
+    return reportType === "daily"
       ? getProjectDailyProgressReport(projectId, reportId)
       : getProjectProgressReport(projectId, reportId)
-    : null
+  })
 
-  if (hasHydrated && !report) {
-    notFound()
+  if (!isReady) {
+    return <PageLoadingShell />
   }
 
-  if (!hasHydrated) {
-    return <PageLoadingShell />
+  if (!project || !report) {
+    notFound()
   }
 
   return (
     <div className="app-page-frame text-zinc-900">
       <div className="mx-auto max-w-7xl">
         <ProgressReportView
-          projectName={projectName}
+          projectName={projectName || project.name}
           projectId={projectId}
           reportId={reportId}
           reportType={reportType}

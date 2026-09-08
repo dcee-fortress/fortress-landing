@@ -41,14 +41,13 @@ export function ProjectsProvider({ children }) {
         const project = createCustomProject(name, options)
         if (!project) return null
 
-        const [{ ensureHourlyDashboardsForDay }, { ensurePeriodFilesForDay }] = await Promise.all([
+        const [{ ensureHourlyDashboardsForProject }, { ensureDailyFilesThroughToday }] = await Promise.all([
           import("@/lib/projectData"),
-          import("@/lib/periodFiles"),
+          import("@/lib/dailyFileSync"),
         ])
 
-        if (ensureHourlyDashboardsForDay(project.id, project.startDate)) {
-          ensurePeriodFilesForDay(project.id, project.startDate)
-        }
+        ensureDailyFilesThroughToday(project.id)
+        ensureHourlyDashboardsForProject(project.id)
 
         refresh()
         return project

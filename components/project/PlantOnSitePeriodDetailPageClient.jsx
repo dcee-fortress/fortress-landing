@@ -1,8 +1,10 @@
 "use client"
 
 import { notFound } from "next/navigation"
+import PageLoadingShell from "@/components/project/PageLoadingShell"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import PlantOnSitePeriodDetailView from "@/components/project/PlantOnSitePeriodDetailView"
+import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
 import {
   EQUIPMENT_IN_USE_MODULE,
   PLANT_COST_MODULE,
@@ -23,12 +25,20 @@ export default function PlantOnSitePeriodDetailPageClient({
   period,
   fileId,
 }) {
-  const { getProject } = useProjects()
-  const project = getProject(projectId)
-  const siteModule = MODULES[moduleKey]
-  const file = getPeriodFile(projectId, period, fileId)
+  const { version } = useProjects()
+  const { isReady, project, item } = useHydratedProjectRoute(projectId, () => {
+    void version
+    return {
+      siteModule: MODULES[moduleKey],
+      file: getPeriodFile(projectId, period, fileId),
+    }
+  })
 
-  if (!project || !siteModule || !file) {
+  if (!isReady) {
+    return <PageLoadingShell />
+  }
+
+  if (!project || !item?.siteModule || !item?.file) {
     notFound()
   }
 
@@ -38,9 +48,9 @@ export default function PlantOnSitePeriodDetailPageClient({
         <PlantOnSitePeriodDetailView
           projectName={project.name}
           projectId={projectId}
-          module={siteModule}
+          module={item.siteModule}
           period={period}
-          file={file}
+          file={item.file}
         />
       </div>
     </div>

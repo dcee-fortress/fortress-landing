@@ -179,10 +179,31 @@ export default function SettingsPanel() {
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">Settings</h1>
           </div>
           <p className="text-sm text-zinc-500">
-            Manage projects and shared live data. Changes are available to everyone using this site.
+            Manage projects and shared live data. Project entries are shared. Code updates are not.
           </p>
         </header>
       </div>
+
+      <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
+          <h2 className="text-lg font-semibold text-zinc-900">Data and code</h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            These are kept apart on purpose.
+          </p>
+        </div>
+        <div className="space-y-3 px-6 py-6 text-sm leading-relaxed text-zinc-600">
+          <p>
+            <span className="font-semibold text-zinc-900">Project data</span> lives in the live
+            database. Valuations and other entries made on the public website, a phone, or this
+            Cursor site are the same records.
+          </p>
+          <p>
+            <span className="font-semibold text-zinc-900">Code and layout</span> that you try in
+            Cursor stay on this computer first. They go onto the public website only when you ask
+            for them to be published.
+          </p>
+        </div>
+      </section>
 
       {statusMessage ? (
         <ConfirmNotice tone="emerald" title="Done" message={statusMessage} />

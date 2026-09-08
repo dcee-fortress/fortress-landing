@@ -1,20 +1,22 @@
 "use client"
 
 import { notFound } from "next/navigation"
+import PageLoadingShell from "@/components/project/PageLoadingShell"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import DailyReport from "@/components/project/DailyReport"
-import { ensureDailyFilesThroughToday } from "@/lib/dailyFileSync"
+import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
 import { getDailyFile } from "@/lib/projects"
 
 export default function DailyReportPageClient({ projectId, dayId }) {
-  const { getProject } = useProjects()
-  const project = getProject(projectId)
+  const { version } = useProjects()
+  const { isReady, project, item: file } = useHydratedProjectRoute(projectId, () => {
+    void version
+    return getDailyFile(projectId, dayId)
+  })
 
-  if (typeof window !== "undefined") {
-    ensureDailyFilesThroughToday(projectId)
+  if (!isReady) {
+    return <PageLoadingShell />
   }
-
-  const file = getDailyFile(projectId, dayId)
 
   if (!project || !file) {
     notFound()

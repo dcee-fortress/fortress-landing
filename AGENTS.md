@@ -15,6 +15,8 @@
 - Keep changes small and focused.
 - Follow the styling and architecture already used in the surrounding code.
 - Preserve app behavior unless the task explicitly requires a change.
+- Keep project data on the live shared store so Cursor localhost and the public site show the same entries.
+- Keep code changes local until the user explicitly asks to publish, push, or deploy.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -67,8 +67,10 @@ export function ProjectDataProvider({ children }) {
 
       const filesChanged = ensureDailyFilesThroughToday(projectId)
       ensureProgressReportsExist(projectId)
+      const { ensureHourlyDashboardsForProject } = await import("@/lib/projectData")
+      const slotsChanged = ensureHourlyDashboardsForProject(projectId)
 
-      if (!alreadyBootstrapped || filesChanged) {
+      if (!alreadyBootstrapped || filesChanged || slotsChanged) {
         startTransition(() => {
           refresh()
         })

@@ -11,6 +11,10 @@
 - Build for production with `npm run build`.
 - Prefer existing components and utilities over creating new ones when possible.
 
+## Data vs code
+- Project data is the live shared database. Localhost in Cursor must read and write that same live store so entries from the public link match what you see locally.
+- Code, layout, debugging, and decoding stay on the local site first. Never git push, never deploy to Vercel, and never publish those changes to the live website unless the user explicitly asks.
+
 ## Code conventions
 - Keep components focused and reusable.
 - Use functional React components and hooks.

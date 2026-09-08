@@ -1,16 +1,25 @@
 "use client"
 
 import { notFound } from "next/navigation"
+import PageLoadingShell from "@/components/project/PageLoadingShell"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import RateAnalysisDetailView from "@/components/project/RateAnalysisDetailView"
+import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
 import { getRateAnalysisFile, isValidRateAnalysisPeriod } from "@/lib/rateAnalysis"
 
 export default function RateAnalysisDetailPageClient({ projectId, period, fileId }) {
-  const { getProject } = useProjects()
-  const project = getProject(projectId)
-  const file = getRateAnalysisFile(projectId, period, fileId)
+  const { version } = useProjects()
+  const { isReady, project, item: file } = useHydratedProjectRoute(projectId, () => {
+    void version
+    if (!isValidRateAnalysisPeriod(period)) return null
+    return getRateAnalysisFile(projectId, period, fileId)
+  })
 
-  if (!project || !isValidRateAnalysisPeriod(period) || !file) {
+  if (!isReady) {
+    return <PageLoadingShell />
+  }
+
+  if (!project || !file) {
     notFound()
   }
 
