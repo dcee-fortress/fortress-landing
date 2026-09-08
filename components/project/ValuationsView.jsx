@@ -1,7 +1,6 @@
 "use client"
 
-import Icon from "@/components/icon/icon"
-import Link from "next/link"
+import ChoiceCard from "@/components/project/ChoiceCard"
 import { getDashboardHref } from "@/lib/projectRoutes"
 
 const VALUATION_OPTIONS = [
@@ -38,7 +37,7 @@ export default function ValuationsView({ projectId, projectName }) {
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
           Valuations
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
           {projectName}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
@@ -46,22 +45,15 @@ export default function ValuationsView({ projectId, projectName }) {
         </p>
       </header>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+      <div className="app-choice-grid">
         {VALUATION_OPTIONS.map((item) => (
-          <Link
+          <ChoiceCard
             key={item.view}
             href={getDashboardHref(projectId, item.view)}
-            prefetch={false}
-            className="group flex min-h-20 touch-manipulation items-start gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm active:bg-zinc-50 sm:gap-4 sm:p-5"
-          >
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
-              <Icon name={item.icon} size={22} className="text-zinc-700" />
-            </div>
-            <div className="min-w-0 space-y-1">
-              <h2 className="font-semibold text-zinc-900">{item.label}</h2>
-              <p className="text-sm leading-relaxed text-zinc-500">{item.description}</p>
-            </div>
-          </Link>
+            icon={item.icon}
+            title={item.label}
+            description={item.description}
+          />
         ))}
       </div>
     </div>

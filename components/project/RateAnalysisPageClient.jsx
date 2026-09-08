@@ -13,7 +13,7 @@ export default function RateAnalysisPageClient({ projectId }) {
 
   return (
     <div className="app-page-frame text-zinc-900">
-      <div className="mx-auto max-w-5xl">
+      <div className="app-content-shell">
         <RateAnalysisView projectId={projectId} projectName={project.name} />
       </div>
     </div>

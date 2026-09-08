@@ -8,7 +8,7 @@ export default function ValuationsPageClient({ projectId }) {
     <ProjectPageClientShell projectId={projectId}>
       {(project) => (
         <div className="app-page-frame text-zinc-900">
-          <div className="mx-auto max-w-4xl">
+          <div className="app-content-shell">
             <ValuationsView projectId={projectId} projectName={project.name} />
           </div>
         </div>

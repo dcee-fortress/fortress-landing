@@ -32,7 +32,7 @@ export default function DashboardCard({
           {subtitle && <p className="text-xs text-zinc-500">{subtitle}</p>}
         </div>
         {icon && (
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconTones[tone] ?? iconTones.default}`}>
+          <div className={`app-icon-tile ${iconTones[tone] ?? iconTones.default}`}>
             <Icon name={icon} size={20} />
           </div>
         )}

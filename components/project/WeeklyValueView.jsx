@@ -19,10 +19,10 @@ const WeeklyFileRow = memo(function WeeklyFileRow({ file, projectId, inProgress,
       <Link
         href={getWeeklyFileHref(projectId, file.id)}
         prefetch={false}
-        className="group flex min-w-0 flex-col gap-3 px-3 py-3.5 transition hover:bg-zinc-50 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-4"
+        className="app-file-row group transition hover:bg-zinc-50"
       >
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600 sm:h-11 sm:w-11">
+          <div className="app-icon-tile app-icon-tile--violet">
             <Icon name="file-text" size={20} />
           </div>
           <div className="min-w-0">

@@ -56,7 +56,7 @@ export default function ProjectMenu() {
   return (
     <>
       <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-zinc-200 bg-white pt-[env(safe-area-inset-top)] shadow-sm">
-        <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-4">
+        <div className="mx-auto flex h-14 w-full max-w-[90rem] items-center gap-2 px-3 sm:gap-3 sm:px-4 lg:h-16 lg:px-6">
           <div ref={menuRef} className="relative flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <button
               type="button"
@@ -64,13 +64,13 @@ export default function ProjectMenu() {
               aria-haspopup="true"
               aria-label="Open projects menu"
               onClick={() => setOpen((current) => !current)}
-              className="inline-flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
+              className="inline-flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 lg:h-11 lg:w-11"
             >
               <Icon name="align-justify" size={20} />
             </button>
 
             <Link href="/" prefetch={false} className="flex min-w-0 items-center gap-2 transition hover:opacity-80">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-sm font-bold tracking-wide text-white sm:h-9 sm:w-9">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-sm font-bold tracking-wide text-white sm:h-9 sm:w-9 lg:h-10 lg:w-10 lg:text-base">
                 F
               </span>
               <span className="truncate text-base font-bold tracking-[0.08em] text-zinc-900 sm:text-xl sm:tracking-[0.1em]">
@@ -125,18 +125,20 @@ export default function ProjectMenu() {
               setOpen(false)
               setShowCreate(true)
             }}
-            className="inline-flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
+            className="inline-flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 lg:h-11 lg:w-auto lg:gap-2 lg:px-3"
           >
             <Icon name="plus" size={20} />
+            <span className="hidden text-sm font-medium lg:inline">New project</span>
           </button>
 
           <Link
             href="/settings"
             prefetch={false}
             aria-label="Open settings"
-            className="inline-flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-zinc-300 bg-zinc-100 text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-200"
+            className="inline-flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-zinc-300 bg-zinc-100 text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-200 lg:h-11 lg:w-auto lg:gap-2 lg:px-3"
           >
             <Icon name="settings-2" size={20} />
+            <span className="hidden text-sm font-medium lg:inline">Settings</span>
           </Link>
         </div>
       </header>

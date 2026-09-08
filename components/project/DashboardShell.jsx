@@ -24,7 +24,7 @@ const ProjectMenu = dynamic(() => import("@/components/project/ProjectMenu"), {
 
 export default function DashboardShell({ children }) {
   return (
-    <div className="relative min-h-dvh overflow-x-hidden">
+    <div className="relative min-h-dvh overflow-x-clip">
       <ProjectMenu />
       <div className="pt-[var(--app-header-height)]">{children}</div>
     </div>

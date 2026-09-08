@@ -19,10 +19,10 @@ const MonthlyFileRow = memo(function MonthlyFileRow({ file, projectId, inProgres
       <Link
         href={getMonthlyFileHref(projectId, file.id)}
         prefetch={false}
-        className="group flex min-w-0 flex-col gap-3 px-3 py-3.5 transition hover:bg-zinc-50 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-4"
+        className="app-file-row group transition hover:bg-zinc-50"
       >
         <div className="flex min-w-0 items-center gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition group-hover:bg-blue-100">
+          <div className="app-icon-tile app-icon-tile--blue">
             <Icon name="file-text" size={20} />
           </div>
           <div className="min-w-0">

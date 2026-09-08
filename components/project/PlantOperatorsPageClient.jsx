@@ -13,7 +13,7 @@ export default function PlantOperatorsPageClient({ projectId }) {
 
   return (
     <div className="app-page-frame text-zinc-900">
-      <div className="mx-auto max-w-4xl">
+      <div className="app-content-shell">
         <PlantOperatorsView projectName={project.name} projectId={projectId} />
       </div>
     </div>

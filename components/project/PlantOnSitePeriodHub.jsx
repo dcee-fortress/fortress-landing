@@ -1,5 +1,6 @@
 "use client"
 
+import ChoiceCard from "@/components/project/ChoiceCard"
 import Icon from "@/components/icon/icon"
 import Link from "next/link"
 import PlantHoursTotalCard from "@/components/project/PlantHoursTotalCard"
@@ -44,29 +45,26 @@ export default function PlantOnSitePeriodHub({ projectId, projectName, module })
         />
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="app-choice-grid">
         {periodOptions.map((item) => (
-          <Link
+          <ChoiceCard
             key={item.period}
             href={getModulePeriodHref(projectId, module, item.period)}
-            className="group flex items-start gap-4 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md"
-          >
-            <div
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition ${module.accentIconClass}`}
-            >
-              <Icon name={item.icon} size={22} />
-            </div>
-            <div className="space-y-1">
-              <h2 className="font-semibold text-zinc-900">
-                {item.period === "project-to-date"
-                  ? item.shortLabel
-                  : `${item.shortLabel} ${module.title}`}
-              </h2>
-              <p className="text-sm leading-relaxed text-zinc-500">
-                {module.periodListDescriptions?.[item.period] ?? item.description}
-              </p>
-            </div>
-          </Link>
+            icon={item.icon}
+            title={
+              item.period === "project-to-date"
+                ? item.shortLabel
+                : `${item.shortLabel} ${module.title}`
+            }
+            description={module.periodListDescriptions?.[item.period] ?? item.description}
+            iconClassName={
+              module.accentIconClass?.includes("orange")
+                ? "app-icon-tile--orange"
+                : module.accentIconClass?.includes("emerald")
+                  ? "app-icon-tile--emerald"
+                  : "app-icon-tile--neutral"
+            }
+          />
         ))}
       </div>
     </div>

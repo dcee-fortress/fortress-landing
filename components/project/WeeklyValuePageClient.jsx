@@ -8,7 +8,7 @@ export default function WeeklyValuePageClient({ projectId }) {
     <ProjectPageClientShell projectId={projectId}>
       {(project) => (
         <div className="app-page-frame text-zinc-900">
-          <div className="mx-auto max-w-4xl">
+          <div className="app-content-shell">
             <WeeklyValueView projectName={project.name} projectId={projectId} />
           </div>
         </div>

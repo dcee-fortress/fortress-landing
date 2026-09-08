@@ -68,10 +68,10 @@ function ProgressReportFileRow({ file, projectId, reportType }) {
   )
 
   return (
-    <li className="px-6 py-4">
+    <li className="app-file-row">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+          <div className="app-icon-tile app-icon-tile--blue">
             <Icon name="file-text" size={20} />
           </div>
           <div className="min-w-0">
@@ -150,7 +150,7 @@ function ReportTypeSelector({ projectName, onSelect }) {
           onClick={() => onSelect("daily")}
           className="group rounded-xl border border-zinc-200 bg-white p-6 text-left shadow-sm transition hover:border-amber-300 hover:shadow-md"
         >
-          <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+          <span className="app-icon-tile app-icon-tile--amber">
             <Icon name="clock" size={20} />
           </span>
           <span className="mt-4 block text-lg font-semibold text-zinc-900">Daily Report Files</span>
@@ -166,7 +166,7 @@ function ReportTypeSelector({ projectName, onSelect }) {
           onClick={() => onSelect("weekly")}
           className="group rounded-xl border border-zinc-200 bg-white p-6 text-left shadow-sm transition hover:border-violet-300 hover:shadow-md"
         >
-          <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+          <span className="app-icon-tile app-icon-tile--violet">
             <Icon name="calendar-range" size={20} />
           </span>
           <span className="mt-4 block text-lg font-semibold text-zinc-900">Weekly Report Files</span>

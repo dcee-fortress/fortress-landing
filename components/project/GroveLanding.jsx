@@ -12,10 +12,10 @@ export default function GroveLanding() {
 
   return (
     <div className="app-page-frame text-zinc-900">
-      <div className="mx-auto w-full min-w-0 max-w-3xl space-y-5">
+      <div className="app-content-shell space-y-5 lg:space-y-8">
         <header className="space-y-1">
           <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Projects</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
             {APP_BRAND}
           </h1>
           <p className="text-sm text-zinc-500 sm:text-base">
@@ -24,19 +24,19 @@ export default function GroveLanding() {
         </header>
 
         {activeProjects.length > 0 ? (
-          <ul className="space-y-3">
+          <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-4">
             {activeProjects.map((project) => (
               <li key={project.id}>
                 <Link
                   href={getProjectHomeHref(project.id)}
                   prefetch={false}
-                  className="flex min-h-16 touch-manipulation items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3.5 shadow-sm active:bg-zinc-50 sm:gap-4 sm:px-5"
+                  className="app-choice-card items-center"
                 >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
+                  <div className="app-icon-tile app-icon-tile--neutral">
                     <Icon name="hard-hat" size={22} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-base font-semibold text-zinc-900">{project.name}</p>
+                    <p className="truncate text-base font-semibold text-zinc-900 lg:text-lg">{project.name}</p>
                     <p className="truncate text-sm text-zinc-500">Open dashboards</p>
                   </div>
                   <Icon name="chevron-right" size={18} className="shrink-0 text-zinc-400" />
