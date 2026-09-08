@@ -43,8 +43,7 @@ import {
   removeStoredProgressPhoto,
 } from "@/lib/progressReportPhotos"
 import {
-  exportElementToPdf,
-  exportProgressDocumentPdf,
+  exportFullProgressReportPdf,
   getDailyReportPdfFilename,
   getWeeklyReportPdfFilename,
 } from "@/lib/progressReportPdf"
@@ -81,6 +80,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
   const photoInputRef = useRef(null)
   const autoSaveTimeoutRef = useRef(null)
   const pageRef = useRef(null)
+  const weatherRef = useRef(null)
   const documentSectionRef = useRef(null)
 
   useEffect(() => {
@@ -377,36 +377,36 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
   const dateHeading = isDailyReport ? formatDayLabelFromId(report.id) : formatWeekRange(report.id)
   const sitePhotos = dedupeProgressPhotos(report.progressUpdate?.photos)
 
-  const exportCurrentDocumentPdf = async () => {
+  const exportFullReportPdf = async () => {
     const liveHtml =
       documentSectionRef.current?.querySelector(".rich-text-editor__content")?.innerHTML ||
-      actualProgressContent
+      (isActualProgressUpdate ? actualProgressContent : report.progressSummary)
 
     setIsExportingPdf(true)
     try {
       saveChanges((currentReport) => currentReport)
-      await exportProgressDocumentPdf({
-        projectName: displayProjectName,
-        title: isActualProgressUpdate ? "Actual Progress Update" : "Target Plan",
-        dateLabel: dateHeading,
-        html: liveHtml,
-      })
-    } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not export this document to PDF.")
-    } finally {
-      setIsExportingPdf(false)
-    }
-  }
-
-  const exportFullReportPdf = async () => {
-    if (!pageRef.current) return
-
-    setIsExportingPdf(true)
-    try {
       const filename = reportType === "weekly"
         ? getWeeklyReportPdfFilename(displayProjectName, reportId)
         : getDailyReportPdfFilename(displayProjectName, reportId)
-      await exportElementToPdf(pageRef.current, filename)
+
+      const weatherWaitStarted = Date.now()
+      while (
+        weatherRef.current &&
+        Date.now() - weatherWaitStarted < 8000 &&
+        /Loading forecast/i.test(weatherRef.current.textContent || "")
+      ) {
+        await new Promise((resolve) => window.setTimeout(resolve, 250))
+      }
+
+      await exportFullProgressReportPdf({
+        filename,
+        projectName: displayProjectName,
+        title: isActualProgressUpdate ? "Actual Progress Update" : "Target Plan",
+        dateLabel: dateHeading,
+        weatherElement: weatherRef.current,
+        documentHtml: liveHtml,
+        photos: await hydrateProgressPhotos(sitePhotos),
+      })
     } catch (error) {
       window.alert(
         error instanceof Error
@@ -465,7 +465,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
           {isActualProgressUpdate && (
             <ExportPdfButton
               className={`px-3 py-1.5 text-xs ${isExportingPdf ? "pointer-events-none opacity-60" : ""}`}
-              onClick={exportCurrentDocumentPdf}
+              onClick={exportFullReportPdf}
             />
           )}
           {reportType === "daily" && (
@@ -516,12 +516,14 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
         </div>
       </div>
 
-      {isActualProgressUpdate ? (
-        <WorkingHoursWeatherCard
-          projectName={displayProjectName}
-          reportType={reportType}
-          reportId={reportId}
-        />
+      {(isActualProgressUpdate || reportType === "daily" || reportType === "weekly") ? (
+        <div ref={weatherRef}>
+          <WorkingHoursWeatherCard
+            projectName={displayProjectName}
+            reportType={reportType}
+            reportId={reportId}
+          />
+        </div>
       ) : null}
 
       <div className={isDailyReport ? "space-y-6" : "grid gap-6 lg:grid-cols-3"}>
@@ -543,7 +545,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                 {isActualProgressUpdate && (
                   <ExportPdfButton
                     className={isExportingPdf ? "pointer-events-none opacity-60" : ""}
-                    onClick={exportCurrentDocumentPdf}
+                    onClick={exportFullReportPdf}
                   />
                 )}
               </div>
