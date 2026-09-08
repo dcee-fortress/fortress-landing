@@ -317,9 +317,94 @@ export default function SettingsPanel() {
 
       <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
+          <h2 className="text-lg font-semibold text-zinc-900">Delete a project</h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Permanently removes the project and all of its valuations, schedules, plant records, and
+            reports from the live site for every device.
+          </p>
+        </div>
+
+        <div className="space-y-4 px-6 py-6">
+          {deleteStep === 0 ? (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-zinc-700">Projects</p>
+              <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200">
+                {projects.length === 0 ? (
+                  <li className="px-4 py-3 text-sm text-zinc-500">No projects to delete.</li>
+                ) : (
+                  projects.map((project) => {
+                    const isSelected = selectedProjectId === project.id
+
+                    return (
+                      <li key={project.id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedProjectId(project.id)
+                            setStatusMessage("")
+                          }}
+                          className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm transition ${
+                            isSelected ? "bg-zinc-100" : "hover:bg-zinc-50"
+                          }`}
+                        >
+                          <span className="font-medium text-zinc-900">{project.name}</span>
+                          <ProjectStatusBadge project={project} />
+                        </button>
+                      </li>
+                    )
+                  })
+                )}
+              </ul>
+            </div>
+          ) : null}
+
+          {deleteStep === 1 && selectedProject ? (
+            <ConfirmNotice
+              tone="amber"
+              title="First confirmation"
+              message={`Permanently delete "${selectedProject.name}" and all of its saved data?`}
+            />
+          ) : null}
+
+          {deleteStep === 2 && selectedProject ? (
+            <ConfirmNotice
+              tone="red"
+              title="Final confirmation"
+              message={`Last chance: permanently delete "${selectedProject.name}" from the live database? This cannot be undone.`}
+            />
+          ) : null}
+
+          <div className="flex flex-wrap gap-3">
+            {deleteStep > 0 ? (
+              <button
+                type="button"
+                onClick={resetDeleteFlow}
+                className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+              >
+                Cancel
+              </button>
+            ) : null}
+            <button
+              type="button"
+              disabled={!selectedProject}
+              onClick={handleDeleteStep}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
+            >
+              {deleteStep === 0
+                ? "Delete selected project"
+                : deleteStep === 1
+                  ? "Yes, continue"
+                  : "Delete project permanently"}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
           <h2 className="text-lg font-semibold text-zinc-900">Ended projects</h2>
           <p className="mt-1 text-sm text-zinc-500">
-            Ended projects are removed from the menu but remain available here for review or permanent deletion.
+            Ended projects are removed from the menu but remain available here until you delete them.
           </p>
         </div>
 
@@ -362,41 +447,6 @@ export default function SettingsPanel() {
           ) : (
             <p className="text-sm text-zinc-500">No ended projects.</p>
           )}
-
-          {deleteStep === 1 && selectedProject ? (
-            <ConfirmNotice
-              tone="amber"
-              title="First confirmation"
-              message={`Permanently delete "${selectedProject.name}" and all of its saved data?`}
-            />
-          ) : null}
-
-          {deleteStep === 2 && selectedProject ? (
-            <ConfirmNotice
-              tone="red"
-              title="Final confirmation"
-              message={`Last chance: permanently delete "${selectedProject.name}" from the whole database? This cannot be undone.`}
-            />
-          ) : null}
-
-          {deleteStep > 0 ? (
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={resetDeleteFlow}
-                className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteStep}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
-              >
-                {deleteStep === 1 ? "Yes, continue" : "Delete project permanently"}
-              </button>
-            </div>
-          ) : null}
         </div>
       </section>
 
