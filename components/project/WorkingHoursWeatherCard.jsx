@@ -16,11 +16,8 @@ function formatDayHeading(dayId, { weekday = "short", withYear = false } = {}) {
   })
 }
 
-function hourCaption(hour) {
-  if (hour <= 8) return "Morning"
-  if (hour <= 11) return "Late morning"
-  if (hour <= 14) return "Afternoon"
-  return "Dusk"
+function weatherIcon(name, size, color) {
+  return <Icon name={name || "cloud-sun"} size={size} color={color} />
 }
 
 export default function WorkingHoursWeatherCard({
@@ -95,168 +92,125 @@ export default function WorkingHoursWeatherCard({
   const weekRangeLabel = reportId && isWeekly ? formatWeekRange(reportId) : ""
   const high = isWeekly ? weekSummary?.high : selectedDay?.high
   const low = isWeekly ? weekSummary?.low : selectedDay?.low
+  const conditionLabel = loading
+    ? "Loading forecast"
+    : headingCondition?.label || "Forecast"
+  const placeLine = [
+    locationName,
+    data?.location?.country,
+    isWeekly ? weekRangeLabel : formatDayHeading(selectedDay?.dayId || reportId, { weekday: "long", withYear: true }),
+    "07:00 – 17:00",
+  ]
+    .filter(Boolean)
+    .join(" · ")
 
   return (
     <section
-      className="pdf-weather-card overflow-visible rounded-xl border"
-      style={{
-        backgroundColor: "#ffffff",
-        borderColor: "#d4d4d8",
-        color: tone.hourText,
-      }}
+      className="pdf-weather-card overflow-hidden rounded-2xl"
+      style={{ backgroundColor: tone.bg, color: tone.text }}
     >
-      <div
-        className="flex flex-wrap items-start justify-between gap-4 px-4 py-4 md:px-5"
-        style={{ backgroundColor: tone.bg, color: tone.text }}
-      >
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: tone.muted }}>
-            {isWeekly ? "Site weather · weekly forecast" : "Site weather · working hours"}
+      <div className="flex flex-wrap items-end justify-between gap-4 px-5 py-5">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: tone.muted }}>
+            {isWeekly ? "Weekly site weather" : "Today's site weather"}
           </p>
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2 flex items-center gap-3">
             <span
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full"
-              style={{ backgroundColor: tone.chip, color: tone.text }}
+              className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+              style={{ backgroundColor: "rgba(255,255,255,0.16)" }}
             >
-              <Icon name={headingCondition?.icon || "cloud-sun"} size={18} color={tone.text} />
+              {weatherIcon(headingCondition?.icon, 26, "#ffffff")}
             </span>
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight" style={{ color: tone.text }}>
-                {loading
-                  ? "Loading forecast…"
-                  : isWeekly
-                    ? headingCondition?.label
-                      ? `Week outlook · ${headingCondition.label}`
-                      : "Weekly forecast"
-                    : selectedDay?.condition?.label || "Forecast"}
+            <div className="min-w-0">
+              <h2 className="text-2xl font-semibold tracking-tight text-white">
+                {conditionLabel}
               </h2>
-              <p className="text-xs" style={{ color: tone.muted }}>
-                {locationName}
-                {data?.location?.country ? `, ${data.location.country}` : ""}
-                {isWeekly
-                  ? ` · ${weekRangeLabel} · working hours 07:00 – 17:00`
-                  : ` · ${formatDayHeading(selectedDay?.dayId || reportId, { weekday: "long", withYear: true })} · ${selectedDay?.windowLabel || "07:00 – 17:00 · morning to dusk"}`}
+              <p className="mt-0.5 truncate text-sm" style={{ color: tone.muted }}>
+                {placeLine}
               </p>
             </div>
           </div>
         </div>
 
-        <div
-          className="rounded-lg px-4 py-2 text-right"
-          style={{ backgroundColor: tone.chip, color: tone.text }}
-        >
-          <p className="text-[11px] uppercase tracking-wide" style={{ color: tone.muted }}>
-            {isWeekly ? "Week temperature" : "Shift temperature"}
-          </p>
-          <p className="text-2xl font-semibold tabular-nums" style={{ color: tone.text }}>
+        <div className="text-right">
+          <p className="text-4xl font-semibold tabular-nums leading-none text-white">
             {high != null ? `${high}°` : "—"}
-            <span className="ml-1 text-sm font-medium" style={{ color: tone.muted }}>
-              / {low != null ? `${low}°C` : "—"}
-            </span>
           </p>
-          <p className="text-xs" style={{ color: tone.muted }}>
+          <p className="mt-1 text-sm" style={{ color: tone.muted }}>
+            Low {low != null ? `${low}°C` : "—"}
+            {" · "}
             {isWeekly
-              ? `Peak rain ${weekSummary?.peakRainChance ?? 0}%${
-                  weekSummary?.wetDays
-                    ? ` · ${weekSummary.wetDays} wet day${weekSummary.wetDays === 1 ? "" : "s"}`
-                    : " · dry week"
-                }`
-              : `Rain chance ${selectedDay?.peakRainChance ?? 0}%${
-                  selectedDay?.rainHours
-                    ? ` · ${selectedDay.rainHours} wet hour${selectedDay.rainHours === 1 ? "" : "s"}`
-                    : " · dry shift"
-                }`}
+              ? `${weekSummary?.peakRainChance ?? 0}% rain`
+              : `${selectedDay?.peakRainChance ?? 0}% rain`}
           </p>
         </div>
       </div>
 
-      <div className="space-y-3 p-4 md:p-5" style={{ backgroundColor: "#ffffff" }}>
-        {isWeekly && data?.days?.length ? (
+      <div className="px-4 pb-4">
+        {error ? (
+          <p className="mb-3 rounded-xl bg-white px-3 py-2 text-sm" style={{ color: "#9f1239" }}>
+            {error}
+          </p>
+        ) : null}
+
+        {loading ? (
+          <div className={isWeekly ? "grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7" : "grid grid-cols-4 gap-2 md:grid-cols-8"}>
+            {Array.from({ length: isWeekly ? 7 : 8 }).map((_, index) => (
+              <div key={index} className="h-[7.5rem] rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.18)" }} />
+            ))}
+          </div>
+        ) : isWeekly ? (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-            {data.days.map((day) => {
+            {data?.days?.map((day) => {
               const active = day.dayId === selectedDay?.dayId
               return (
                 <button
                   key={day.dayId}
                   type="button"
                   onClick={() => setSelectedDayId(day.dayId)}
-                  className="rounded-lg px-2 py-3 text-center"
+                  className="rounded-xl px-2 py-3 text-center"
                   style={
                     active
-                      ? { backgroundColor: tone.bg, color: tone.text }
-                      : { backgroundColor: tone.hourBg, color: tone.hourText, border: "1px solid #d4d4d8" }
+                      ? { backgroundColor: "#ffffff", color: tone.hourText }
+                      : { backgroundColor: "rgba(255,255,255,0.16)", color: "#ffffff" }
                   }
                 >
-                  <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: active ? tone.muted : "#71717a" }}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: active ? "#64748b" : tone.muted }}>
                     {formatDayHeading(day.dayId)}
                   </p>
-                  <div
-                    className="mx-auto mt-2 flex h-8 w-8 items-center justify-center rounded-full"
-                    style={{ backgroundColor: active ? tone.chip : "#ffffff" }}
-                  >
-                    <Icon name={day.condition?.icon || "cloud-sun"} size={16} color={active ? tone.text : tone.hourText} />
+                  <div className="mx-auto mt-2 flex h-9 items-center justify-center">
+                    {weatherIcon(day.condition?.icon, 22, active ? tone.hourText : "#ffffff")}
                   </div>
-                  <p className="mt-2 text-sm font-semibold leading-tight">{day.condition?.label || "Forecast"}</p>
-                  <p className="mt-1 text-sm font-semibold tabular-nums">
+                  <p className="mt-2 text-lg font-semibold tabular-nums">
                     {day.high != null ? `${day.high}°` : "—"}
-                    <span className="ml-1 text-xs font-medium" style={{ color: active ? tone.muted : "#71717a" }}>
-                      / {day.low != null ? `${day.low}°` : "—"}
-                    </span>
                   </p>
-                  <p className="mt-1 text-[10px]" style={{ color: active ? tone.muted : "#71717a" }}>
-                    {day.peakRainChance ?? 0}% rain
+                  <p className="text-xs" style={{ color: active ? "#64748b" : tone.muted }}>
+                    {day.condition?.label || "Forecast"}
                   </p>
                 </button>
               )
             })}
           </div>
-        ) : null}
-
-        {error ? (
-          <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: "#fef2f2", color: "#9f1239", border: "1px solid #fecdd3" }}>
-            {error}
-          </p>
-        ) : null}
-
-        {loading ? (
-          <div className={isWeekly ? "grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7" : "grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8"}>
-            {Array.from({ length: isWeekly ? 7 : 8 }).map((_, index) => (
-              <div
-                key={index}
-                className="h-24 rounded-lg"
-                style={{ backgroundColor: "#f4f4f5", border: "1px solid #e4e4e7" }}
-              />
-            ))}
-          </div>
-        ) : isWeekly ? null : (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+        ) : (
+          <div className="grid grid-cols-4 gap-2 md:grid-cols-8">
             {(selectedDay?.hours || []).map((hour, index) => (
               <div
                 key={`${hour.time}-${index}`}
-                className="rounded-lg px-3 py-3 text-center"
-                style={{
-                  backgroundColor: tone.hourBg,
-                  color: tone.hourText,
-                  border: "1px solid #d4d4d8",
-                }}
+                className="rounded-xl px-2 py-3 text-center"
+                style={{ backgroundColor: "rgba(255,255,255,0.16)", color: "#ffffff" }}
               >
-                <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#71717a" }}>
-                  {hourCaption(hour.hour)}
+                <p className="text-xs font-semibold tabular-nums" style={{ color: tone.muted }}>
+                  {hour.time}
                 </p>
-                <p className="mt-0.5 text-xs font-medium">{hour.time}</p>
-                <div
-                  className="mx-auto mt-2 flex h-8 w-8 items-center justify-center rounded-full"
-                  style={{ backgroundColor: "#ffffff", border: `1px solid ${tone.accent}` }}
-                >
-                  <Icon name={hour.icon} size={16} color={tone.hourText} />
+                <div className="mx-auto mt-2 flex h-9 items-center justify-center">
+                  {weatherIcon(hour.icon, 22, "#ffffff")}
                 </div>
                 <p className="mt-2 text-lg font-semibold tabular-nums">
                   {hour.temperature != null ? `${Math.round(hour.temperature)}°` : "—"}
                 </p>
-                <p className="text-[11px] leading-tight" style={{ color: "#52525b" }}>{hour.label}</p>
-                {hour.rainChance != null ? (
-                  <p className="mt-1 text-[10px]" style={{ color: "#71717a" }}>{Math.round(hour.rainChance)}% rain</p>
-                ) : null}
+                <p className="text-[11px] leading-tight" style={{ color: tone.muted }}>
+                  {hour.label}
+                </p>
               </div>
             ))}
           </div>
