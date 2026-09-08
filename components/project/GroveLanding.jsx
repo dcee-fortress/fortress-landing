@@ -49,7 +49,7 @@ export default function GroveLanding() {
             ))}
           </ul>
         ) : (
-          <div className="rounded-2xl border border-dashed border-zinc-300 bg-white px-4 py-10 text-center text-sm text-zinc-500">
+          <p className="text-sm text-zinc-500 sm:text-base">
             {!hasHydrated ? (
               "Loading live projects…"
             ) : hasEndedProjects ? (
@@ -63,7 +63,7 @@ export default function GroveLanding() {
             ) : (
               "No projects yet. Use New project to create one."
             )}
-          </div>
+          </p>
         )}
       </div>
     </div>

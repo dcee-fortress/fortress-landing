@@ -85,7 +85,7 @@ export default function SettingsPanel() {
     }
   }
 
-  const handleClearStep = () => {
+  const handleClearStep = async () => {
     if (clearStep === 0) {
       setClearStep(1)
       return
@@ -96,15 +96,17 @@ export default function SettingsPanel() {
       return
     }
 
-    clearEntireGroveDatabase()
+    const result = await clearEntireGroveDatabase()
     refreshAll()
     setClearStep(0)
     setDeleteStep(0)
     setEndStep(0)
     setSelectedProjectId("")
     setEndProjectId("")
-    setStatusMessage(`All ${APP_BRAND} data cleared from this browser.`)
-    router.push("/")
+    setStatusMessage(result.ok ? result.message : result.message ?? "Could not clear the live database.")
+    if (result.ok) {
+      router.push("/")
+    }
   }
 
   const handleDeleteStep = async () => {
@@ -453,7 +455,8 @@ export default function SettingsPanel() {
         <div className="border-b border-red-100 bg-red-50 px-6 py-4">
           <h2 className="text-lg font-semibold text-red-900">Clear whole database</h2>
           <p className="mt-1 text-sm text-red-700">
-            Removes every project, dashboard entry, and material schedule from local storage.
+            Permanently removes every project, dashboard entry, and material schedule from the live
+            database for every device.
           </p>
         </div>
 
@@ -462,7 +465,7 @@ export default function SettingsPanel() {
             <ConfirmNotice
               tone="amber"
               title="First confirmation"
-              message={`This will erase all ${APP_BRAND} projects, hourly dashboards, and material schedules saved in this browser.`}
+              message={`This will erase all ${APP_BRAND} projects, hourly dashboards, and material schedules from the live database.`}
             />
           ) : null}
 
@@ -470,7 +473,7 @@ export default function SettingsPanel() {
             <ConfirmNotice
               tone="red"
               title="Final confirmation"
-              message={`Are you absolutely sure? This action cannot be undone and will clear the entire ${APP_BRAND} database on this device.`}
+              message={`Are you absolutely sure? This cannot be undone and will clear the entire ${APP_BRAND} live database for everyone.`}
             />
           ) : null}
 

@@ -1,24 +1,15 @@
 import {
   removeSharedValue,
   readSharedStorage,
+  replaceSharedStorage,
   writeSharedValue,
 } from "@/lib/serverSharedStore"
+import { SHARED_STORAGE_KEYS } from "@/lib/sharedStorageMerge"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
-const allowedKeys = new Set([
-  "grove-primary-project-data",
-  "grove-material-schedules",
-  "grove-material-schedule-drafts",
-  "grove-projects-registry",
-  "grove-boq",
-  "grove-boq-description-memory",
-  "grove-plant-cost",
-  "grove-plant-hours",
-  "grove-equipment-hours",
-  "grove-plant-operator-registers",
-])
+const allowedKeys = new Set(SHARED_STORAGE_KEYS)
 
 export async function GET() {
   try {
@@ -41,11 +32,30 @@ export async function POST(request) {
       return Response.json({ error: "Invalid shared storage payload." }, { status: 400 })
     }
 
-    const value = await writeSharedValue(payload.key, payload.value)
+    const value = await writeSharedValue(payload.key, payload.value, {
+      replace: payload.replace === true,
+    })
     return Response.json({ ok: true, value })
   } catch {
     return Response.json(
       { error: "Could not update shared storage." },
+      { status: 503 }
+    )
+  }
+}
+
+export async function PUT(request) {
+  try {
+    const payload = await request.json()
+    if (payload?.replace !== true || !payload.storage || typeof payload.storage !== "object") {
+      return Response.json({ error: "Invalid shared storage replacement." }, { status: 400 })
+    }
+
+    const storage = await replaceSharedStorage(payload.storage)
+    return Response.json({ ok: true, storage })
+  } catch {
+    return Response.json(
+      { error: "Could not replace shared storage." },
       { status: 503 }
     )
   }
