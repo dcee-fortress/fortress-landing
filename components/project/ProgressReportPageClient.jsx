@@ -13,7 +13,7 @@ export default function ProgressReportsPageClient({ projectId, reportType = null
   const project = getProject(projectId)
 
   if (!hasHydrated) {
-    return <PageLoadingShell className="pt-20" />
+    return <PageLoadingShell />
   }
 
   if (!project) {
@@ -21,10 +21,7 @@ export default function ProgressReportsPageClient({ projectId, reportType = null
   }
 
   return (
-    <div
-      className="h-screen overflow-y-auto bg-zinc-50 p-6 text-zinc-900 pt-20"
-      style={{ scrollPaddingTop: "5rem" }}
-    >
+    <div className="app-page-frame text-zinc-900">
       <div className="mx-auto max-w-4xl">
         <ProgressReportView
           projectName={project.name}

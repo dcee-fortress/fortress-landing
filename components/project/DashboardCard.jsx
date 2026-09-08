@@ -24,11 +24,11 @@ export default function DashboardCard({
   }
 
   return (
-    <article className={`rounded-xl border p-5 shadow-sm ${tones[tone] ?? tones.default}`}>
+    <article className={`min-w-0 overflow-hidden rounded-2xl border p-4 shadow-sm sm:p-5 ${tones[tone] ?? tones.default}`}>
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           <p className="text-sm font-medium text-zinc-500">{title}</p>
-          <p className="text-2xl font-semibold tracking-tight text-zinc-900">{value}</p>
+          <p className="break-words text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl">{value}</p>
           {subtitle && <p className="text-xs text-zinc-500">{subtitle}</p>}
         </div>
         {icon && (

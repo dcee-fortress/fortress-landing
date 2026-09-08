@@ -21,7 +21,7 @@ export default function DailyReportPageClient({ projectId, dayId }) {
   }
 
   return (
-    <div className="report-page-scroll p-6 pb-20" style={{ backgroundColor: "#fafafa", color: "#18181b" }}>
+    <div className="app-page-frame text-zinc-900">
       <div className="mx-auto max-w-6xl">
         <DailyReport projectName={project.name} projectId={projectId} file={file} />
       </div>

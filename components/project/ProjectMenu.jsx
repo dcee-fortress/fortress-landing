@@ -55,45 +55,31 @@ export default function ProjectMenu() {
 
   return (
     <>
-      <header className="fixed left-0 top-0 z-50 w-full border-b border-zinc-200 bg-white shadow-sm">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <div ref={menuRef} className="relative flex items-center gap-3">
-            <div className="flex flex-col gap-1.5">
-              <button
-                type="button"
-                aria-expanded={open}
-                aria-haspopup="true"
-                aria-label="Open projects menu"
-                onClick={() => setOpen((current) => !current)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
-              >
-                <Icon name="align-justify" size={20} />
-              </button>
+      <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-zinc-200 bg-white pt-[env(safe-area-inset-top)] shadow-sm">
+        <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-4">
+          <div ref={menuRef} className="relative flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              aria-expanded={open}
+              aria-haspopup="true"
+              aria-label="Open projects menu"
+              onClick={() => setOpen((current) => !current)}
+              className="inline-flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
+            >
+              <Icon name="align-justify" size={20} />
+            </button>
 
-              <button
-                type="button"
-                aria-label="Create new project"
-                onClick={() => {
-                  setOpen(false)
-                  setShowCreate(true)
-                }}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
-              >
-                <Icon name="plus" size={20} />
-              </button>
-            </div>
-
-            <Link href="/" prefetch={false} className="flex items-center gap-2.5 transition hover:opacity-80">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-900 text-sm font-bold tracking-wide text-white">
+            <Link href="/" prefetch={false} className="flex min-w-0 items-center gap-2 transition hover:opacity-80">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-sm font-bold tracking-wide text-white sm:h-9 sm:w-9">
                 F
               </span>
-              <span className="text-lg font-bold tracking-[0.08em] text-zinc-900 sm:text-xl sm:tracking-[0.1em]">
+              <span className="truncate text-base font-bold tracking-[0.08em] text-zinc-900 sm:text-xl sm:tracking-[0.1em]">
                 {APP_BRAND}
               </span>
             </Link>
 
             {open ? (
-              <div className="absolute left-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg">
+              <div className="absolute left-0 top-full z-50 mt-2 max-h-[min(24rem,70dvh)] w-[min(20rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-xl border border-zinc-200 bg-white shadow-lg">
                 <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                     Projects
@@ -111,17 +97,17 @@ export default function ProjectMenu() {
                           href={getProjectHomeHref(project.id)}
                           prefetch={false}
                           onClick={() => setOpen(false)}
-                          className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm text-zinc-900 transition hover:bg-zinc-50 ${
+                          className={`flex min-h-12 w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm text-zinc-900 transition hover:bg-zinc-50 ${
                             isCurrent ? "bg-zinc-50" : ""
                           }`}
                         >
-                          <span className="font-medium">{project.name}</span>
+                          <span className="min-w-0 truncate font-medium">{project.name}</span>
                           {isCurrent ? (
-                            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                            <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
                               Open
                             </span>
                           ) : (
-                            <Icon name="chevron-right" size={16} className="text-zinc-400" />
+                            <Icon name="chevron-right" size={16} className="shrink-0 text-zinc-400" />
                           )}
                         </Link>
                       </li>
@@ -132,11 +118,23 @@ export default function ProjectMenu() {
             ) : null}
           </div>
 
+          <button
+            type="button"
+            aria-label="Create new project"
+            onClick={() => {
+              setOpen(false)
+              setShowCreate(true)
+            }}
+            className="inline-flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
+          >
+            <Icon name="plus" size={20} />
+          </button>
+
           <Link
             href="/settings"
             prefetch={false}
             aria-label="Open settings"
-            className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-300 bg-zinc-100 text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-200"
+            className="inline-flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-zinc-300 bg-zinc-100 text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-200"
           >
             <Icon name="settings-2" size={20} />
           </Link>

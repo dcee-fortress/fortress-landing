@@ -12,7 +12,7 @@ import {
 import { ensureDailyFilesThroughToday } from "@/lib/dailyFileSync"
 
 const ProgressReportView = dynamic(() => import("@/components/project/ProgressReport"), {
-  loading: () => <PageLoadingShell className="pt-20" />,
+  loading: () => <PageLoadingShell />,
 })
 
 export default function ActualProgressUpdatePageClient({ projectId, reportId, projectName, reportType = "daily" }) {
@@ -32,14 +32,11 @@ export default function ActualProgressUpdatePageClient({ projectId, reportId, pr
   }
 
   if (!hasHydrated) {
-    return <PageLoadingShell className="pt-20" />
+    return <PageLoadingShell />
   }
 
   return (
-    <div
-      className="report-page-scroll px-4 py-6 pb-20"
-      style={{ backgroundColor: "#fafafa", color: "#18181b" }}
-    >
+    <div className="app-page-frame text-zinc-900">
       <div className="mx-auto max-w-7xl">
         <ProgressReportView
           projectName={projectName}

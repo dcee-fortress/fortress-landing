@@ -15,7 +15,7 @@ export default function ProjectDashboardPageClient({ projectId, view }) {
   const dashboard = getProjectDashboard(projectId)
 
   return (
-    <div className="h-screen overflow-y-auto bg-zinc-50 p-6 text-zinc-900">
+    <div className="app-page-frame text-zinc-900">
       <ProjectDashboard view={view} projectName={project.name} dashboard={dashboard} />
     </div>
   )

@@ -1,7 +1,7 @@
 export default function PageLoadingShell({ className = "" }) {
   return (
-    <div className={`h-screen overflow-y-auto bg-zinc-50 p-6 text-zinc-900 ${className}`}>
-      <div className="mx-auto flex min-h-[calc(100vh-4.25rem)] max-w-6xl items-center justify-center">
+    <div className={`app-page-frame text-zinc-900 ${className}`}>
+      <div className="mx-auto flex min-h-[40vh] max-w-6xl items-center justify-center">
         <svg
           className="h-7 w-7 animate-spin text-violet-500"
           xmlns="http://www.w3.org/2000/svg"

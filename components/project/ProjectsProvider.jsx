@@ -21,6 +21,7 @@ export function ProjectsProvider({ children }) {
     const handleSharedStorageChange = () => refresh()
 
     window.addEventListener("grove-shared-storage-change", handleSharedStorageChange)
+    void stopSharedPersistence.ready?.then(() => refresh())
     return () => {
       stopSharedPersistence()
       window.removeEventListener("grove-shared-storage-change", handleSharedStorageChange)

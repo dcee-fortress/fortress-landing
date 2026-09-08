@@ -1,6 +1,6 @@
 export default function DashboardLoading() {
   return (
-    <div className="flex min-h-[calc(100vh-4.25rem)] items-center justify-center bg-zinc-50">
+    <div className="flex min-h-[calc(100dvh-var(--app-header-height))] items-center justify-center bg-zinc-50">
       <svg
         className="h-7 w-7 animate-spin text-violet-500"
         xmlns="http://www.w3.org/2000/svg"

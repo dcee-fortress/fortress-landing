@@ -30,14 +30,14 @@ const DailyFileRow = memo(function DailyFileRow({ file, projectId, status, value
       <Link
         href={getDailyFileHref(projectId, file.id)}
         prefetch={false}
-        className="group flex flex-wrap items-center justify-between gap-4 px-6 py-4 transition hover:bg-zinc-50"
+        className="group flex min-w-0 flex-col gap-3 px-3 py-3.5 transition hover:bg-zinc-50 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-4"
       >
-        <div className="flex min-w-0 items-center gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition group-hover:bg-amber-100">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 sm:h-11 sm:w-11">
             <Icon name="file-text" size={20} />
           </div>
           <div className="min-w-0">
-            <p className="text-lg font-semibold text-zinc-900">{file.label}</p>
+            <p className="truncate text-base font-semibold text-zinc-900 sm:text-lg">{file.label}</p>
             <p className="text-sm text-zinc-500">
               {status.key === "awaiting"
                 ? status.description

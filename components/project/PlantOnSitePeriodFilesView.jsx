@@ -78,7 +78,7 @@ function PeriodFileRow({ file, projectId, module, period }) {
     <li>
       <Link
         href={getPlantOnSitePeriodFileHref(projectId, module.key, period, file.id)}
-        className="group flex flex-wrap items-center justify-between gap-4 px-6 py-4 transition hover:bg-zinc-50"
+        className="group flex min-w-0 flex-col gap-3 px-3 py-3.5 transition hover:bg-zinc-50 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-4"
       >
         <div className="flex min-w-0 items-center gap-4">
           <div

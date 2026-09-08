@@ -1,11 +1,55 @@
+"use client"
+
+import Icon from "@/components/icon/icon"
+import Link from "next/link"
+import { useProjects } from "@/components/project/ProjectsProvider"
 import { APP_BRAND } from "@/lib/appBrand"
+import { getProjectHomeHref } from "@/lib/projectRoutes"
 
 export default function GroveLanding() {
+  const { projects } = useProjects()
+  const activeProjects = projects.filter((project) => project.status !== "ended")
+
   return (
-    <div className="flex min-h-[calc(100vh-4.25rem)] items-center justify-center bg-zinc-50 px-6">
-      <h1 className="select-none text-center text-4xl font-light tracking-[0.2em] text-zinc-900 sm:text-5xl md:text-6xl lg:text-7xl">
-        {APP_BRAND}
-      </h1>
+    <div className="app-page-frame text-zinc-900">
+      <div className="mx-auto w-full min-w-0 max-w-3xl space-y-5">
+        <header className="space-y-1">
+          <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Projects</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+            {APP_BRAND}
+          </h1>
+          <p className="text-sm text-zinc-500 sm:text-base">
+            Open a live project. Everyone who uses this link sees the same data.
+          </p>
+        </header>
+
+        {activeProjects.length > 0 ? (
+          <ul className="space-y-3">
+            {activeProjects.map((project) => (
+              <li key={project.id}>
+                <Link
+                  href={getProjectHomeHref(project.id)}
+                  prefetch={false}
+                  className="flex min-h-16 touch-manipulation items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3.5 shadow-sm active:bg-zinc-50 sm:gap-4 sm:px-5"
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
+                    <Icon name="hard-hat" size={22} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-base font-semibold text-zinc-900">{project.name}</p>
+                    <p className="truncate text-sm text-zinc-500">Open dashboards</p>
+                  </div>
+                  <Icon name="chevron-right" size={18} className="shrink-0 text-zinc-400" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-zinc-300 bg-white px-4 py-10 text-center text-sm text-zinc-500">
+            Loading live projects…
+          </div>
+        )}
+      </div>
     </div>
   )
 }

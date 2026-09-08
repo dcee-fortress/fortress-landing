@@ -25,7 +25,7 @@ export default function PlantOnSiteModulePageClient({ projectId, moduleKey }) {
   }
 
   return (
-    <div className="h-screen overflow-y-auto bg-zinc-50 p-6 text-zinc-900">
+    <div className="app-page-frame text-zinc-900">
       <div className="mx-auto max-w-5xl">
         <PlantOnSitePeriodHub projectId={projectId} projectName={project.name} module={siteModule} />
       </div>

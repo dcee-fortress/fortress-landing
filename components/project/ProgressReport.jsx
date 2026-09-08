@@ -528,7 +528,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
 
       <div className={isDailyReport ? "space-y-6" : "grid gap-6 lg:grid-cols-3"}>
         <div className={isDailyReport ? "space-y-6" : "lg:col-span-2 space-y-6"}>
-          <section className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm min-h-[720px]">
+          <section className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
             <div className="border-b border-zinc-200 bg-white px-6 py-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>

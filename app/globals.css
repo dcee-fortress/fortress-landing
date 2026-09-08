@@ -400,7 +400,14 @@
     word-break: break-word;
 }
 
+html,
+body {
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+}
+
 :root {
+    --app-header-height: calc(3.5rem + env(safe-area-inset-top, 0px));
     --brand-50: #f5f7ff;
     --brand-100: #e6ecff;
     --brand-200: #cbd8ff;
@@ -429,36 +436,28 @@
     animation: brand-loading-flicker 1.15s steps(1, end) infinite;
 }
 
-.report-page-scroll {
-    height: calc(100vh - 4.25rem);
-    overflow: auto;
-    scroll-behavior: smooth;
-    scrollbar-gutter: stable;
-    scrollbar-width: thin;
-    scrollbar-color: #a1a1aa #f4f4f5;
-}
-
-.report-page-scroll::-webkit-scrollbar,
-.report-page-scroll *::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-    display: block;
-}
-
-.report-page-scroll::-webkit-scrollbar-track,
-.report-page-scroll *::-webkit-scrollbar-track {
+.app-page-frame {
+    min-height: calc(100dvh - var(--app-header-height, 3.5rem));
+    padding: 1rem 0.75rem calc(2rem + env(safe-area-inset-bottom, 0px));
+    overflow-x: hidden;
     background-color: #f4f4f5;
-    border-radius: 999px;
-    width: 10px;
-    height: 10px;
-    display: block;
+    -webkit-overflow-scrolling: touch;
 }
 
-.report-page-scroll::-webkit-scrollbar-thumb,
-.report-page-scroll *::-webkit-scrollbar-thumb {
-    background-color: #a1a1aa;
-    border-radius: 999px;
-    width: 10px;
-    height: 10px;
-    display: block;
+@media (min-width: 640px) {
+    .app-page-frame {
+        padding: 1.5rem 1.5rem calc(2.5rem + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+.overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    max-width: 100%;
+}
+
+.report-page-scroll {
+    min-height: calc(100dvh - var(--app-header-height, 3.5rem));
+    overflow: visible;
+    -webkit-overflow-scrolling: touch;
 }

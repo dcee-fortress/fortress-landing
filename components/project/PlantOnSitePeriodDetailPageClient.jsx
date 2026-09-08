@@ -33,7 +33,7 @@ export default function PlantOnSitePeriodDetailPageClient({
   }
 
   return (
-    <div className="h-screen overflow-y-auto bg-zinc-50 p-6 text-zinc-900">
+    <div className="app-page-frame text-zinc-900">
       <div className="mx-auto max-w-4xl">
         <PlantOnSitePeriodDetailView
           projectName={project.name}

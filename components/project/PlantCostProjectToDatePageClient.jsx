@@ -21,7 +21,7 @@ export default function PlantCostProjectToDatePageClient({ projectId }) {
   }
 
   return (
-    <div className="h-screen overflow-y-auto bg-zinc-50 p-6 text-zinc-900">
+    <div className="app-page-frame text-zinc-900">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="space-y-2">
           <Link

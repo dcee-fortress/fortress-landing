@@ -15,7 +15,7 @@ export default async function ProjectHomePage({ params }) {
   }
 
   return (
-    <div className="h-screen overflow-y-auto bg-zinc-50 text-zinc-900">
+    <div className="app-page-frame text-zinc-900">
       <HomeMenu projectId={projectId} />
     </div>
   )
