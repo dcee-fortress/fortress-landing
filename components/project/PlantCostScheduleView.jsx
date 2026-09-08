@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import PlantCostEntryTable from "@/components/project/PlantCostEntryTable"
@@ -23,9 +23,48 @@ function PlantCostScheduleEditor({
   const { refresh } = useProjectData()
   const [rows, setRows] = useState(() => getPlantCostSlotRows(projectId, dayId, slotId))
   const [savedMessage, setSavedMessage] = useState("")
+  const rowsRef = useRef(rows)
+  const hasEditedRef = useRef(false)
+
+  rowsRef.current = rows
+
+  const persistRows = (nextRows = rowsRef.current) => {
+    savePlantCostSlotRows(projectId, dayId, slotId, nextRows)
+  }
+
+  useEffect(() => {
+    if (!hasEditedRef.current) return undefined
+    const timeoutId = window.setTimeout(() => persistRows(), 400)
+    return () => window.clearTimeout(timeoutId)
+  }, [rows, projectId, dayId, slotId])
+
+  useEffect(() => {
+    const flush = () => {
+      if (!hasEditedRef.current) return
+      persistRows()
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush()
+    }
+    window.addEventListener("pagehide", flush)
+    window.addEventListener("beforeunload", flush)
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => {
+      flush()
+      window.removeEventListener("pagehide", flush)
+      window.removeEventListener("beforeunload", flush)
+      document.removeEventListener("visibilitychange", onVisibility)
+    }
+  }, [projectId, dayId, slotId])
+
+  const handleRowsChange = (nextRows) => {
+    hasEditedRef.current = true
+    setRows(nextRows)
+  }
 
   const handleSave = () => {
-    savePlantCostSlotRows(projectId, dayId, slotId, rows)
+    persistRows(rows)
+    hasEditedRef.current = false
     refresh()
     setSavedMessage(
       "Plant cost material schedule saved. Totals now appear on the hourly dashboard and roll up to daily, weekly, monthly, and project to date reports."
@@ -68,8 +107,11 @@ function PlantCostScheduleEditor({
         <div className="px-4 py-6 sm:px-6">
           <PlantCostEntryTable
             rows={rows}
-            onRowsChange={setRows}
-            onAddRow={() => setRows((current) => [...current, createEmptyPlantCostRow(projectId, dayId)])}
+            onRowsChange={handleRowsChange}
+            onAddRow={() => {
+              hasEditedRef.current = true
+              setRows((current) => [...current, createEmptyPlantCostRow(projectId, dayId)])
+            }}
             onSavedMessageClear={() => setSavedMessage("")}
           />
         </div>

@@ -143,7 +143,7 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
           <div className="space-y-4">
             {sortSlots(slots).map((slot) => (
               <DailyHourlyDashboard
-                key={`${slot.id}-${version}`}
+                key={slot.id}
                 slot={slot}
                 projectId={projectId}
                 projectName={projectName}

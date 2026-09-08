@@ -19,7 +19,6 @@ import {
   normalizeMaterialScheduleRows,
   readMaterialScheduleEditorRows,
   saveMaterialScheduleRows,
-  writeMaterialScheduleDraftRows,
   getActivityDescriptionsForSlot,
 } from "@/lib/materialSchedule"
 import { commitFormulaInput, getMaterialFormulaHelpText } from "@/lib/materialScheduleFormulas"
@@ -41,6 +40,7 @@ function MaterialScheduleEditor({
   scheduleType,
 }) {
   const { saveSlotsForDay, getSlotsForDay, version } = useProjectData()
+  void version
   const schedule = MATERIAL_SCHEDULE_TYPES[scheduleType]
   const hasEditedRef = useRef(false)
   const rowsRef = useRef([])
@@ -56,6 +56,13 @@ function MaterialScheduleEditor({
 
   rowsRef.current = rows
 
+  const persistRows = useCallback(
+    (nextRows = rowsRef.current) => {
+      saveMaterialScheduleRows(projectId, dayId, slotId, scheduleType, nextRows)
+    },
+    [projectId, dayId, slotId, scheduleType]
+  )
+
   useEffect(() => {
     hasEditedRef.current = false
     setRows(loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType))
@@ -64,35 +71,35 @@ function MaterialScheduleEditor({
   }, [projectId, dayId, slotId, scheduleType])
 
   useEffect(() => {
-    if (hasEditedRef.current) return
-    setRows(loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType))
-  }, [projectId, dayId, slotId, scheduleType, version])
-
-  useEffect(() => {
     if (!hasEditedRef.current) return undefined
 
     const timeoutId = window.setTimeout(() => {
-      writeMaterialScheduleDraftRows(projectId, dayId, slotId, scheduleType, rowsRef.current)
+      persistRows(rowsRef.current)
     }, 400)
 
     return () => window.clearTimeout(timeoutId)
-  }, [projectId, dayId, slotId, scheduleType, rows])
+  }, [persistRows, rows])
 
   useEffect(() => {
-    const flushDraft = () => {
+    const flush = () => {
       if (!hasEditedRef.current) return
-      writeMaterialScheduleDraftRows(
-        projectId,
-        dayId,
-        slotId,
-        scheduleType,
-        rowsRef.current
-      )
+      persistRows(rowsRef.current)
     }
 
-    window.addEventListener("pagehide", flushDraft)
-    return () => window.removeEventListener("pagehide", flushDraft)
-  }, [projectId, dayId, slotId, scheduleType])
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush()
+    }
+
+    window.addEventListener("pagehide", flush)
+    window.addEventListener("beforeunload", flush)
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => {
+      flush()
+      window.removeEventListener("pagehide", flush)
+      window.removeEventListener("beforeunload", flush)
+      document.removeEventListener("visibilitychange", onVisibility)
+    }
+  }, [persistRows])
 
   const markEdited = () => {
     hasEditedRef.current = true
@@ -126,7 +133,7 @@ function MaterialScheduleEditor({
     setSavedMessage("")
     setRows((current) => {
       const next = [...current, createMaterialRow("", dayId)]
-      writeMaterialScheduleDraftRows(projectId, dayId, slotId, scheduleType, next)
+      persistRows(next)
       return next
     })
   }
@@ -136,7 +143,7 @@ function MaterialScheduleEditor({
     setSavedMessage("")
     setRows((current) => {
       const next = current.filter((row) => row.id !== rowId)
-      writeMaterialScheduleDraftRows(projectId, dayId, slotId, scheduleType, next)
+      persistRows(next)
       return next
     })
     setSelectedCell(null)
@@ -443,7 +450,7 @@ function MaterialScheduleEditor({
               <p className="text-sm font-medium text-emerald-700">{savedMessage}</p>
             ) : (
               <p className="text-sm text-zinc-500">
-                Unsaved edits are kept automatically. Click Save to update the hourly dashboard.
+                Unsaved edits are saved automatically when you type or leave this page.
               </p>
             )}
             <ExportPdfButton onClick={exportToPdf} />
