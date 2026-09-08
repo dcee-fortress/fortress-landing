@@ -12,7 +12,7 @@ import {
   exportGroveDatabaseBackup,
 } from "@/lib/groveDatabase"
 import { APP_BRAND } from "@/lib/appBrand"
-import { PROJECT_STATUS } from "@/lib/projectRegistry"
+import { isEndedProject, PROJECT_STATUS } from "@/lib/projectRegistry"
 
 function ConfirmNotice({ tone = "amber", title, message }) {
   const tones = {
@@ -68,7 +68,8 @@ export default function SettingsPanel() {
 
   const selectedProject = projects.find((project) => project.id === selectedProjectId)
   const projectToEnd = projects.find((project) => project.id === endProjectId)
-  const activeProjects = projects.filter((project) => project.status !== PROJECT_STATUS.ENDED)
+  const activeProjects = projects.filter((project) => !isEndedProject(project))
+  const endedProjects = projects.filter((project) => isEndedProject(project))
 
   const refreshAll = () => {
     refreshProjects()
@@ -106,7 +107,7 @@ export default function SettingsPanel() {
     router.push("/")
   }
 
-  const handleDeleteStep = () => {
+  const handleDeleteStep = async () => {
     if (!selectedProject) return
 
     if (deleteStep === 0) {
@@ -119,7 +120,7 @@ export default function SettingsPanel() {
       return
     }
 
-    const result = deleteGroveProject(selectedProject.id)
+    const result = await deleteGroveProject(selectedProject.id)
     refreshAll()
     setDeleteStep(0)
     setSelectedProjectId("")
@@ -409,11 +410,9 @@ export default function SettingsPanel() {
         </div>
 
         <div className="space-y-4 px-6 py-6">
-          {projects.filter((project) => project.status === PROJECT_STATUS.ENDED).length > 0 ? (
+          {endedProjects.length > 0 ? (
             <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200">
-              {projects
-                .filter((project) => project.status === PROJECT_STATUS.ENDED)
-                .map((project) => (
+              {endedProjects.map((project) => (
                   <li key={project.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                     <div>
                       <p className="font-medium text-zinc-900">{project.name}</p>

@@ -3,12 +3,16 @@
 import Icon from "@/components/icon/icon"
 import Link from "next/link"
 import { useProjects } from "@/components/project/ProjectsProvider"
+import { useHasHydrated } from "@/hooks/useHasHydrated"
 import { APP_BRAND } from "@/lib/appBrand"
 import { getProjectHomeHref } from "@/lib/projectRoutes"
+import { isEndedProject } from "@/lib/projectRegistry"
 
 export default function GroveLanding() {
-  const { projects } = useProjects()
-  const activeProjects = projects.filter((project) => project.status !== "ended")
+  const hasHydrated = useHasHydrated()
+  const { menuProjects, projects } = useProjects()
+  const activeProjects = menuProjects
+  const hasEndedProjects = projects.some((project) => isEndedProject(project))
 
   return (
     <div className="app-page-frame text-zinc-900">
@@ -46,7 +50,19 @@ export default function GroveLanding() {
           </ul>
         ) : (
           <div className="rounded-2xl border border-dashed border-zinc-300 bg-white px-4 py-10 text-center text-sm text-zinc-500">
-            Loading live projects…
+            {!hasHydrated ? (
+              "Loading live projects…"
+            ) : hasEndedProjects ? (
+              <>
+                No active projects. Ended projects are in{" "}
+                <Link href="/settings" className="font-medium text-zinc-800 underline">
+                  Settings
+                </Link>
+                .
+              </>
+            ) : (
+              "No projects yet. Use New project to create one."
+            )}
           </div>
         )}
       </div>

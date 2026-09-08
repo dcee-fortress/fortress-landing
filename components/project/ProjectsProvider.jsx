@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
-import { getAllProjects, getProjectById } from "@/lib/projectList"
+import { getAllProjects, getMenuProjects, getProjectById } from "@/lib/projectList"
 import { createCustomProject } from "@/lib/projectRegistry"
 import { startSharedPersistence } from "@/lib/sharedPersistence"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
@@ -35,6 +35,7 @@ export function ProjectsProvider({ children }) {
       version,
       refresh,
       projects: hasHydrated ? getAllProjects() : [],
+      menuProjects: hasHydrated ? getMenuProjects() : [],
       getProject: (id) => (hasHydrated ? getProjectById(id) : null),
       createProject: async (name, options = {}) => {
         const project = createCustomProject(name, options)

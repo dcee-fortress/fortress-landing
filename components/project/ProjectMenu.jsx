@@ -27,8 +27,8 @@ export default function ProjectMenu() {
   const menuRef = useRef(null)
   const pathname = usePathname()
   const activeProjectId = getActiveProjectId(pathname)
-  const { projects } = useProjects()
-  const activeProjects = projects.filter((project) => project.status !== "ended")
+  const { menuProjects } = useProjects()
+  const activeProjects = menuProjects
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -88,6 +88,11 @@ export default function ProjectMenu() {
                 </div>
 
                 <ul className="py-1">
+                  {activeProjects.length === 0 ? (
+                    <li className="px-4 py-3 text-sm text-zinc-500">
+                      No active projects. Ended projects are in Settings.
+                    </li>
+                  ) : null}
                   {activeProjects.map((project) => {
                     const isCurrent = activeProjectId === project.id
 
