@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import Icon from "@/components/icon/icon"
 import { formatWeekRange, getWeekDateRange } from "@/lib/progressReportGenerator"
-import { summarizeWeekForecast, weatherTonePalette } from "@/lib/siteWeather"
+import { summarizeWeekForecast, weatherTonePalette, resolveWeatherCardTone } from "@/lib/siteWeather"
 
 function formatDayHeading(dayId, { weekday = "short", withYear = false } = {}) {
   if (!dayId) return ""
@@ -87,11 +87,11 @@ export default function WorkingHoursWeatherCard({
   const selectedDay = data?.days?.find((day) => day.dayId === selectedDayId) || data?.days?.[0]
   const weekSummary = useMemo(() => summarizeWeekForecast(data?.days || []), [data?.days])
   const headingCondition = isWeekly ? weekSummary?.condition : selectedDay?.condition
-  const tone = weatherTonePalette(headingCondition?.tone)
-  const locationName = data?.location?.name || projectName
-  const weekRangeLabel = reportId && isWeekly ? formatWeekRange(reportId) : ""
   const high = isWeekly ? weekSummary?.high : selectedDay?.high
   const low = isWeekly ? weekSummary?.low : selectedDay?.low
+  const tone = weatherTonePalette(resolveWeatherCardTone(headingCondition?.tone, high))
+  const locationName = data?.location?.name || projectName
+  const weekRangeLabel = reportId && isWeekly ? formatWeekRange(reportId) : ""
   const conditionLabel = loading
     ? "Loading forecast"
     : headingCondition?.label || "Forecast"
