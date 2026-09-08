@@ -20,7 +20,7 @@ function PlantCostScheduleEditor({
   slotId,
   slotLabel,
 }) {
-  const { refresh } = useProjectData()
+  const { refresh, version } = useProjectData()
   const [rows, setRows] = useState(() => getPlantCostSlotRows(projectId, dayId, slotId))
   const [savedMessage, setSavedMessage] = useState("")
   const rowsRef = useRef(rows)
@@ -33,8 +33,16 @@ function PlantCostScheduleEditor({
   }
 
   useEffect(() => {
+    if (hasEditedRef.current) return
+    const nextRows = getPlantCostSlotRows(projectId, dayId, slotId)
+    setRows((current) =>
+      JSON.stringify(current) === JSON.stringify(nextRows) ? current : nextRows
+    )
+  }, [version, projectId, dayId, slotId])
+
+  useEffect(() => {
     if (!hasEditedRef.current) return undefined
-    const timeoutId = window.setTimeout(() => persistRows(), 400)
+    const timeoutId = window.setTimeout(() => persistRows(), 200)
     return () => window.clearTimeout(timeoutId)
   }, [rows, projectId, dayId, slotId])
 
@@ -59,6 +67,7 @@ function PlantCostScheduleEditor({
 
   const handleRowsChange = (nextRows) => {
     hasEditedRef.current = true
+    rowsRef.current = nextRows
     setRows(nextRows)
   }
 
@@ -110,7 +119,11 @@ function PlantCostScheduleEditor({
             onRowsChange={handleRowsChange}
             onAddRow={() => {
               hasEditedRef.current = true
-              setRows((current) => [...current, createEmptyPlantCostRow(projectId, dayId)])
+              setRows((current) => {
+                const next = [...current, createEmptyPlantCostRow(projectId, dayId)]
+                rowsRef.current = next
+                return next
+              })
             }}
             onSavedMessageClear={() => setSavedMessage("")}
           />

@@ -21,7 +21,11 @@ import {
   saveMaterialScheduleRows,
   getActivityDescriptionsForSlot,
 } from "@/lib/materialSchedule"
-import { commitFormulaInput, getMaterialFormulaHelpText } from "@/lib/materialScheduleFormulas"
+import {
+  commitFormulaInput,
+  draftFormulaInput,
+  getMaterialFormulaHelpText,
+} from "@/lib/materialScheduleFormulas"
 import { sortSlots } from "@/lib/dailySlots"
 import { formatMaterialCurrencyAmount, formatMaterialAmount } from "@/lib/plantCostCalculations"
 import { getAllBoqItemNames } from "@/lib/boqData"
@@ -40,7 +44,6 @@ function MaterialScheduleEditor({
   scheduleType,
 }) {
   const { saveSlotsForDay, getSlotsForDay, version } = useProjectData()
-  void version
   const schedule = MATERIAL_SCHEDULE_TYPES[scheduleType]
   const hasEditedRef = useRef(false)
   const rowsRef = useRef([])
@@ -71,11 +74,20 @@ function MaterialScheduleEditor({
   }, [projectId, dayId, slotId, scheduleType])
 
   useEffect(() => {
+    if (hasEditedRef.current) return
+
+    const nextRows = loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType)
+    setRows((current) =>
+      JSON.stringify(current) === JSON.stringify(nextRows) ? current : nextRows
+    )
+  }, [version, projectId, dayId, slotId, scheduleType])
+
+  useEffect(() => {
     if (!hasEditedRef.current) return undefined
 
     const timeoutId = window.setTimeout(() => {
       persistRows(rowsRef.current)
-    }, 400)
+    }, 200)
 
     return () => window.clearTimeout(timeoutId)
   }, [persistRows, rows])
@@ -116,8 +128,8 @@ function MaterialScheduleEditor({
     hasEditedRef.current = true
     setSavedMessage("")
     const formulaField = getMaterialFormulaFieldKey(field)
-    setRows((current) =>
-      current.map((row, index) => {
+    setRows((current) => {
+      const next = current.map((row, index) => {
         if (index !== rowIndex) return row
         return {
           ...row,
@@ -125,7 +137,9 @@ function MaterialScheduleEditor({
           [formulaField]: formula,
         }
       })
-    )
+      rowsRef.current = next
+      return next
+    })
   }, [])
 
   const addRow = () => {
@@ -133,6 +147,7 @@ function MaterialScheduleEditor({
     setSavedMessage("")
     setRows((current) => {
       const next = [...current, createMaterialRow("", dayId)]
+      rowsRef.current = next
       persistRows(next)
       return next
     })
@@ -143,6 +158,7 @@ function MaterialScheduleEditor({
     setSavedMessage("")
     setRows((current) => {
       const next = current.filter((row) => row.id !== rowId)
+      rowsRef.current = next
       persistRows(next)
       return next
     })
@@ -274,11 +290,30 @@ function MaterialScheduleEditor({
             </span>
             <input
               type="text"
+              inputMode="text"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="enter"
               value={formulaBarValue}
               onChange={(event) => {
                 if (!selectedCell) return
+                const text = event.target.value
                 hasEditedRef.current = true
-                setLiveDraft(event.target.value)
+                setLiveDraft(text)
+                setSavedMessage("")
+                const column = MATERIAL_SCHEDULE_COLUMNS.find(
+                  (item) => item.key === selectedCell.columnKey
+                )
+                if (!column) return
+                const fieldKey = getMaterialRawFieldKey(column.key)
+                if (column.key === "activityDescription" || column.key === "details") {
+                  updateRow(selectedCell.rowIndex, fieldKey, text, "")
+                  return
+                }
+                const { value, formula } = draftFormulaInput(text)
+                updateRow(selectedCell.rowIndex, fieldKey, value, formula)
               }}
               onBlur={commitFormulaBar}
               onKeyDown={(event) => {
@@ -360,6 +395,11 @@ function MaterialScheduleEditor({
                           ) : column.key === "details" ? (
                             <textarea
                               rows={2}
+                              inputMode="text"
+                              autoComplete="off"
+                              autoCorrect="off"
+                              autoCapitalize="sentences"
+                              enterKeyHint="enter"
                               value={rawValue}
                               onChange={(event) => updateRow(rowIndex, fieldKey, event.target.value)}
                               placeholder="Add row details"
@@ -415,7 +455,7 @@ function MaterialScheduleEditor({
                     colSpan={MATERIAL_SCHEDULE_COLUMNS.length + 1}
                     className="px-4 py-10 text-center text-zinc-500"
                   >
-                    No material lines yet. Add a row, enter values or formulas, then click Save.
+                    No material lines yet. Add a row and start typing — entries save automatically.
                   </td>
                 </tr>
               )}
@@ -450,7 +490,7 @@ function MaterialScheduleEditor({
               <p className="text-sm font-medium text-emerald-700">{savedMessage}</p>
             ) : (
               <p className="text-sm text-zinc-500">
-                Unsaved edits are saved automatically when you type or leave this page.
+                Entries save as you type and appear on every device using this website link.
               </p>
             )}
             <ExportPdfButton onClick={exportToPdf} />

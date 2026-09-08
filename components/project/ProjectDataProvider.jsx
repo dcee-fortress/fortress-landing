@@ -127,13 +127,22 @@ export function ProjectDataProvider({ children }) {
       midnightId = window.setTimeout(onNewDay, msUntilMidnight())
     }, msUntilMidnight())
 
+    const onStorage = (event) => {
+      if (!event.key || !String(event.key).startsWith("grove-")) return
+      startTransition(() => {
+        refresh()
+      })
+    }
+
     window.addEventListener("grove-shared-storage-change", onSharedStorageChange)
+    window.addEventListener("storage", onStorage)
     window.addEventListener("focus", refreshIfFilesChanged)
     document.addEventListener("visibilitychange", refreshIfFilesChanged)
 
     return () => {
       window.clearTimeout(midnightId)
       window.removeEventListener("grove-shared-storage-change", onSharedStorageChange)
+      window.removeEventListener("storage", onStorage)
       window.removeEventListener("focus", refreshIfFilesChanged)
       document.removeEventListener("visibilitychange", refreshIfFilesChanged)
     }

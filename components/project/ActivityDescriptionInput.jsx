@@ -53,6 +53,11 @@ export default function ActivityDescriptionInput({
     <div ref={containerRef} className="relative min-w-[12rem] max-w-[20rem]">
       <textarea
         rows={2}
+        inputMode="text"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="sentences"
+        enterKeyHint="enter"
         value={value}
         onChange={(event) => {
           onChange(event.target.value)

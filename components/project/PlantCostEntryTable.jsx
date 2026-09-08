@@ -18,10 +18,16 @@ const ENTRY_HEADERS = [
   "Production",
 ]
 
-function TextInput({ value, onChange, placeholder, type = "text", align = "left" }) {
+function TextInput({ value, onChange, placeholder, align = "left" }) {
   return (
     <input
-      type={type}
+      type="text"
+      inputMode="text"
+      autoComplete="off"
+      autoCorrect="off"
+      autoCapitalize="none"
+      spellCheck={false}
+      enterKeyHint="enter"
       value={value}
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
@@ -121,7 +127,6 @@ export default function PlantCostEntryTable({
                         value={row.fuelAllocated}
                         onChange={(value) => updateRow(row.id, "fuelAllocated", value)}
                         placeholder="0.00"
-                        type="number"
                         align="right"
                       />
                     </td>
@@ -130,7 +135,6 @@ export default function PlantCostEntryTable({
                         value={row.fuelPrice}
                         onChange={(value) => updateRow(row.id, "fuelPrice", value)}
                         placeholder="0.00"
-                        type="number"
                         align="right"
                       />
                     </td>
@@ -142,7 +146,6 @@ export default function PlantCostEntryTable({
                         value={row.plantHireCost ?? ""}
                         onChange={(value) => updateRow(row.id, "plantHireCost", value)}
                         placeholder="0.00"
-                        type="number"
                         align="right"
                       />
                     </td>
@@ -154,7 +157,6 @@ export default function PlantCostEntryTable({
                         value={row.production}
                         onChange={(value) => updateRow(row.id, "production", value)}
                         placeholder="0.00"
-                        type="number"
                         align="right"
                       />
                     </td>

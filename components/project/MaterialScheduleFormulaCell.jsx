@@ -1,7 +1,17 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { commitFormulaInput } from "@/lib/materialScheduleFormulas"
+import { commitFormulaInput, draftFormulaInput } from "@/lib/materialScheduleFormulas"
+
+const TEXT_KEYBOARD_PROPS = {
+  type: "text",
+  inputMode: "text",
+  autoComplete: "off",
+  autoCorrect: "off",
+  autoCapitalize: "none",
+  spellCheck: false,
+  enterKeyHint: "enter",
+}
 
 export default function MaterialScheduleFormulaCell({
   rawValue,
@@ -48,11 +58,15 @@ export default function MaterialScheduleFormulaCell({
     inputRef.current.value = formatDisplay ? formatDisplay(value) : text
   }
 
+  const persistDraft = (text) => {
+    const { value, formula } = draftFormulaInput(text)
+    onChange(value, formula)
+  }
+
   return (
     <input
       ref={inputRef}
-      type="text"
-      inputMode={numeric ? "decimal" : "text"}
+      {...TEXT_KEYBOARD_PROPS}
       defaultValue={idleValue}
       placeholder={autoAnswer ? "" : numeric ? "0 or =3*4" : ""}
       aria-label={columnLabel}
@@ -73,6 +87,7 @@ export default function MaterialScheduleFormulaCell({
       onChange={(event) => {
         draftRef.current = event.target.value
         onLiveChange?.(event.target.value)
+        persistDraft(event.target.value)
       }}
       onBlur={() => {
         focusedRef.current = false
@@ -90,6 +105,7 @@ export default function MaterialScheduleFormulaCell({
           event.preventDefault()
           draftRef.current = sourceRef.current
           event.currentTarget.value = sourceRef.current
+          persistDraft(sourceRef.current)
           event.currentTarget.blur()
         }
       }}
