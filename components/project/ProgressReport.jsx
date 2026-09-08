@@ -419,7 +419,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
   }
 
   return (
-    <div ref={pageRef} className="space-y-6 bg-zinc-50/60 p-2 md:p-4">
+    <div ref={pageRef} className="space-y-6 p-2 md:p-4" style={{ backgroundColor: "#f4f4f5" }}>
       <div className="flex items-start justify-between gap-4 rounded-none border border-zinc-200 bg-white px-4 py-3 shadow-sm">
         <header className="space-y-2 flex-1">
           <div className="flex items-center gap-3">
@@ -457,7 +457,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
             type="button"
             onClick={() => saveChanges((currentReport) => currentReport)}
             disabled={isSaving}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="no-print inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Icon name="save" size={14} />
             Save
@@ -569,7 +569,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                 }
                 minHeight={640}
               />
-              <p className="mt-2 text-xs text-zinc-500">
+              <p className="no-print mt-2 text-xs text-zinc-500">
                 {countPlainText(
                   isActualProgressUpdate
                     ? actualProgressContent
@@ -605,7 +605,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                   className="hidden"
                 />
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="no-print grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => photoInputRef.current?.click()}
@@ -658,7 +658,8 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                         <button
                           type="button"
                           onClick={() => handleRemovePhoto(photo.id)}
-                          className="absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900/70 text-white transition hover:bg-zinc-900"
+                          className="no-print absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full text-white transition hover:bg-zinc-900"
+                          style={{ backgroundColor: "#3f3f46" }}
                           aria-label={`Remove ${photo.name}`}
                         >
                           <Icon name="x" size={12} />
@@ -675,7 +676,8 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
 
                 {viewingPhoto ? (
                   <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-4"
+                    className="no-print fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ backgroundColor: "rgba(9, 9, 11, 0.8)" }}
                     onClick={() => setViewingPhoto(null)}
                   >
                     <div
@@ -776,7 +778,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                         </div>
                         <button
                           onClick={() => handleRemoveAttachment(attachment.id)}
-                          className="shrink-0 inline-flex h-6 w-6 items-center justify-center rounded text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-700"
+                          className="no-print shrink-0 inline-flex h-6 w-6 items-center justify-center rounded text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-700"
                         >
                           <Icon name="x" size={16} />
                         </button>
@@ -788,7 +790,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                 )}
 
                 {showAttachmentForm ? (
-                  <div className="space-y-2 border-t border-zinc-200 pt-4">
+                  <div className="no-print space-y-2 border-t border-zinc-200 pt-4">
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -811,7 +813,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                       setShowAttachmentForm(true)
                       setTimeout(() => fileInputRef.current?.click(), 0)
                     }}
-                    className="w-full rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-xs font-medium text-zinc-600 transition hover:border-zinc-400 hover:bg-zinc-100"
+                    className="no-print w-full rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-xs font-medium text-zinc-600 transition hover:border-zinc-400 hover:bg-zinc-100"
                   >
                     <Icon name="plus" size={14} className="mr-1 inline" />
                     Upload Site Plan PDF
@@ -843,12 +845,16 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
         </div>
       </div>
 
-      {isActualProgressUpdate && (reportType === "daily" || reportType === "weekly") ? (
+      {reportType === "daily" || reportType === "weekly" ? (
         <div className="no-print flex flex-col items-center gap-2 border-t border-zinc-200 pt-4 pb-2">
           <p className="text-xs text-zinc-500">
-            {reportType === "weekly"
-              ? "Export the full weekly report page, including weather, the document, and site photos."
-              : "Export the full daily report page, including weather, the document, and site photos."}
+            {isActualProgressUpdate
+              ? reportType === "weekly"
+                ? "Export the full weekly report page, including weather, the document, and site photos."
+                : "Export the full daily report page, including weather, the document, and site photos."
+              : reportType === "weekly"
+                ? "Export the full weekly target plan page."
+                : "Export the full daily target plan page."}
           </p>
           <ExportPdfButton
             className={isExportingPdf ? "pointer-events-none opacity-60" : "px-4 py-2.5"}

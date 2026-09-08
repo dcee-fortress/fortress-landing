@@ -4,7 +4,7 @@ import { APP_BRAND } from '@/lib/appBrand'
 export default function RootLayout({ children }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-zinc-100 font-sans text-zinc-950 antialiased" suppressHydrationWarning>
+      <body className="min-h-screen font-sans antialiased" style={{ backgroundColor: "#f4f4f5", color: "#09090b" }} suppressHydrationWarning>
 				{children}
 			</body>
 		</html>

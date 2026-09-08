@@ -37,7 +37,8 @@ export default function ProgressReportDetailPageClient({ projectId, reportId, pr
 
   return (
     <div
-      className="report-page-scroll bg-zinc-50 px-4 py-6 pb-20 text-zinc-900"
+      className="report-page-scroll px-4 py-6 pb-20"
+      style={{ backgroundColor: "#fafafa", color: "#18181b" }}
     >
       <div className="mx-auto max-w-7xl">
         <ProgressReportView

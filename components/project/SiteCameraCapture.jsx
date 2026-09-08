@@ -109,7 +109,8 @@ export default function SiteCameraCapture({ open, onClose, onCapture, isBusy = f
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-4"
+      className="no-print fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: "rgba(9, 9, 11, 0.8)" }}
       onClick={stopAndClose}
     >
       <div
