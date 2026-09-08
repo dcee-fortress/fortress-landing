@@ -1,0 +1,42 @@
+name: Persist shared Rodcroft data
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  persist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@v4
+
+      - name: Merge live project data
+        run: node scripts/persist-shared-storage.mjs
+        env:
+          SHARED_STORAGE_URL: https://rodcroft-fortress.vercel.app/api/shared-storage
+
+      - name: Publish snapshot branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp data/grove-shared-storage.json /tmp/grove-shared-storage.json
+          git fetch origin shared-data || true
+          if git rev-parse --verify origin/shared-data >/dev/null 2>&1; then
+            git checkout -B shared-data origin/shared-data
+          else
+            git checkout -B shared-data
+          fi
+          mkdir -p data
+          cp /tmp/grove-shared-storage.json data/grove-shared-storage.json
+          git add data/grove-shared-storage.json
+          if git diff --staged --quiet; then
+            echo "No shared data changes."
+          else
+            git commit -m "Persist live Rodcroft project data for every device."
+            git push origin HEAD:shared-data
+          fi
