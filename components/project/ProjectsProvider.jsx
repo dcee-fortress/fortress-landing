@@ -66,8 +66,8 @@ export function ProjectsProvider({ children }) {
           ensureDailyFilesThroughToday(project.id)
           ensureHourlyDashboardsForProject(project.id)
 
-          const { isLiveCodeChannel } = await import("@/lib/liveDataConfig")
-          if (isLiveCodeChannel()) {
+          const { shouldPublishSharedData } = await import("@/lib/liveDataConfig")
+          if (shouldPublishSharedData()) {
             const { publishSharedKeys } = await import("@/lib/sharedPersistence")
             await publishSharedKeys({ replace: true }).catch(() => {})
           }
