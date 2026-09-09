@@ -5,8 +5,13 @@ import { useEffect } from "react"
 export default function GrovePersistenceInit() {
   useEffect(() => {
     const syncBeforeClose = () => {
-      void import("@/lib/grovePersistence").then(({ initializeGrovePersistence }) => {
-        initializeGrovePersistence()
+      void Promise.all([
+        import("@/lib/sharedPersistence"),
+        import("@/lib/grovePersistence"),
+      ]).then(([{ runSystemStorageWrite }, { initializeGrovePersistence }]) => {
+        runSystemStorageWrite(() => {
+          initializeGrovePersistence()
+        })
       })
     }
 

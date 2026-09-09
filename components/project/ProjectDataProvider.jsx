@@ -59,18 +59,22 @@ export function ProjectDataProvider({ children }) {
         ])
       await getSharedPersistenceReady()
       const { ensureProgressReportsExist } = await import("@/lib/progressReports")
+      const { ensureHourlyDashboardsForProject } = await import("@/lib/projectData")
+      const { runSystemStorageWrite } = await import("@/lib/sharedPersistence")
       const dayKey = `${projectId}:${getTodayDayId()}`
       const alreadyBootstrapped = bootstrappedProjectsRef.current.has(dayKey)
 
-      if (!alreadyBootstrapped) {
-        initializeGrovePersistence({ projectId })
-        bootstrappedProjectsRef.current.add(dayKey)
-      }
+      const { filesChanged, slotsChanged } = runSystemStorageWrite(() => {
+        if (!alreadyBootstrapped) {
+          initializeGrovePersistence({ projectId })
+          bootstrappedProjectsRef.current.add(dayKey)
+        }
 
-      const filesChanged = ensureDailyFilesThroughToday(projectId)
-      ensureProgressReportsExist(projectId)
-      const { ensureHourlyDashboardsForProject } = await import("@/lib/projectData")
-      const slotsChanged = ensureHourlyDashboardsForProject(projectId)
+        const nextFilesChanged = ensureDailyFilesThroughToday(projectId)
+        ensureProgressReportsExist(projectId)
+        const nextSlotsChanged = ensureHourlyDashboardsForProject(projectId)
+        return { filesChanged: nextFilesChanged, slotsChanged: nextSlotsChanged }
+      })
 
       if (!alreadyBootstrapped || filesChanged || slotsChanged) {
         startTransition(() => {
@@ -96,14 +100,18 @@ export function ProjectDataProvider({ children }) {
     const refreshIfFilesChanged = () => {
       void import("@/lib/dailyFileSync").then(
         ({ ensureAllActiveProjectsDailyFiles, ensureDailyFilesThroughToday }) => {
-          const changed = projectId
-            ? ensureDailyFilesThroughToday(projectId)
-            : ensureAllActiveProjectsDailyFiles()
-          if (changed) {
-            startTransition(() => {
-              refresh()
-            })
-          }
+          return import("@/lib/sharedPersistence").then(({ runSystemStorageWrite }) => {
+            const changed = runSystemStorageWrite(() =>
+              projectId
+                ? ensureDailyFilesThroughToday(projectId)
+                : ensureAllActiveProjectsDailyFiles()
+            )
+            if (changed) {
+              startTransition(() => {
+                refresh()
+              })
+            }
+          })
         }
       )
     }
