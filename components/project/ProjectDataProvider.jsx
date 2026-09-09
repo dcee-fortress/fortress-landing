@@ -50,12 +50,14 @@ export function ProjectDataProvider({ children }) {
     if (!projectId) return
 
     const runBootstrap = async () => {
-      const [{ initializeGrovePersistence }, { ensureDailyFilesThroughToday }, { getTodayDayId }] =
+      const [{ initializeGrovePersistence }, { ensureDailyFilesThroughToday }, { getTodayDayId }, { getSharedPersistenceReady }] =
         await Promise.all([
           import("@/lib/grovePersistence"),
           import("@/lib/dailyFileSync"),
           import("@/lib/dailyFiles"),
+          import("@/lib/sharedPersistence"),
         ])
+      await getSharedPersistenceReady()
       const { ensureProgressReportsExist } = await import("@/lib/progressReports")
       const dayKey = `${projectId}:${getTodayDayId()}`
       const alreadyBootstrapped = bootstrappedProjectsRef.current.has(dayKey)
