@@ -10,9 +10,10 @@ import { isEndedProject } from "@/lib/projectRegistry"
 
 export default function GroveLanding() {
   const hasHydrated = useHasHydrated()
-  const { menuProjects, projects } = useProjects()
+  const { menuProjects, projects, syncReady } = useProjects()
   const activeProjects = menuProjects
   const hasEndedProjects = projects.some((project) => isEndedProject(project))
+  const waitingForLiveData = !hasHydrated || !syncReady
 
   return (
     <div className="app-page-frame text-zinc-900">
@@ -51,7 +52,7 @@ export default function GroveLanding() {
           </ul>
         ) : (
           <p className="text-sm text-zinc-500 sm:text-base">
-            {!hasHydrated ? (
+            {!hasHydrated || waitingForLiveData ? (
               "Loading live projects…"
             ) : hasEndedProjects ? (
               <>

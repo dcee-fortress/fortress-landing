@@ -11,6 +11,7 @@ const ProjectsContext = createContext(null)
 export function ProjectsProvider({ children }) {
   const hasHydrated = useHasHydrated()
   const [version, setVersion] = useState(0)
+  const [syncReady, setSyncReady] = useState(false)
 
   const refresh = useCallback(() => {
     setVersion((current) => current + 1)
@@ -21,7 +22,10 @@ export function ProjectsProvider({ children }) {
     const handleSharedStorageChange = () => refresh()
 
     window.addEventListener("grove-shared-storage-change", handleSharedStorageChange)
-    void stopSharedPersistence.ready?.then(() => refresh())
+    void stopSharedPersistence.ready?.then(() => {
+      setSyncReady(true)
+      refresh()
+    })
     return () => {
       stopSharedPersistence()
       window.removeEventListener("grove-shared-storage-change", handleSharedStorageChange)
@@ -30,13 +34,15 @@ export function ProjectsProvider({ children }) {
 
   const value = useMemo(() => {
     void version
+    const ready = hasHydrated && syncReady
 
     return {
       version,
       refresh,
-      projects: hasHydrated ? getAllProjects() : [],
-      menuProjects: hasHydrated ? getMenuProjects() : [],
-      getProject: (id) => (hasHydrated ? getProjectById(id) : null),
+      syncReady: ready,
+      projects: ready ? getAllProjects() : [],
+      menuProjects: ready ? getMenuProjects() : [],
+      getProject: (id) => (ready ? getProjectById(id) : null),
       createProject: async (name, options = {}) => {
         const project = createCustomProject(name, options)
         if (!project) return null
@@ -59,7 +65,7 @@ export function ProjectsProvider({ children }) {
         return result
       },
     }
-  }, [hasHydrated, version, refresh])
+  }, [hasHydrated, syncReady, version, refresh])
 
   return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>
 }
