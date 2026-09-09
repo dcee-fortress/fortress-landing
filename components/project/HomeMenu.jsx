@@ -3,7 +3,7 @@
 import ChoiceCard from "@/components/project/ChoiceCard"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
-import { getProjectForRoute } from "@/lib/projectList"
+import { isDeletedProjectId } from "@/lib/projectRegistry"
 import { DASHBOARD_VIEWS, getDashboardHref } from "@/lib/projectRoutes"
 
 const HOME_MENU_VIEWS = ["valuations", "plant-on-site", "progress-reports", "rate-analysis"]
@@ -11,12 +11,21 @@ const HOME_MENU_VIEWS = ["valuations", "plant-on-site", "progress-reports", "rat
 export default function HomeMenu({ projectId }) {
   const hasHydrated = useHasHydrated()
   const { getProject } = useProjects()
-  const project = getProject(projectId) ?? (hasHydrated ? getProjectForRoute(projectId) : null)
+  const project = getProject(projectId)
+  const deleted = hasHydrated && isDeletedProjectId(projectId)
 
-  if (!project) {
+  if (deleted) {
     return (
       <div className="app-content-shell">
-        <p className="text-sm text-zinc-500">Loading project…</p>
+        <p className="text-sm text-zinc-500">This project was permanently deleted and will not return.</p>
+      </div>
+    )
+  }
+
+  if (!hasHydrated || !project) {
+    return (
+      <div className="app-content-shell">
+        <p className="text-sm text-zinc-500">{hasHydrated ? "This project is not available." : "Loading project…"}</p>
       </div>
     )
   }
