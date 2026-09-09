@@ -2,13 +2,12 @@
 
 import { useProjects } from "@/components/project/ProjectsProvider"
 import PageLoadingShell from "@/components/project/PageLoadingShell"
-import { getProjectForRoute } from "@/lib/projectList"
 
 export default function ProjectPageClientShell({ projectId, className = "", children }) {
   const { getProject } = useProjects()
-  const project = getProject(projectId) ?? getProjectForRoute(projectId)
+  const project = getProject(projectId)
 
-  if (!project) {
+  if (!project || project.routePlaceholder) {
     return <PageLoadingShell className={className} />
   }
 

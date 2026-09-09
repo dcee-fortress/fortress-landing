@@ -6,31 +6,54 @@ import { useProjects } from "@/components/project/ProjectsProvider"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import { APP_BRAND } from "@/lib/appBrand"
 import { getProjectHomeHref } from "@/lib/projectRoutes"
-import { isEndedProject } from "@/lib/projectRegistry"
+
+const START_DATE_MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+]
+
+function formatProjectStartDate(dayId) {
+  if (typeof dayId !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dayId)) return null
+
+  const [year, month, day] = dayId.split("-").map(Number)
+  if (!year || !month || !day) return null
+
+  return `${day} ${START_DATE_MONTHS[month - 1]} ${year}`
+}
 
 export default function GroveLanding() {
   const hasHydrated = useHasHydrated()
-  const { menuProjects, projects, syncReady } = useProjects()
-  const activeProjects = menuProjects
-  const hasEndedProjects = projects.some((project) => isEndedProject(project))
+  const { menuProjects } = useProjects()
+  const activeProjects = hasHydrated ? menuProjects : []
+
+  if (activeProjects.length === 0) {
+    return (
+      <div className="app-page-frame flex items-center justify-center text-zinc-900">
+        <h1 className="brand-wordmark" aria-label={APP_BRAND}>
+          {APP_BRAND}
+        </h1>
+      </div>
+    )
+  }
 
   return (
     <div className="app-page-frame text-zinc-900">
       <div className="app-content-shell space-y-5 lg:space-y-8">
-        <header className="space-y-1">
-          <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Projects</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
-            {APP_BRAND}
-          </h1>
-          <p className="text-sm text-zinc-500 sm:text-base">
-            Open a live project. Data entered on any device with the public link is the same data
-            shown here.
-          </p>
-        </header>
+        <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-4">
+          {activeProjects.map((project) => {
+            const startedOn = formatProjectStartDate(project.startDate)
 
-        {activeProjects.length > 0 ? (
-          <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-4">
-            {activeProjects.map((project) => (
+            return (
               <li key={project.id}>
                 <Link
                   href={getProjectHomeHref(project.id)}
@@ -42,32 +65,16 @@ export default function GroveLanding() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-base font-semibold text-zinc-900 lg:text-lg">{project.name}</p>
-                    <p className="truncate text-sm text-zinc-500">Open dashboards</p>
+                    {startedOn ? (
+                      <p className="truncate text-sm text-zinc-500">Started {startedOn}</p>
+                    ) : null}
                   </div>
                   <Icon name="chevron-right" size={18} className="shrink-0 text-zinc-400" />
                 </Link>
               </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-zinc-500 sm:text-base">
-            {!hasHydrated ? (
-              "Loading live projects…"
-            ) : menuProjects.length === 0 && !syncReady ? (
-              "Loading live projects…"
-            ) : hasEndedProjects ? (
-              <>
-                No active projects. Ended projects are in{" "}
-                <Link href="/settings" className="font-medium text-zinc-800 underline">
-                  Settings
-                </Link>
-                .
-              </>
-            ) : (
-              "No projects yet. Use New project to create one."
-            )}
-          </p>
-        )}
+            )
+          })}
+        </ul>
       </div>
     </div>
   )

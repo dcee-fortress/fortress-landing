@@ -29,7 +29,7 @@ function PlantCostScheduleEditor({
   rowsRef.current = rows
 
   const persistRows = (nextRows = rowsRef.current) => {
-    savePlantCostSlotRows(projectId, dayId, slotId, nextRows)
+    return savePlantCostSlotRows(projectId, dayId, slotId, nextRows)
   }
 
   useEffect(() => {
@@ -71,13 +71,19 @@ function PlantCostScheduleEditor({
     setRows(nextRows)
   }
 
-  const handleSave = () => {
-    persistRows(rows)
-    hasEditedRef.current = false
-    refresh()
-    setSavedMessage(
-      "Plant cost material schedule saved. Totals now appear on the hourly dashboard and roll up to daily, weekly, monthly, and project to date reports."
-    )
+  const handleSave = async () => {
+    try {
+      await Promise.resolve(persistRows(rows))
+      hasEditedRef.current = false
+      refresh()
+      setSavedMessage(
+        "Plant cost material schedule saved to Postgres. Totals now appear on the hourly dashboard and roll up to daily, weekly, monthly, and project to date reports."
+      )
+    } catch (error) {
+      setSavedMessage(
+        error instanceof Error ? error.message : "Could not save to Postgres. localStorage was not updated."
+      )
+    }
   }
 
   return (

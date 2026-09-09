@@ -17,7 +17,6 @@ export default async function MaterialSchedulePage({ params }) {
   return (
     <MaterialSchedulePageClient
       projectId={projectId}
-      projectName={project.name}
       dayId={dayId}
       dayLabel={file?.label ?? dayId}
       slotId={slotId}

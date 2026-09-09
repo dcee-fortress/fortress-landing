@@ -73,7 +73,7 @@ export default function ProjectMenu() {
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-sm font-bold tracking-wide text-white sm:h-9 sm:w-9 lg:h-10 lg:w-10 lg:text-base">
                 F
               </span>
-              <span className="truncate text-base font-bold tracking-[0.08em] text-zinc-900 sm:text-xl sm:tracking-[0.1em]">
+              <span className="app-brand-name truncate">
                 {APP_BRAND}
               </span>
             </Link>
@@ -148,7 +148,7 @@ export default function ProjectMenu() {
         </div>
       </header>
 
-      <CreateProjectModal open={showCreate} onClose={() => setShowCreate(false)} />
+      {showCreate ? <CreateProjectModal open onClose={() => setShowCreate(false)} /> : null}
     </>
   )
 }

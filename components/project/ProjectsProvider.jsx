@@ -19,7 +19,11 @@ export function ProjectsProvider({ children }) {
 
   useEffect(() => {
     const stopSharedPersistence = startSharedPersistence()
-    const handleSharedStorageChange = () => refresh()
+    let refreshTimer = 0
+    const handleSharedStorageChange = () => {
+      window.clearTimeout(refreshTimer)
+      refreshTimer = window.setTimeout(() => refresh(), 80)
+    }
 
     window.addEventListener("grove-shared-storage-change", handleSharedStorageChange)
     const timeoutId = window.setTimeout(() => {
@@ -33,6 +37,7 @@ export function ProjectsProvider({ children }) {
     })
     return () => {
       window.clearTimeout(timeoutId)
+      window.clearTimeout(refreshTimer)
       stopSharedPersistence()
       window.removeEventListener("grove-shared-storage-change", handleSharedStorageChange)
     }
@@ -49,19 +54,29 @@ export function ProjectsProvider({ children }) {
       menuProjects: hasHydrated ? getMenuProjects() : [],
       getProject: (id) => (hasHydrated ? getProjectById(id) : null),
       createProject: async (name, options = {}) => {
-        const project = createCustomProject(name, options)
-        if (!project) return null
+        try {
+          const project = await createCustomProject(name, options)
+          if (!project) return null
 
-        const [{ ensureHourlyDashboardsForProject }, { ensureDailyFilesThroughToday }] = await Promise.all([
-          import("@/lib/projectData"),
-          import("@/lib/dailyFileSync"),
-        ])
+          const [{ ensureHourlyDashboardsForProject }, { ensureDailyFilesThroughToday }] = await Promise.all([
+            import("@/lib/projectData"),
+            import("@/lib/dailyFileSync"),
+          ])
 
-        ensureDailyFilesThroughToday(project.id)
-        ensureHourlyDashboardsForProject(project.id)
+          ensureDailyFilesThroughToday(project.id)
+          ensureHourlyDashboardsForProject(project.id)
 
-        refresh()
-        return project
+          const { isLiveCodeChannel } = await import("@/lib/liveDataConfig")
+          if (isLiveCodeChannel()) {
+            const { publishSharedKeys } = await import("@/lib/sharedPersistence")
+            await publishSharedKeys({ replace: true }).catch(() => {})
+          }
+
+          refresh()
+          return project
+        } finally {
+          refresh()
+        }
       },
       endProject: async (projectId, endDate = null) => {
         const { endGroveProject } = await import("@/lib/groveDatabase")

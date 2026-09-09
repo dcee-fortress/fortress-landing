@@ -3,6 +3,7 @@ import {
   readSharedStorage,
   replaceSharedStorage,
   writeSharedValue,
+  writeSharedValues,
 } from "@/lib/serverSharedStore"
 import { SHARED_STORAGE_KEYS } from "@/lib/sharedStorageMerge"
 import { readRequestJson } from "@/lib/safeJson"
@@ -29,6 +30,20 @@ export async function GET() {
 export async function POST(request) {
   try {
     const payload = await readRequestJson(request, {})
+    if (payload?.keys && typeof payload.keys === "object" && !Array.isArray(payload.keys)) {
+      const updates = {}
+      for (const [key, value] of Object.entries(payload.keys)) {
+        if (!allowedKeys.has(key) || typeof value !== "string") {
+          return Response.json({ error: "Invalid shared storage payload." }, { status: 400 })
+        }
+        updates[key] = value
+      }
+      const storage = await writeSharedValues(updates, {
+        replaceKeys: Array.isArray(payload.replaceKeys) ? payload.replaceKeys : [],
+      })
+      return Response.json({ ok: true, storage })
+    }
+
     if (!allowedKeys.has(payload?.key) || typeof payload.value !== "string") {
       return Response.json({ error: "Invalid shared storage payload." }, { status: 400 })
     }

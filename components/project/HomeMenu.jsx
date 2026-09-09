@@ -1,6 +1,7 @@
 "use client"
 
 import ChoiceCard from "@/components/project/ChoiceCard"
+import PageLoadingShell from "@/components/project/PageLoadingShell"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import { isDeletedProjectId } from "@/lib/projectRegistry"
@@ -22,10 +23,14 @@ export default function HomeMenu({ projectId }) {
     )
   }
 
-  if (!hasHydrated || !project) {
+  if (!hasHydrated) {
+    return <PageLoadingShell />
+  }
+
+  if (!project) {
     return (
       <div className="app-content-shell">
-        <p className="text-sm text-zinc-500">{hasHydrated ? "This project is not available." : "Loading project…"}</p>
+        <p className="text-sm text-zinc-500">This project is not available.</p>
       </div>
     )
   }

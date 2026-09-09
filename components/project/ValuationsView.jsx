@@ -37,7 +37,10 @@ export default function ValuationsView({ projectId, projectName }) {
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
           Valuations
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
+        <h1
+          suppressHydrationWarning
+          className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl"
+        >
           {projectName}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">

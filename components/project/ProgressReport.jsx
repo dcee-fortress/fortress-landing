@@ -156,33 +156,29 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
   }
 
   const saveChanges = (getUpdates) => {
-    setReport((prev) => {
-      if (!prev) return prev
+    if (!report) return
 
-      const updates = typeof getUpdates === "function" ? getUpdates(prev) : getUpdates
-      const next = { ...prev, ...updates }
+    const updates = typeof getUpdates === "function" ? getUpdates(report) : getUpdates
+    const next = { ...report, ...updates }
 
-      setIsSaving(true)
-
-      try {
-        if (!saveProgressReport(projectId, { ...next, reportType })) {
-          throw new Error("Could not save progress report.")
-        }
-
+    setIsSaving(true)
+    void Promise.resolve(saveProgressReport(projectId, { ...next, reportType }))
+      .then((ok) => {
+        if (!ok) throw new Error("Could not save progress report to Postgres.")
+        setReport(next)
         setLastSaved(new Date())
-        setIsSaving(false)
-        return next
-      } catch (error) {
+      })
+      .catch((error) => {
         console.error("Failed to save progress report:", error)
-        setIsSaving(false)
         window.alert(
           error instanceof Error
             ? error.message
-            : "Failed to save changes. Storage may be full — try removing older photos."
+            : "Postgres save failed. localStorage was not updated."
         )
-        return prev
-      }
-    })
+      })
+      .finally(() => {
+        setIsSaving(false)
+      })
   }
 
   const handleFileSelect = (e) => {

@@ -61,7 +61,7 @@ function MaterialScheduleEditor({
 
   const persistRows = useCallback(
     (nextRows = rowsRef.current) => {
-      saveMaterialScheduleRows(projectId, dayId, slotId, scheduleType, nextRows)
+      return saveMaterialScheduleRows(projectId, dayId, slotId, scheduleType, nextRows)
     },
     [projectId, dayId, slotId, scheduleType]
   )
@@ -166,16 +166,21 @@ function MaterialScheduleEditor({
     setLiveDraft(null)
   }
 
-  const handleSave = () => {
-    saveMaterialScheduleRows(projectId, dayId, slotId, scheduleType, rows)
-    hasEditedRef.current = false
-
-    const slots = getSlotsForDay(dayId)
-    saveSlotsForDay(dayId, sortSlots(slots))
-
-    setSavedMessage(
-      `${schedule.label} saved. On each valuation dashboard, rate = actual cost on site ÷ production.`
-    )
+  const handleSave = async () => {
+    try {
+      await Promise.all([
+        Promise.resolve(saveMaterialScheduleRows(projectId, dayId, slotId, scheduleType, rows)),
+        Promise.resolve(saveSlotsForDay(projectId, dayId, sortSlots(getSlotsForDay(dayId)))),
+      ])
+      hasEditedRef.current = false
+      setSavedMessage(
+        `${schedule.label} saved to Postgres. On each valuation dashboard, rate = actual cost on site ÷ production.`
+      )
+    } catch (error) {
+      setSavedMessage(
+        error instanceof Error ? error.message : "Could not save to Postgres. localStorage was not updated."
+      )
+    }
   }
 
   const exportToPdf = async () => {

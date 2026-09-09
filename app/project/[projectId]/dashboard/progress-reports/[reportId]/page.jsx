@@ -14,7 +14,6 @@ export default async function ProgressReportPage({ params }) {
     <ProgressReportDetailPageClient
       projectId={projectId}
       reportId={reportId}
-      projectName={project.name}
     />
   )
 }

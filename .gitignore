@@ -32,6 +32,11 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.local.example
+
+# localhost read-only sync cache
+data/local-sync.db
+data/*.sqlite
 
 # runtime shared project data (seed file stays committed)
 data/grove-shared-storage.local.json

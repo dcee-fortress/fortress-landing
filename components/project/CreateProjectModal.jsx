@@ -19,11 +19,13 @@ export default function CreateProjectModal({ open, onClose }) {
   const [name, setName] = useState("")
   const [startDate, setStartDate] = useState(formatDateInputValue())
   const [error, setError] = useState("")
+  const [creating, setCreating] = useState(false)
 
   if (!open) return null
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    if (creating) return
     const trimmed = name.trim()
 
     if (!trimmed) {
@@ -36,8 +38,18 @@ export default function CreateProjectModal({ open, onClose }) {
       return
     }
 
-    const project = await createProject(trimmed, { startDate })
+    setCreating(true)
+    let project = null
+    try {
+      project = await createProject(trimmed, { startDate })
+    } catch {
+      setCreating(false)
+      setError("Could not create project. Try again.")
+      return
+    }
+
     if (!project) {
+      setCreating(false)
       setError("Could not create project")
       return
     }
@@ -63,7 +75,7 @@ export default function CreateProjectModal({ open, onClose }) {
               New Project
             </h2>
             <p className="mt-1 text-sm text-zinc-500">
-              Choose when the project starts. Daily dashboards are created from that date.
+              Choose the project start date. Valuations and every rolled-up file begin from that day.
             </p>
           </div>
           <button
@@ -89,7 +101,7 @@ export default function CreateProjectModal({ open, onClose }) {
                 setName(event.target.value)
                 setError("")
               }}
-              placeholder="e.g. Chadcom"
+              placeholder="e.g. Site A"
               autoFocus
               className="mt-1.5 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20"
             />
@@ -110,7 +122,7 @@ export default function CreateProjectModal({ open, onClose }) {
               className="mt-1.5 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20"
             />
             <p className="mt-1.5 text-xs text-zinc-500">
-              Dashboards and daily files begin on this date. All data is saved in this browser.
+              Daily, weekly, and monthly valuation files are created from this date through today.
             </p>
           </div>
 
@@ -126,9 +138,10 @@ export default function CreateProjectModal({ open, onClose }) {
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
+              disabled={creating}
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-wait disabled:opacity-70"
             >
-              Create project
+              {creating ? "Creating…" : "Create project"}
             </button>
           </div>
         </form>

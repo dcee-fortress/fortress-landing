@@ -401,24 +401,31 @@
 }
 
 html {
-  overflow-x: clip;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
 body {
-  overflow-x: clip;
-  overflow-y: auto;
+  overflow: visible;
   overscroll-behavior-y: contain;
 }
 
 @media (min-width: 1024px) {
+  html,
   body {
     overscroll-behavior-y: auto;
+  }
+
+  .app-choice-card {
+    touch-action: auto;
   }
 }
 
 :root {
     --app-header-height: calc(3.5rem + env(safe-area-inset-top, 0px));
+    --app-brand-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --app-brand-weight: 700;
+    --app-brand-tracking: 0.1em;
     --brand-50: #f5f7ff;
     --brand-100: #e6ecff;
     --brand-200: #cbd8ff;
@@ -431,27 +438,50 @@ body {
     --brand-900: #19244d;
 }
 
-@keyframes brand-loading-flicker {
-    0%, 18%, 22%, 63%, 65%, 100% {
-        opacity: 1;
-        transform: scale(1);
+@keyframes brand-wordmark-fade {
+    0%, 100% {
+        opacity: 0.4;
     }
 
-    20%, 64% {
-        opacity: 0.35;
-        transform: scale(0.94);
+    50% {
+        opacity: 1;
     }
 }
 
-.brand-loading-mark {
-    animation: brand-loading-flicker 1.15s steps(1, end) infinite;
+.app-brand-name,
+.brand-wordmark {
+    font-family: var(--app-brand-font);
+    font-weight: var(--app-brand-weight);
+    letter-spacing: var(--app-brand-tracking);
+    color: #18181b;
+}
+
+.app-brand-name {
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+}
+
+@media (min-width: 640px) {
+    .app-brand-name {
+        font-size: 1.25rem;
+        letter-spacing: 0.1em;
+    }
+}
+
+.brand-wordmark {
+    margin: 0;
+    font-size: clamp(2.25rem, 7vw, 3.5rem);
+    text-indent: 0.1em;
+}
+
+.brand-wordmark--pulse {
+    animation: brand-wordmark-fade 2s ease-in-out infinite;
 }
 
 .app-page-frame {
     min-height: calc(100dvh - var(--app-header-height, 3.5rem));
     padding: 1rem 0.75rem calc(2rem + env(safe-area-inset-bottom, 0px));
-    overflow-x: clip;
-    overflow-y: visible;
+    overflow: visible;
     background-color: #f4f4f5;
     -webkit-overflow-scrolling: touch;
 }

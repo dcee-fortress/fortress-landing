@@ -14,7 +14,6 @@ export default async function ActualProgressUpdatePage({ params }) {
     <ActualProgressUpdatePageClient
       projectId={projectId}
       reportId={reportId}
-      projectName={project.name}
     />
   )
 }
