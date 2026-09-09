@@ -22,11 +22,17 @@ export function ProjectsProvider({ children }) {
     const handleSharedStorageChange = () => refresh()
 
     window.addEventListener("grove-shared-storage-change", handleSharedStorageChange)
+    const timeoutId = window.setTimeout(() => {
+      setSyncReady(true)
+      refresh()
+    }, 8000)
     void stopSharedPersistence.ready?.then(() => {
+      window.clearTimeout(timeoutId)
       setSyncReady(true)
       refresh()
     })
     return () => {
+      window.clearTimeout(timeoutId)
       stopSharedPersistence()
       window.removeEventListener("grove-shared-storage-change", handleSharedStorageChange)
     }
@@ -34,15 +40,14 @@ export function ProjectsProvider({ children }) {
 
   const value = useMemo(() => {
     void version
-    const ready = hasHydrated && syncReady
 
     return {
       version,
       refresh,
-      syncReady: ready,
-      projects: ready ? getAllProjects() : [],
-      menuProjects: ready ? getMenuProjects() : [],
-      getProject: (id) => (ready ? getProjectById(id) : null),
+      syncReady: hasHydrated && syncReady,
+      projects: hasHydrated ? getAllProjects() : [],
+      menuProjects: hasHydrated ? getMenuProjects() : [],
+      getProject: (id) => (hasHydrated ? getProjectById(id) : null),
       createProject: async (name, options = {}) => {
         const project = createCustomProject(name, options)
         if (!project) return null
