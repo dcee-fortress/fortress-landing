@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url"
 const nextConfig = {
   serverExternalPackages: ["better-sqlite3"],
   env: {
-    NEXT_PUBLIC_GROVE_CODE_CHANNEL: process.env.VERCEL ? "live" : "local",
+    NEXT_PUBLIC_GROVE_CODE_CHANNEL:
+      process.env.VERCEL || process.env.VERCEL_ENV ? "live" : "local",
   },
   devIndicators: {
     position: "bottom-right",

@@ -67,7 +67,9 @@ export async function PUT(request) {
       return Response.json({ error: "Invalid shared storage replacement." }, { status: 400 })
     }
 
-    const storage = await replaceSharedStorage(payload.storage)
+    const storage = await replaceSharedStorage(payload.storage, {
+      forceEmpty: payload.forceEmpty === true,
+    })
     return Response.json({ ok: true, storage })
   } catch {
     return Response.json(
