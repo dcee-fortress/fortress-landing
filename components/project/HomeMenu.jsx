@@ -2,16 +2,23 @@
 
 import ChoiceCard from "@/components/project/ChoiceCard"
 import { useProjects } from "@/components/project/ProjectsProvider"
+import { useHasHydrated } from "@/hooks/useHasHydrated"
+import { getProjectForRoute } from "@/lib/projectList"
 import { DASHBOARD_VIEWS, getDashboardHref } from "@/lib/projectRoutes"
 
 const HOME_MENU_VIEWS = ["valuations", "plant-on-site", "progress-reports", "rate-analysis"]
 
 export default function HomeMenu({ projectId }) {
+  const hasHydrated = useHasHydrated()
   const { getProject } = useProjects()
-  const project = getProject(projectId)
+  const project = getProject(projectId) ?? (hasHydrated ? getProjectForRoute(projectId) : null)
 
   if (!project) {
-    return null
+    return (
+      <div className="app-content-shell">
+        <p className="text-sm text-zinc-500">Loading project…</p>
+      </div>
+    )
   }
 
   return (

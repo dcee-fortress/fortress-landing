@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { readResponseJson } from "@/lib/safeJson"
 import {
   SITE_WEATHER_FALLBACK,
   SITE_WEATHER_TIMEZONE,
@@ -26,7 +27,7 @@ async function geocodeSite(query) {
   try {
     const response = await fetch(url, { cache: "force-cache" })
     if (!response.ok) return SITE_WEATHER_FALLBACK
-    const data = await response.json()
+    const data = await readResponseJson(response, null)
     const hit = data?.results?.[0]
     if (!hit) return SITE_WEATHER_FALLBACK
 
@@ -70,7 +71,7 @@ async function fetchWeatherPayload(endpoint, location, start, end) {
     throw new Error(`Weather upstream failed with ${response.status}`)
   }
 
-  return response.json()
+  return readResponseJson(response, {})
 }
 
 export async function GET(request) {

@@ -55,7 +55,7 @@ export default function WorkingHoursWeatherCard({
 
     fetch(`/api/site-weather?${params.toString()}`)
       .then(async (response) => {
-        const payload = await response.json()
+        const payload = await response.json().catch(() => ({}))
         if (!response.ok) {
           throw new Error(payload?.error || "Weather forecast is unavailable.")
         }

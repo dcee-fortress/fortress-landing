@@ -20,7 +20,7 @@ const nextConfig = {
       },
     ]
   },
-  webpack: (config, { dev, isServer }) => {
+  webpack: (config, { dev }) => {
     if (dev) {
       config.cache = {
         type: "filesystem",
@@ -29,12 +29,16 @@ const nextConfig = {
         },
       }
 
-      if (!isServer) {
-        config.watchOptions = {
-          ...config.watchOptions,
-          aggregateTimeout: 300,
-          ignored: ["**/.next/**", "**/node_modules/**", "**/components/icon/icons.js"],
-        }
+      config.watchOptions = {
+        ...config.watchOptions,
+        aggregateTimeout: 400,
+        ignored: [
+          "**/.next/**",
+          "**/node_modules/**",
+          "**/components/icon/icons.js",
+          "**/data/*.local.json",
+          "**/data/_tmp-*.json",
+        ],
       }
     }
 
