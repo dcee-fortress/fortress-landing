@@ -30,6 +30,7 @@ export async function GET() {
         return withCors(
       Response.json({
         ok: true,
+        primary: "postgres",
         projects: projectsFromSharedStorage(storage),
         storage,
         updatedAt: (() => {
