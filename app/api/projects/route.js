@@ -5,6 +5,7 @@ import {
 } from "@/lib/serverSharedStore"
 import { SHARED_STORAGE_KEYS, STORAGE_UPDATED_AT_KEY } from "@/lib/sharedStorageMerge"
 import { projectsFromSharedStorage } from "@/lib/readOnlyLiveProjects"
+import { NEON_LIVE_PROJECT } from "@/lib/liveDataConfig"
 import { readRequestJson } from "@/lib/safeJson"
 
 export const dynamic = "force-dynamic"
@@ -31,6 +32,10 @@ export async function GET() {
       Response.json({
         ok: true,
         primary: "postgres",
+        neon: {
+          projectId: process.env.NEON_PROJECT_ID || NEON_LIVE_PROJECT.id,
+          org: NEON_LIVE_PROJECT.org,
+        },
         projects: projectsFromSharedStorage(storage),
         storage,
         updatedAt: (() => {

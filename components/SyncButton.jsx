@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { pullFromLivePostgres } from "@/lib/sharedPersistence"
 import { isLocalCodeChannel } from "@/lib/liveDataConfig"
 
@@ -27,6 +27,12 @@ export default function SyncButton() {
       setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("pull") === "live") {
+      void syncNow()
+    }
+  }, [syncNow])
 
   if (typeof window !== "undefined" && !isLocalCodeChannel()) {
     return null
