@@ -16,15 +16,3 @@ export default function DashboardShell({ children }) {
     </div>
   )
 }
-
-export default function DashboardShell({ children }) {
-  return (
-    <div className="relative min-h-dvh">
-      <ProjectMenu />
-      <div className="pt-[var(--app-header-height)]">
-        <SyncStatusBar />
-        {children}
-      </div>
-    </div>
-  )
-}
