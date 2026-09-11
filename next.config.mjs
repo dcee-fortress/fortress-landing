@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url"
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ["better-sqlite3"],
+  serverExternalPackages: ["better-sqlite3", "pg"],
   env: {
     NEXT_PUBLIC_GROVE_CODE_CHANNEL:
       process.env.VERCEL || process.env.VERCEL_ENV ? "live" : "local",
