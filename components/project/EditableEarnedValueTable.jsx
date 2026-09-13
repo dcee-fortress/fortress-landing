@@ -1,6 +1,7 @@
 "use client"
 
 import ExportPdfButton from "@/components/project/ExportPdfButton"
+import TableCellInput from "@/components/project/TableCellInput"
 import {
   EARNED_VALUE_TABLE_HEADERS,
   formatEarnedValueProduction,
@@ -17,14 +18,11 @@ function parseNumber(value) {
 
 function EditableCell({ value, onChange, align = "right" }) {
   return (
-    <input
-      type="text"
-      inputMode="decimal"
+    <TableCellInput
       value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className={`w-full rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${
-        align === "right" ? "text-right tabular-nums" : "text-left"
-      }`}
+      onChange={onChange}
+      align={align}
+      inputMode={align === "right" ? "decimal" : "text"}
     />
   )
 }

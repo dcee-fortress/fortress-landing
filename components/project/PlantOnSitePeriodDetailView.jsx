@@ -78,7 +78,7 @@ export default function PlantOnSitePeriodDetailView({
         </header>
       </div>
 
-      <article className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+      <article className="min-w-0 rounded-xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 bg-zinc-50 px-6 py-4">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
@@ -101,7 +101,7 @@ export default function PlantOnSitePeriodDetailView({
           </span>
         </div>
 
-        <div className="px-4 py-6 sm:px-6">
+        <div className="min-w-0 px-3 py-6 sm:px-6">
           {module.key === "plant-hours" ? (
             <PlantHoursTable projectId={projectId} period={period} fileId={file.id} />
           ) : module.key === "plant-cost" || module.key === "fuel-cost" ? (

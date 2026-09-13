@@ -3,7 +3,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { getAllProjects, getMenuProjects, getProjectById } from "@/lib/projectList"
 import { createCustomProject } from "@/lib/projectRegistry"
-import { startSharedPersistence } from "@/lib/sharedPersistence"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 
 const ProjectsContext = createContext(null)
@@ -18,24 +17,33 @@ export function ProjectsProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    const stopSharedPersistence = startSharedPersistence()
+    let cancelled = false
+    let stopSharedPersistence = () => {}
     let refreshTimer = 0
+    let timeoutId = 0
+
     const handleSharedStorageChange = () => {
       window.clearTimeout(refreshTimer)
       refreshTimer = window.setTimeout(() => refresh(), 80)
     }
 
-    window.addEventListener("grove-shared-storage-change", handleSharedStorageChange)
-    const timeoutId = window.setTimeout(() => {
-      setSyncReady(true)
-      refresh()
-    }, 8000)
-    void stopSharedPersistence.ready?.then(() => {
-      window.clearTimeout(timeoutId)
-      setSyncReady(true)
-      refresh()
+    void import("@/lib/sharedPersistence").then(({ startSharedPersistence }) => {
+      if (cancelled) return
+      stopSharedPersistence = startSharedPersistence()
+      window.addEventListener("grove-shared-storage-change", handleSharedStorageChange)
+      timeoutId = window.setTimeout(() => {
+        setSyncReady(true)
+        refresh()
+      }, 8000)
+      void stopSharedPersistence.ready?.then(() => {
+        window.clearTimeout(timeoutId)
+        setSyncReady(true)
+        refresh()
+      })
     })
+
     return () => {
+      cancelled = true
       window.clearTimeout(timeoutId)
       window.clearTimeout(refreshTimer)
       stopSharedPersistence()

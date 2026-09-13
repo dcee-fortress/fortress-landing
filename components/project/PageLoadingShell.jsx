@@ -5,7 +5,7 @@ export default function PageLoadingShell({ className = "" }) {
     <div
       className={`flex min-h-[calc(100dvh-var(--app-header-height,3.5rem))] items-center justify-center bg-zinc-50 ${className}`}
     >
-      <p className="brand-wordmark brand-wordmark--pulse" aria-label={APP_BRAND}>
+      <p className="brand-wordmark brand-wordmark--pulse" aria-label={APP_BRAND} suppressHydrationWarning>
         {APP_BRAND}
       </p>
     </div>

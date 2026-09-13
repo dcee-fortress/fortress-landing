@@ -12,7 +12,7 @@ import { isMonthlyFileInProgress } from "@/lib/periodFiles"
 
 export default function PlantOperatorRegisterView({ projectName, projectId, file }) {
   const inProgress = isMonthlyFileInProgress(file)
-  const { monthName, daysInMonth } = getMonthRegisterMeta(file.id)
+  const { monthName } = getMonthRegisterMeta(file.id)
 
   return (
     <div className="space-y-6">
@@ -35,15 +35,15 @@ export default function PlantOperatorRegisterView({ projectName, projectId, file
         </header>
       </div>
 
-      <article className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+      <article className="min-w-0 rounded-xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 bg-zinc-50 px-6 py-4">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
               Operator Register Report
             </h2>
             <p className="mt-1 text-sm text-zinc-600">
-              {monthName} attendance register with {daysInMonth} daily boxes. Record supplier, plant,
-              plant number, and operator name, then mark each day with a tick or cross.
+              {monthName} attendance. Add a supplier and operator, then click a day box for present
+              or double-click for absent. Scroll sideways to see every day.
             </p>
           </div>
           <span
@@ -57,7 +57,7 @@ export default function PlantOperatorRegisterView({ projectName, projectId, file
           </span>
         </div>
 
-        <div className="px-4 py-6 sm:px-6">
+        <div className="min-w-0 px-3 py-6 sm:px-6">
           <PlantOperatorRegisterTable projectId={projectId} monthId={file.id} />
         </div>
       </article>

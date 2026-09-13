@@ -15,20 +15,7 @@ import {
 import { getPlantOnSitePeriodHref } from "@/lib/plantOnSiteModules"
 import HoursFieldInput from "@/components/project/HoursFieldInput"
 import PlantHoursTotalCard from "@/components/project/PlantHoursTotalCard"
-
-function TextInput({ value, onChange, placeholder, type = "text", align = "left" }) {
-  return (
-    <input
-      type={type}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      placeholder={placeholder}
-      className={`w-full min-w-[120px] rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200 ${
-        align === "right" ? "text-right tabular-nums" : ""
-      }`}
-    />
-  )
-}
+import TableCellInput from "@/components/project/TableCellInput"
 
 function PlantHoursDailyTable({ projectId, dayId }) {
   const [entry, setEntry] = useState(() => getDailyPlantHoursData(projectId, dayId))
@@ -123,14 +110,14 @@ function PlantHoursDailyTable({ projectId, dayId }) {
                 return (
                   <tr key={row.id} className="bg-white">
                     <td className="border border-zinc-200 px-2 py-2">
-                      <TextInput
+                      <TableCellInput
                         value={row.plantNumber}
                         onChange={(value) => updateRow(row.id, "plantNumber", value)}
                         placeholder="Plant number"
                       />
                     </td>
                     <td className="border border-zinc-200 px-2 py-2">
-                      <TextInput
+                      <TableCellInput
                         value={row.plantDescription}
                         onChange={(value) => updateRow(row.id, "plantDescription", value)}
                         placeholder="Plant description"

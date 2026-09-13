@@ -20,32 +20,50 @@ async function exportEquipmentPdf(projectName, report, period) {
   exportEquipmentInUsePdf({ projectName, report, period })
 }
 
+function HoursCell({ value, onChange, placeholder }) {
+  return (
+    <td className="min-w-[10rem] border border-zinc-200 bg-zinc-50 px-2 py-2">
+      <HoursFieldInput
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="min-w-[8.5rem]"
+      />
+    </td>
+  )
+}
+
 function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
   const { version } = useProjectData()
   const [hoursById, setHoursById] = useState(() => getDailyEquipmentHoursData(projectId, fileId).entries)
 
   const persist = useCallback(
-    (nextEntries) => {
-      setHoursById(nextEntries)
-      saveDailyEquipmentHoursData(projectId, fileId, nextEntries)
+    (updater) => {
+      setHoursById((current) => {
+        const nextEntries = typeof updater === "function" ? updater(current) : updater
+        saveDailyEquipmentHoursData(projectId, fileId, nextEntries)
+        return nextEntries
+      })
     },
     [projectId, fileId]
   )
 
   const updateEntry = (equipmentId, updates) => {
-    const current = hoursById[equipmentId] ?? {
-      startHours: "",
-      finishHours: "",
-      hoursOperating: "",
-      hoursOperatingEdited: false,
-    }
+    persist((currentHours) => {
+      const current = currentHours[equipmentId] ?? {
+        startHours: "",
+        finishHours: "",
+        hoursOperating: "",
+        hoursOperatingEdited: false,
+      }
 
-    persist({
-      ...hoursById,
-      [equipmentId]: {
-        ...current,
-        ...updates,
-      },
+      return {
+        ...currentHours,
+        [equipmentId]: {
+          ...current,
+          ...updates,
+        },
+      }
     })
   }
 
@@ -82,15 +100,15 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
           <p className="font-semibold uppercase tracking-wide">Equipment in use</p>
           <p className="mt-1 text-lg font-semibold text-zinc-900">{report.dateLabel}</p>
           <p className="mt-2 text-orange-900/80">
-            {report.totalCount} item{report.totalCount === 1 ? "" : "s"} marked present in the{" "}
+            {report.totalCount} item{report.totalCount === 1 ? "" : "s"} from operators marked
+            present in the{" "}
             <Link
               href={getPlantOperatorsHref(projectId)}
               className="font-medium underline decoration-orange-300 underline-offset-2"
             >
               operator register
             </Link>
-            . Supplier, plant name, and plant number copy from each ticked operator for this date.
-            Enter start and finish hours, or type hours operating directly.
+            . Scroll sideways to enter Start hours, Finish hours, and Hours operating.
           </p>
         </div>
 
@@ -101,29 +119,29 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-zinc-200">
-        <table className="min-w-full border-collapse text-sm">
+      <div className="equipment-hours-scroll">
+        <table className="min-w-max border-collapse text-sm">
           <thead>
             <tr className="bg-zinc-50">
-              <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700">
+              <th className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-800">
                 Supplier
               </th>
-              <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700">
-                Plant
+              <th className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-800">
+                Plant name
               </th>
-              <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700">
+              <th className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-800">
+                Operator
+              </th>
+              <th className="min-w-[9rem] border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-800">
                 Plant number
               </th>
-              <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700">
-                Operator&apos;s name
-              </th>
-              <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
+              <th className="min-w-[10rem] border border-zinc-200 bg-zinc-100 px-3 py-2 text-right font-semibold text-zinc-800">
                 Start hours
               </th>
-              <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
+              <th className="min-w-[10rem] border border-zinc-200 bg-zinc-100 px-3 py-2 text-right font-semibold text-zinc-800">
                 Finish hours
               </th>
-              <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
+              <th className="min-w-[10rem] border border-zinc-200 bg-zinc-100 px-3 py-2 text-right font-semibold text-zinc-800">
                 Hours operating
               </th>
             </tr>
@@ -132,52 +150,46 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
             {rows.length > 0 ? (
               rows.map((item) => (
                 <tr key={item.id} className="bg-white">
-                  <td className="border border-zinc-200 px-3 py-2 text-zinc-900">
+                  <td className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-zinc-900">
                     {item.supplier || "—"}
                   </td>
-                  <td className="border border-zinc-200 px-3 py-2 text-zinc-900">
+                  <td className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-zinc-900">
                     {item.plant || "—"}
                   </td>
-                  <td className="border border-zinc-200 px-3 py-2 text-zinc-900">
-                    {item.plantNumber || "—"}
-                  </td>
-                  <td className="border border-zinc-200 px-3 py-2 text-zinc-900">
+                  <td className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-zinc-900">
                     {item.operatorName || "—"}
                   </td>
-                  <td className="border border-zinc-200 px-2 py-2">
-                    <HoursFieldInput
-                      value={item.startHours}
-                      onChange={(value) => updateEntry(item.id, { startHours: value })}
-                      placeholder="Start"
-                    />
+                  <td className="min-w-[9rem] border border-zinc-200 px-3 py-2 text-zinc-900">
+                    {item.plantNumber || "—"}
                   </td>
-                  <td className="border border-zinc-200 px-2 py-2">
-                    <HoursFieldInput
-                      value={item.finishHours}
-                      onChange={(value) => updateEntry(item.id, { finishHours: value })}
-                      placeholder="Finish"
-                    />
-                  </td>
-                  <td className="border border-zinc-200 px-2 py-2">
-                    <HoursFieldInput
-                      value={item.hoursOperatingInput}
-                      onChange={(value) => {
-                        if (String(value).trim() === "") {
-                          updateEntry(item.id, {
-                            hoursOperating: "",
-                            hoursOperatingEdited: false,
-                          })
-                          return
-                        }
-
+                  <HoursCell
+                    value={item.startHours}
+                    onChange={(value) => updateEntry(item.id, { startHours: value })}
+                    placeholder="Start"
+                  />
+                  <HoursCell
+                    value={item.finishHours}
+                    onChange={(value) => updateEntry(item.id, { finishHours: value })}
+                    placeholder="Finish"
+                  />
+                  <HoursCell
+                    value={item.hoursOperatingInput}
+                    onChange={(value) => {
+                      if (String(value).trim() === "") {
                         updateEntry(item.id, {
-                          hoursOperating: value,
-                          hoursOperatingEdited: true,
+                          hoursOperating: "",
+                          hoursOperatingEdited: false,
                         })
-                      }}
-                      placeholder="Hours"
-                    />
-                  </td>
+                        return
+                      }
+
+                      updateEntry(item.id, {
+                        hoursOperating: value,
+                        hoursOperatingEdited: true,
+                      })
+                    }}
+                    placeholder="Hours"
+                  />
                 </tr>
               ))
             ) : (
@@ -233,7 +245,7 @@ export default function EquipmentInUseTable({
             <p className="mt-2 text-orange-900/80">
               {report.totalCount} unique item{report.totalCount === 1 ? "" : "s"} across{" "}
               {report.daysWithEquipment} day{report.daysWithEquipment === 1 ? "" : "s"} with register
-              ticks.
+              ticks. Scroll sideways to see hours.
             </p>
           </div>
 
@@ -256,26 +268,26 @@ export default function EquipmentInUseTable({
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-zinc-200">
-        <table className="min-w-full border-collapse text-sm">
+      <div className="equipment-hours-scroll">
+        <table className="min-w-max border-collapse text-sm">
           <thead>
             <tr className="bg-zinc-50">
-              <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700">
+              <th className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-800">
                 Supplier
               </th>
-              <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700">
-                Plant
+              <th className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-800">
+                Plant name
               </th>
-              <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700">
+              <th className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-800">
+                Operator
+              </th>
+              <th className="min-w-[9rem] border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-800">
                 Plant number
               </th>
-              <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700">
-                Operator&apos;s name
-              </th>
-              <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
+              <th className="min-w-[8rem] border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-800">
                 Days in use
               </th>
-              <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
+              <th className="min-w-[10rem] border border-zinc-200 bg-zinc-100 px-3 py-2 text-right font-semibold text-zinc-800">
                 Hours operating
               </th>
             </tr>
@@ -284,22 +296,22 @@ export default function EquipmentInUseTable({
             {report.equipment.length > 0 ? (
               report.equipment.map((item) => (
                 <tr key={item.id} className="bg-white">
-                  <td className="border border-zinc-200 px-3 py-2 text-zinc-900">
+                  <td className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-zinc-900">
                     {item.supplier || "—"}
                   </td>
-                  <td className="border border-zinc-200 px-3 py-2 text-zinc-900">
+                  <td className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-zinc-900">
                     {item.plant || "—"}
                   </td>
-                  <td className="border border-zinc-200 px-3 py-2 text-zinc-900">
-                    {item.plantNumber || "—"}
-                  </td>
-                  <td className="border border-zinc-200 px-3 py-2 text-zinc-900">
+                  <td className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-zinc-900">
                     {item.operatorName || "—"}
                   </td>
-                  <td className="border border-zinc-200 px-3 py-2 text-right tabular-nums text-zinc-700">
+                  <td className="min-w-[9rem] border border-zinc-200 px-3 py-2 text-zinc-900">
+                    {item.plantNumber || "—"}
+                  </td>
+                  <td className="min-w-[8rem] border border-zinc-200 px-3 py-2 text-right tabular-nums text-zinc-700">
                     {item.dayCount}
                   </td>
-                  <td className="border border-zinc-200 px-3 py-2 text-right tabular-nums text-zinc-900">
+                  <td className="min-w-[10rem] border border-zinc-200 bg-zinc-50 px-3 py-2 text-right tabular-nums text-zinc-900">
                     {formatOperatingHours(item.hoursOperating)}
                   </td>
                 </tr>

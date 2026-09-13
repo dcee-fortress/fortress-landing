@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 
-/** True only after the client has hydrated — safe gate for localStorage-driven UI. */
+/** True only after the client has hydrated — safe gate for DB-backed client UI. */
 export function useHasHydrated() {
   const [hasHydrated, setHasHydrated] = useState(false)
 

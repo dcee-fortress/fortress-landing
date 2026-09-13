@@ -657,10 +657,74 @@ body {
     }
 }
 
+.operator-register-scroll {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    border: 1px solid #e4e4e7;
+    border-radius: 0.75rem;
+    background: #ffffff;
+}
+
+.operator-register-scroll::-webkit-scrollbar {
+    height: 14px;
+}
+
+.operator-register-scroll::-webkit-scrollbar-thumb {
+    background: #71717a;
+    border-radius: 999px;
+}
+
+.operator-register-scroll::-webkit-scrollbar-track {
+    background: #f4f4f5;
+}
+
+@media (max-width: 767px) {
+    .operator-register-sticky {
+        position: static !important;
+        left: auto !important;
+        z-index: auto !important;
+        box-shadow: none !important;
+        max-width: none !important;
+    }
+}
+
 .overflow-x-auto {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
     max-width: 100%;
+}
+
+.equipment-hours-scroll {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    border: 1px solid #e4e4e7;
+    border-radius: 0.75rem;
+    background: #ffffff;
+}
+
+.equipment-hours-scroll::-webkit-scrollbar {
+    height: 14px;
+}
+
+.equipment-hours-scroll::-webkit-scrollbar-thumb {
+    background: #71717a;
+    border-radius: 999px;
+}
+
+.equipment-hours-scroll::-webkit-scrollbar-track {
+    background: #f4f4f5;
 }
 
 .report-page-scroll {

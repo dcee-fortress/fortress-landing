@@ -55,7 +55,10 @@ export default function ProjectMenu() {
 
   return (
     <>
-      <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-zinc-200 bg-white pt-[env(safe-area-inset-top)] shadow-sm">
+      <header
+        className="fixed left-0 right-0 top-0 z-50 w-full border-b border-zinc-200 bg-white pt-[env(safe-area-inset-top)] shadow-sm"
+        suppressHydrationWarning
+      >
         <div className="mx-auto flex h-14 w-full max-w-[90rem] items-center gap-2 px-3 sm:gap-3 sm:px-4 lg:h-16 lg:px-6">
           <div ref={menuRef} className="relative flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <button

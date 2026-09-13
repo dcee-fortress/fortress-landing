@@ -23,8 +23,8 @@ export default function PlantOperatorRegisterPageClient({ projectId, monthId }) 
   }
 
   return (
-    <div className="app-page-frame text-zinc-900">
-      <div className="mx-auto max-w-[1400px]">
+    <div className="app-page-frame min-w-0 text-zinc-900">
+      <div className="mx-auto w-full min-w-0">
         <PlantOperatorRegisterView
           projectName={project.name}
           projectId={projectId}

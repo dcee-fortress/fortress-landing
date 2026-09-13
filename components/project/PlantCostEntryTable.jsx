@@ -6,6 +6,7 @@ import {
   formatPlantCost,
   parsePlantCostAmount,
 } from "@/lib/plantCostData"
+import TableCellInput from "@/components/project/TableCellInput"
 
 const ENTRY_HEADERS = [
   "Date",
@@ -20,20 +21,13 @@ const ENTRY_HEADERS = [
 
 function TextInput({ value, onChange, placeholder, align = "left" }) {
   return (
-    <input
-      type="text"
-      inputMode="text"
-      autoComplete="off"
-      autoCorrect="off"
-      autoCapitalize="none"
-      spellCheck={false}
-      enterKeyHint="enter"
+    <TableCellInput
       value={value}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={onChange}
       placeholder={placeholder}
-      className={`w-full min-w-[110px] rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200 ${
-        align === "right" ? "text-right tabular-nums" : ""
-      }`}
+      align={align}
+      inputMode={align === "right" ? "decimal" : "text"}
+      className="min-w-[110px]"
     />
   )
 }

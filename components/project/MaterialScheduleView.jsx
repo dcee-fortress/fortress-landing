@@ -5,6 +5,7 @@ import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import ActivityDescriptionInput from "@/components/project/ActivityDescriptionInput"
 import ExportPdfButton from "@/components/project/ExportPdfButton"
+import FormulaSuggestionMenu from "@/components/project/FormulaSuggestionMenu"
 import MaterialScheduleFormulaCell from "@/components/project/MaterialScheduleFormulaCell"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import {
@@ -26,6 +27,11 @@ import {
   draftFormulaInput,
   getMaterialFormulaHelpText,
 } from "@/lib/materialScheduleFormulas"
+import {
+  harvestMaterialFormulasFromRows,
+  rememberMaterialFormula,
+  searchMaterialFormulaSuggestions,
+} from "@/lib/materialFormulaMemory"
 import { sortSlots } from "@/lib/dailySlots"
 import { formatMaterialCurrencyAmount, formatMaterialAmount } from "@/lib/plantCostCalculations"
 import { getAllBoqItemNames } from "@/lib/boqData"
@@ -53,6 +59,9 @@ function MaterialScheduleEditor({
   const [savedMessage, setSavedMessage] = useState("")
   const [selectedCell, setSelectedCell] = useState(null)
   const [liveDraft, setLiveDraft] = useState(null)
+  const [formulaBarMenuOpen, setFormulaBarMenuOpen] = useState(false)
+  const [formulaBarDismissed, setFormulaBarDismissed] = useState(false)
+  const [formulaBarActiveIndex, setFormulaBarActiveIndex] = useState(0)
   const activitySuggestions = useMemo(() => {
     return [...getAllBoqItemNames(projectId), ...getActivityDescriptionsForSlot(projectId, dayId, slotId)]
   }, [projectId, dayId, slotId])
@@ -68,9 +77,14 @@ function MaterialScheduleEditor({
 
   useEffect(() => {
     hasEditedRef.current = false
-    setRows(loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType))
+    const loaded = loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType)
+    setRows(loaded)
     setSavedMessage("")
     setSelectedCell(null)
+    setFormulaBarMenuOpen(false)
+    setFormulaBarDismissed(false)
+
+    harvestMaterialFormulasFromRows(projectId, loaded, MATERIAL_SCHEDULE_COLUMNS)
   }, [projectId, dayId, slotId, scheduleType])
 
   useEffect(() => {
@@ -178,7 +192,7 @@ function MaterialScheduleEditor({
       )
     } catch (error) {
       setSavedMessage(
-        error instanceof Error ? error.message : "Could not save to Postgres. localStorage was not updated."
+        error instanceof Error ? error.message : "Could not save to Postgres. Cache was not updated."
       )
     }
   }
@@ -232,12 +246,78 @@ function MaterialScheduleEditor({
     const fieldKey = getMaterialRawFieldKey(selectedCell.columnKey)
     const { value, formula } = commitFormulaInput(liveDraft, Boolean(column.numeric))
     updateRow(selectedCell.rowIndex, fieldKey, value, formula)
+    rememberMaterialFormula({
+      projectId,
+      description: rowsRef.current[selectedCell.rowIndex]?.activityDescription ?? "",
+      columnKey: column.key,
+      columnLabel: column.label,
+      formula: formula || liveDraft,
+    })
     setLiveDraft(null)
+    setFormulaBarMenuOpen(false)
   }
 
   const selectedColumn = selectedCell
     ? MATERIAL_SCHEDULE_COLUMNS.find((column) => column.key === selectedCell.columnKey)
     : null
+
+  const selectedRowDescription = selectedCell
+    ? String(rows[selectedCell.rowIndex]?.activityDescription ?? "")
+    : ""
+
+  const formulaBarSuggestions = useMemo(() => {
+    if (
+      formulaBarDismissed ||
+      !formulaBarMenuOpen ||
+      !selectedCell ||
+      !selectedColumn ||
+      selectedColumn.key === "activityDescription" ||
+      selectedColumn.key === "details"
+    ) {
+      return []
+    }
+
+    return searchMaterialFormulaSuggestions({
+      projectId,
+      description: selectedRowDescription,
+      columnKey: selectedColumn.key,
+      query: String(formulaBarValue ?? ""),
+      limit: 8,
+    })
+  }, [
+    formulaBarDismissed,
+    formulaBarMenuOpen,
+    formulaBarValue,
+    projectId,
+    selectedCell,
+    selectedColumn,
+    selectedRowDescription,
+  ])
+
+  const formulaBarHighlightedIndex = Math.min(
+    formulaBarActiveIndex,
+    Math.max(0, formulaBarSuggestions.length - 1)
+  )
+
+  const applyFormulaBarSuggestion = (formula) => {
+    if (!selectedCell || !selectedColumn) return
+    const text = String(formula ?? "").trim()
+    hasEditedRef.current = true
+    setSavedMessage("")
+    setLiveDraft(text)
+    const fieldKey = getMaterialRawFieldKey(selectedColumn.key)
+    const { value, formula: nextFormula } = draftFormulaInput(text)
+    updateRow(selectedCell.rowIndex, fieldKey, value, nextFormula)
+    rememberMaterialFormula({
+      projectId,
+      description: selectedRowDescription,
+      columnKey: selectedColumn.key,
+      columnLabel: selectedColumn.label,
+      formula: text,
+    })
+    setFormulaBarMenuOpen(false)
+    setFormulaBarDismissed(true)
+  }
 
   const selectedResultDisplay = (() => {
     if (!selectedCell || !selectedColumn) return ""
@@ -293,6 +373,7 @@ function MaterialScheduleEditor({
                 ? `${selectedColumnLabel} · Row ${selectedCell.rowIndex + 1}`
                 : "Formula"}
             </span>
+            <div className="relative min-w-[16rem] flex-1">
             <input
               type="text"
               inputMode="text"
@@ -302,12 +383,20 @@ function MaterialScheduleEditor({
               spellCheck={false}
               enterKeyHint="enter"
               value={formulaBarValue}
+              onFocus={() => {
+                const text = String(formulaBarValue ?? "")
+                setFormulaBarDismissed(false)
+                setFormulaBarMenuOpen(text.trim().startsWith("="))
+              }}
               onChange={(event) => {
                 if (!selectedCell) return
                 const text = event.target.value
                 hasEditedRef.current = true
                 setLiveDraft(text)
                 setSavedMessage("")
+                setFormulaBarDismissed(false)
+                setFormulaBarMenuOpen(text.trim().startsWith("="))
+                setFormulaBarActiveIndex(0)
                 const column = MATERIAL_SCHEDULE_COLUMNS.find(
                   (item) => item.key === selectedCell.columnKey
                 )
@@ -322,14 +411,63 @@ function MaterialScheduleEditor({
               }}
               onBlur={commitFormulaBar}
               onKeyDown={(event) => {
+                if (formulaBarMenuOpen && formulaBarSuggestions.length > 0) {
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault()
+                    setFormulaBarActiveIndex((current) =>
+                      Math.min(current + 1, formulaBarSuggestions.length - 1)
+                    )
+                    return
+                  }
+
+                  if (event.key === "ArrowUp") {
+                    event.preventDefault()
+                    setFormulaBarActiveIndex((current) => Math.max(current - 1, 0))
+                    return
+                  }
+
+                  if (event.key === "Tab" && formulaBarSuggestions[formulaBarHighlightedIndex]) {
+                    event.preventDefault()
+                    applyFormulaBarSuggestion(formulaBarSuggestions[formulaBarHighlightedIndex].formula)
+                    return
+                  }
+
+                  if (event.key === "x" || event.key === "X") {
+                    event.preventDefault()
+                    setFormulaBarMenuOpen(false)
+                    setFormulaBarDismissed(true)
+                    return
+                  }
+
+                  if (event.key === "Escape") {
+                    event.preventDefault()
+                    setFormulaBarMenuOpen(false)
+                    setFormulaBarDismissed(true)
+                    return
+                  }
+                }
+
                 if (event.key === "Enter") {
                   event.preventDefault()
                   event.currentTarget.blur()
                 }
               }}
               placeholder="Click a cell, then type a number or formula such as =3*4"
-              className="min-w-[16rem] flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-mono text-zinc-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-mono text-zinc-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
+            {formulaBarMenuOpen ? (
+              <FormulaSuggestionMenu
+                suggestions={formulaBarSuggestions}
+                activeIndex={formulaBarHighlightedIndex}
+                onHover={setFormulaBarActiveIndex}
+                onSelect={applyFormulaBarSuggestion}
+                onDismiss={() => {
+                  setFormulaBarMenuOpen(false)
+                  setFormulaBarDismissed(true)
+                }}
+              />
+            ) : null}
+            </div>
             {selectedResultDisplay ? (
               <span className="text-sm font-bold tabular-nums text-zinc-900">
                 Result: {selectedResultDisplay}
@@ -412,6 +550,9 @@ function MaterialScheduleEditor({
                             />
                           ) : (
                             <MaterialScheduleFormulaCell
+                              projectId={projectId}
+                              description={row.activityDescription}
+                              columnKey={column.key}
                               rawValue={rawValue}
                               formulaValue={formulaValue}
                               fallbackDisplay={showAutoValue ? resolvedDisplay : ""}

@@ -81,7 +81,7 @@ function PlantCostScheduleEditor({
       )
     } catch (error) {
       setSavedMessage(
-        error instanceof Error ? error.message : "Could not save to Postgres. localStorage was not updated."
+        error instanceof Error ? error.message : "Could not save to Postgres. Cache was not updated."
       )
     }
   }

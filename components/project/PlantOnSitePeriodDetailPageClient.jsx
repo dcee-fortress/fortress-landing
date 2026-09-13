@@ -43,8 +43,8 @@ export default function PlantOnSitePeriodDetailPageClient({
   }
 
   return (
-    <div className="app-page-frame text-zinc-900">
-      <div className="mx-auto max-w-4xl">
+    <div className="app-page-frame min-w-0 text-zinc-900">
+      <div className={`mx-auto w-full min-w-0 ${moduleKey === "equipment-in-use" ? "max-w-[90rem]" : "max-w-4xl"}`}>
         <PlantOnSitePeriodDetailView
           projectName={project.name}
           projectId={projectId}

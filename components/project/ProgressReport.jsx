@@ -42,11 +42,6 @@ import {
   prepareProgressPhoto,
   removeStoredProgressPhoto,
 } from "@/lib/progressReportPhotos"
-import {
-  exportFullProgressReportPdf,
-  getDailyReportPdfFilename,
-  getWeeklyReportPdfFilename,
-} from "@/lib/progressReportPdf"
 
 function buildInitialReport(projectId, reportId, reportType) {
   const reportData = reportType === "daily"
@@ -173,7 +168,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
         window.alert(
           error instanceof Error
             ? error.message
-            : "Postgres save failed. localStorage was not updated."
+            : "Postgres save failed. Cache was not updated."
         )
       })
       .finally(() => {
@@ -381,6 +376,11 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
     setIsExportingPdf(true)
     try {
       saveChanges((currentReport) => currentReport)
+      const {
+        exportFullProgressReportPdf,
+        getDailyReportPdfFilename,
+        getWeeklyReportPdfFilename,
+      } = await import("@/lib/progressReportPdf")
       const filename = reportType === "weekly"
         ? getWeeklyReportPdfFilename(displayProjectName, reportId)
         : getDailyReportPdfFilename(displayProjectName, reportId)
