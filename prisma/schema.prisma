@@ -4,9 +4,11 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-/// Live shared Grove payload. Client reads/writes go through the API — not localStorage.
+/// Live shared Grove payload. Runtime server store uses `pg`; this schema documents the table.
 model GroveSharedStorage {
   storageKey   String   @id @map("storage_key")
   storageValue String   @map("storage_value") @db.Text
