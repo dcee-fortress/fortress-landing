@@ -85,6 +85,11 @@ export default function PlantOperatorRegisterTable({ projectId, monthId }) {
     if (editingCountRef.current > 0) return
     ensurePlantOperatorRegistersExist(projectId)
     const next = getPlantOperatorRegisterData(projectId, monthId)
+    const current = registerRef.current
+    // Don't let a stale reload wipe rows that were just added locally.
+    if ((current?.rows?.length ?? 0) > (next?.rows?.length ?? 0)) {
+      return
+    }
     registerRef.current = next
     setRegister(next)
   }, [projectId, monthId])
