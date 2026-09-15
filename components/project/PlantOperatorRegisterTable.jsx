@@ -162,8 +162,9 @@ export default function PlantOperatorRegisterTable({ projectId, monthId }) {
       ...current,
       rows: [...(current.rows ?? []), createEmptyRegisterRow(daysInMonth)],
     }
-    // Keep the new row in UI immediately; do not refresh from store until after write.
-    persist(nextRegister, { refreshAfter: false, immediate: true })
+    registerRef.current = nextRegister
+    setRegister(nextRegister)
+    savePlantOperatorRegisterData(projectId, monthId, nextRegister)
     window.requestAnimationFrame(() => {
       daysScrollRef.current?.scrollTo({ left: 0, behavior: "smooth" })
     })
