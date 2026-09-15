@@ -5,9 +5,7 @@ import PageLoadingShell from "@/components/project/PageLoadingShell"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import { isDeletedProjectId } from "@/lib/projectRegistry"
-import { DASHBOARD_VIEWS, getDashboardHref } from "@/lib/projectRoutes"
-
-const HOME_MENU_VIEWS = ["valuations", "plant-on-site", "progress-reports", "rate-analysis"]
+import { PROJECT_HOME_HUBS, getDashboardHref } from "@/lib/projectRoutes"
 
 export default function HomeMenu({ projectId }) {
   const hasHydrated = useHasHydrated()
@@ -40,28 +38,25 @@ export default function HomeMenu({ projectId }) {
       <header className="space-y-1">
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{project.name}</p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
-          Select a dashboard
+          Select a department
         </h1>
         <p className="text-sm text-zinc-500 sm:text-base">
-          Choose a report. Lists and cards scroll with the page on phones and desktops.
+          Open QS &amp; Engineering for current project tools, or Finance and Safety &amp; Health for
+          upcoming modules.
         </p>
       </header>
 
       <div className="app-choice-grid">
-        {HOME_MENU_VIEWS.map((view) => {
-          const item = DASHBOARD_VIEWS[view]
-          if (!item) return null
-
-          return (
-            <ChoiceCard
-              key={view}
-              href={getDashboardHref(projectId, view)}
-              icon={item.icon}
-              title={item.label}
-              description={item.description}
-            />
-          )
-        })}
+        {PROJECT_HOME_HUBS.map((hub) => (
+          <ChoiceCard
+            key={hub.view}
+            href={getDashboardHref(projectId, hub.view)}
+            icon={hub.icon}
+            iconClassName={hub.iconClassName}
+            title={hub.label}
+            description={hub.description}
+          />
+        ))}
       </div>
     </div>
   )
