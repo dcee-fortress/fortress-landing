@@ -62,33 +62,40 @@ export function ProjectsProvider({ children }) {
       menuProjects: hasHydrated ? getMenuProjects() : [],
       getProject: (id) => (hasHydrated ? getProjectById(id) : null),
       createProject: async (name, options = {}) => {
-        try {
-          const project = await createCustomProject(name, options)
-          if (!project) return null
+        // Fast path: wait only for the project registry write, then return.
+        // Calendar/dashboard bootstrap happens in the background so the modal
+        // does not sit on "Creating…" for many sequential Postgres posts.
+        const project = await createCustomProject(name, options)
+        if (!project) return null
 
-          const [{ ensureHourlyDashboardsForProject }, { ensureDailyFilesThroughToday }] = await Promise.all([
-            import("@/lib/projectData"),
-            import("@/lib/dailyFileSync"),
-          ])
+        refresh()
 
-          ensureDailyFilesThroughToday(project.id)
-          ensureHourlyDashboardsForProject(project.id)
+        void (async () => {
+          try {
+            const [
+              { ensureHourlyDashboardsForProject },
+              { ensureDailyFilesThroughToday },
+              { publishProjectListKeys },
+            ] = await Promise.all([
+              import("@/lib/projectData"),
+              import("@/lib/dailyFileSync"),
+              import("@/lib/sharedPersistence"),
+            ])
 
-          const { shouldPublishSharedData } = await import("@/lib/liveDataConfig")
-          if (shouldPublishSharedData()) {
-            const { publishSharedKeys } = await import("@/lib/sharedPersistence")
-            await publishSharedKeys({ replace: true }).catch(() => {})
+            ensureDailyFilesThroughToday(project.id)
+            ensureHourlyDashboardsForProject(project.id)
+            await publishProjectListKeys()
+            refresh()
+          } catch {
+            // Project already exists in the registry; background sync can retry.
           }
+        })()
 
-          refresh()
-          return project
-        } finally {
-          refresh()
-        }
+        return project
       },
       endProject: async (projectId, endDate = null) => {
         const { endGroveProject } = await import("@/lib/groveDatabase")
-        const result = endGroveProject(projectId, endDate)
+        const result = await endGroveProject(projectId, endDate)
         if (result.ok) refresh()
         return result
       },

@@ -39,6 +39,7 @@ export default function CreateProjectModal({ open, onClose }) {
     }
 
     setCreating(true)
+    setError("")
     let project = null
     try {
       project = await createProject(trimmed, { startDate })
@@ -58,6 +59,7 @@ export default function CreateProjectModal({ open, onClose }) {
     setStartDate(formatDateInputValue())
     setError("")
     onClose()
+    setCreating(false)
     router.push(getProjectHomeHref(project.id))
   }
 

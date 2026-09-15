@@ -157,14 +157,13 @@ export default function PlantOperatorRegisterTable({ projectId, monthId }) {
   }
 
   const addRow = () => {
-    const current = registerRef.current
-    persist(
-      {
-        ...current,
-        rows: [...current.rows, createEmptyRegisterRow(daysInMonth)],
-      },
-      { refreshAfter: true, immediate: true }
-    )
+    const current = registerRef.current ?? getPlantOperatorRegisterData(projectId, monthId)
+    const nextRegister = {
+      ...current,
+      rows: [...(current.rows ?? []), createEmptyRegisterRow(daysInMonth)],
+    }
+    // Keep the new row in UI immediately; do not refresh from store until after write.
+    persist(nextRegister, { refreshAfter: false, immediate: true })
     window.requestAnimationFrame(() => {
       daysScrollRef.current?.scrollTo({ left: 0, behavior: "smooth" })
     })

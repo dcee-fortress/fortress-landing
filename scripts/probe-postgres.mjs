@@ -35,6 +35,18 @@ const candidates = [
 ]
 
 for (const [name, raw] of candidates) {
+  if (name === "POSTGRES_USER") {
+    const value = String(raw ?? "").trim()
+    if (!value) {
+      console.log(`${name}: missing`)
+      continue
+    }
+    // Handle case where POSTGRES_USER accidentally contains a full connection string
+    const normalized = value.startsWith("postgresql://") ? new URL(value).username : value
+    console.log(`${name}: user=${normalized}`)
+    continue
+  }
+
   const url = normalize(raw)
   if (!url) {
     console.log(`${name}: missing`)

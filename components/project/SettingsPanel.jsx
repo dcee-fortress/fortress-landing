@@ -65,6 +65,8 @@ export default function SettingsPanel() {
   const [endProjectId, setEndProjectId] = useState("")
   const [endDate, setEndDate] = useState(formatDateInputValue())
   const [statusMessage, setStatusMessage] = useState("")
+  const [busyAction, setBusyAction] = useState("")
+  const [endedDeleteConfirmId, setEndedDeleteConfirmId] = useState("")
 
   const selectedProject = projects.find((project) => project.id === selectedProjectId)
   const projectToEnd = projects.find((project) => project.id === endProjectId)
@@ -86,6 +88,7 @@ export default function SettingsPanel() {
   }
 
   const handleClearStep = async () => {
+    if (busyAction) return
     if (clearStep === 0) {
       setClearStep(1)
       return
@@ -96,21 +99,26 @@ export default function SettingsPanel() {
       return
     }
 
-    const result = await clearEntireGroveDatabase()
-    refreshAll()
-    setClearStep(0)
-    setDeleteStep(0)
-    setEndStep(0)
-    setSelectedProjectId("")
-    setEndProjectId("")
-    setStatusMessage(result.ok ? result.message : result.message ?? "Could not clear the live database.")
-    if (result.ok) {
-      router.push("/")
+    setBusyAction("clear")
+    try {
+      const result = await clearEntireGroveDatabase()
+      refreshAll()
+      setClearStep(0)
+      setDeleteStep(0)
+      setEndStep(0)
+      setSelectedProjectId("")
+      setEndProjectId("")
+      setStatusMessage(result.ok ? result.message : result.message ?? "Could not clear the live database.")
+      if (result.ok) {
+        router.push("/")
+      }
+    } finally {
+      setBusyAction("")
     }
   }
 
   const handleDeleteStep = async () => {
-    if (!selectedProject) return
+    if (busyAction || !selectedProject) return
 
     if (deleteStep === 0) {
       setDeleteStep(1)
@@ -122,19 +130,44 @@ export default function SettingsPanel() {
       return
     }
 
-    const result = await deleteGroveProject(selectedProject.id)
-    refreshAll()
-    setDeleteStep(0)
-    setSelectedProjectId("")
-    setStatusMessage(result.ok ? result.message : result.message ?? "Delete failed.")
+    setBusyAction("delete")
+    try {
+      const result = await deleteGroveProject(selectedProject.id)
+      refreshAll()
+      setDeleteStep(0)
+      setSelectedProjectId("")
+      setStatusMessage(result.ok ? result.message : result.message ?? "Delete failed.")
+    } finally {
+      setBusyAction("")
+    }
+  }
 
-    if (result.ok) {
-      router.push("/")
+  const handleEndedProjectDelete = async (project) => {
+    if (busyAction || !project?.id) return
+
+    if (endedDeleteConfirmId !== project.id) {
+      setEndedDeleteConfirmId(project.id)
+      setStatusMessage("")
+      return
+    }
+
+    setBusyAction(`ended-delete:${project.id}`)
+    try {
+      const result = await deleteGroveProject(project.id)
+      setEndedDeleteConfirmId("")
+      refreshAll()
+      setStatusMessage(
+        result.ok
+          ? `"${project.name}" was deleted from the live database.`
+          : result.message ?? "Delete failed."
+      )
+    } finally {
+      setBusyAction("")
     }
   }
 
   const handleEndStep = async () => {
-    if (!projectToEnd) return
+    if (busyAction || !projectToEnd) return
 
     if (endStep === 0) {
       setEndStep(1)
@@ -146,11 +179,16 @@ export default function SettingsPanel() {
       return
     }
 
-    const result = await endProject(projectToEnd.id, endDate)
-    refreshAll()
-    setEndStep(0)
-    setEndProjectId("")
-    setStatusMessage(result.ok ? result.message : result.message ?? "Could not end project.")
+    setBusyAction("end")
+    try {
+      const result = await endProject(projectToEnd.id, endDate)
+      refreshAll()
+      setEndStep(0)
+      setEndProjectId("")
+      setStatusMessage(result.ok ? result.message : result.message ?? "Could not end project.")
+    } finally {
+      setBusyAction("")
+    }
   }
 
   const resetClearFlow = () => setClearStep(0)
@@ -318,22 +356,25 @@ export default function SettingsPanel() {
               <button
                 type="button"
                 onClick={resetEndFlow}
-                className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+                disabled={Boolean(busyAction)}
+                className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Cancel
               </button>
             ) : null}
             <button
               type="button"
-              disabled={!projectToEnd || !endDate}
+              disabled={!projectToEnd || !endDate || Boolean(busyAction)}
               onClick={handleEndStep}
               className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
-              {endStep === 0
-                ? "Continue with selected project"
-                : endStep === 1
-                  ? "Yes, continue"
-                  : "End project now"}
+              {busyAction === "end"
+                ? "Ending…"
+                : endStep === 0
+                  ? "Continue with selected project"
+                  : endStep === 1
+                    ? "Yes, continue"
+                    : "End project now"}
             </button>
           </div>
         </div>
@@ -403,22 +444,25 @@ export default function SettingsPanel() {
               <button
                 type="button"
                 onClick={resetDeleteFlow}
-                className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+                disabled={Boolean(busyAction)}
+                className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Cancel
               </button>
             ) : null}
             <button
               type="button"
-              disabled={!selectedProject}
+              disabled={!selectedProject || Boolean(busyAction)}
               onClick={handleDeleteStep}
               className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
-              {deleteStep === 0
-                ? "Delete selected project"
-                : deleteStep === 1
-                  ? "Yes, continue"
-                  : "Delete project permanently"}
+              {busyAction === "delete"
+                ? "Deleting…"
+                : deleteStep === 0
+                  ? "Delete selected project"
+                  : deleteStep === 1
+                    ? "Yes, continue"
+                    : "Delete project permanently"}
             </button>
           </div>
         </div>
@@ -435,36 +479,70 @@ export default function SettingsPanel() {
         <div className="space-y-4 px-6 py-6">
           {endedProjects.length > 0 ? (
             <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200">
-              {endedProjects.map((project) => (
-                  <li key={project.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                    <div>
-                      <p className="font-medium text-zinc-900">{project.name}</p>
-                      <ProjectStatusBadge project={project} />
+              {endedProjects.map((project) => {
+                const confirming = endedDeleteConfirmId === project.id
+                const deleting = busyAction === `ended-delete:${project.id}`
+
+                return (
+                  <li key={project.id} className="space-y-3 px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-zinc-900">{project.name}</p>
+                        <ProjectStatusBadge project={project} />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/project/${project.id}`}
+                          prefetch={false}
+                          className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+                        >
+                          <Icon name="external-link" size={16} />
+                          Open project
+                        </Link>
+                        {!confirming ? (
+                          <button
+                            type="button"
+                            disabled={Boolean(busyAction)}
+                            onClick={() => handleEndedProjectDelete(project)}
+                            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
+                          >
+                            <Icon name="trash-2" size={16} />
+                            Delete project
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Link
-                        href={`/project/${project.id}`}
-                        prefetch={false}
-                        className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
-                      >
-                        <Icon name="external-link" size={16} />
-                        Open project
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedProjectId(project.id)
-                          setDeleteStep(1)
-                          setStatusMessage("")
-                        }}
-                        className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-700"
-                      >
-                        <Icon name="trash-2" size={16} />
-                        Delete project
-                      </button>
-                    </div>
+
+                    {confirming ? (
+                      <div className="space-y-3">
+                        <ConfirmNotice
+                          tone="red"
+                          title="Delete this ended project?"
+                          message={`Permanently delete "${project.name}" from the live database? This cannot be undone.`}
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={deleting}
+                            onClick={() => setEndedDeleteConfirmId("")}
+                            className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-60"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deleting}
+                            onClick={() => handleEndedProjectDelete(project)}
+                            className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
+                          >
+                            {deleting ? "Deleting…" : "Yes, delete permanently"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
                   </li>
-                ))}
+                )
+              })}
             </ul>
           ) : (
             <p className="text-sm text-zinc-500">No ended projects.</p>
@@ -503,21 +581,25 @@ export default function SettingsPanel() {
               <button
                 type="button"
                 onClick={resetClearFlow}
-                className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+                disabled={Boolean(busyAction)}
+                className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Cancel
               </button>
             ) : null}
             <button
               type="button"
+              disabled={Boolean(busyAction)}
               onClick={handleClearStep}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
-              {clearStep === 0
-                ? "Clear whole database"
-                : clearStep === 1
-                  ? "Yes, continue"
-                  : "Clear everything now"}
+              {busyAction === "clear"
+                ? "Clearing…"
+                : clearStep === 0
+                  ? "Clear whole database"
+                  : clearStep === 1
+                    ? "Yes, continue"
+                    : "Clear everything now"}
             </button>
           </div>
         </div>
