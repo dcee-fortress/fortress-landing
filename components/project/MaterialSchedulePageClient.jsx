@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic"
 import { notFound } from "next/navigation"
 import PageLoadingShell from "@/components/project/PageLoadingShell"
+import RestrictedAreaGate from "@/components/project/RestrictedAreaGate"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
 import { ensureHourlyDashboardsForDay } from "@/lib/projectData"
@@ -42,18 +43,20 @@ export default function MaterialSchedulePageClient({
   const slotLabel = `${slot.startTime} – ${slot.endTime}`
 
   return (
-    <div className="app-page-frame text-zinc-900">
-      <div className="mx-auto max-w-6xl">
-        <MaterialScheduleView
-          projectId={projectId}
-          projectName={projectName || project.name}
-          dayId={dayId}
-          dayLabel={dayLabel}
-          slotId={slotId}
-          slotLabel={slotLabel}
-          scheduleType={scheduleType}
-        />
+    <RestrictedAreaGate title="Material Schedule">
+      <div className="app-page-frame text-zinc-900">
+        <div className="mx-auto max-w-6xl">
+          <MaterialScheduleView
+            projectId={projectId}
+            projectName={projectName || project.name}
+            dayId={dayId}
+            dayLabel={dayLabel}
+            slotId={slotId}
+            slotLabel={slotLabel}
+            scheduleType={scheduleType}
+          />
+        </div>
       </div>
-    </div>
+    </RestrictedAreaGate>
   )
 }
