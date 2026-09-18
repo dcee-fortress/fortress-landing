@@ -36,10 +36,12 @@ import {
   dedupeProgressPhotos,
   downloadProgressPhoto,
   hydrateProgressPhotos,
+  isLikelyImageFile,
   normalizeProgressPhotos,
   openPhotoInNewTab,
   persistProgressPhotos,
   prepareProgressPhoto,
+  PROGRESS_PHOTO_ACCEPT,
   removeStoredProgressPhoto,
 } from "@/lib/progressReportPhotos"
 
@@ -235,9 +237,10 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
   }
 
   const addPhotosToReport = async (files) => {
-    const imageFiles = (files || []).filter((file) => file?.type?.startsWith("image/"))
+    // Phones often omit MIME type for gallery picks — accept by filename too.
+    const imageFiles = (files || []).filter((file) => isLikelyImageFile(file))
     if (imageFiles.length === 0) {
-      setPhotoUploadError("Please select image files")
+      setPhotoUploadError("Please select image files from this device or gallery")
       return
     }
 
@@ -597,7 +600,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                 <input
                   ref={photoInputRef}
                   type="file"
-                  accept="image/*"
+                  accept={PROGRESS_PHOTO_ACCEPT}
                   multiple
                   onChange={handlePhotoUpload}
                   className="hidden"
