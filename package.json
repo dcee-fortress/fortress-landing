@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",
+    "heic2any": "^0.0.4",
     "html2canvas": "^1.4.1",
     "html2canvas-pro": "^1.6.7",
     "jspdf": "^4.2.1",

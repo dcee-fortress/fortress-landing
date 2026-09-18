@@ -36,7 +36,6 @@ import {
   dedupeProgressPhotos,
   downloadProgressPhoto,
   hydrateProgressPhotos,
-  isLikelyImageFile,
   normalizeProgressPhotos,
   openPhotoInNewTab,
   persistProgressPhotos,
@@ -237,10 +236,9 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
   }
 
   const addPhotosToReport = async (files) => {
-    // Phones often omit MIME type for gallery picks — accept by filename too.
-    const imageFiles = (files || []).filter((file) => isLikelyImageFile(file))
-    if (imageFiles.length === 0) {
-      setPhotoUploadError("Please select image files from this device or gallery")
+    const selected = Array.from(files || []).filter(Boolean)
+    if (selected.length === 0) {
+      setPhotoUploadError("No photos were selected from your library")
       return
     }
 
@@ -249,8 +247,24 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
 
     try {
       const prepared = []
-      for (const file of imageFiles) {
-        prepared.push(await prepareProgressPhoto(file))
+      const failures = []
+
+      for (const file of selected) {
+        try {
+          prepared.push(await prepareProgressPhoto(file))
+        } catch (error) {
+          failures.push(
+            error instanceof Error ? error.message : "Could not read one photo from your library"
+          )
+        }
+      }
+
+      if (prepared.length === 0) {
+        const message =
+          failures[0] || "Could not upload photos from your library. Please try again."
+        setPhotoUploadError(message)
+        window.alert(message)
+        return
       }
 
       await persistProgressPhotos(prepared)
@@ -262,6 +276,12 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
           updatedAt: new Date().toISOString(),
         },
       }))
+
+      if (failures.length > 0) {
+        setPhotoUploadError(
+          `Added ${prepared.length} photo${prepared.length === 1 ? "" : "s"}. ${failures.length} could not be read.`
+        )
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Could not add these photos. Please try again."
@@ -591,8 +611,8 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                   Site Photos
                 </h2>
                 <p className="mt-1 text-xs text-zinc-600">
-                  Upload from files or gallery, or take a live photo with the camera. There is no
-                  photo count limit — add as many as you need.
+                  Upload from your phone photo library or gallery, or take a live photo with the
+                  camera. There is no photo count limit — add as many as you need.
                 </p>
               </div>
 
