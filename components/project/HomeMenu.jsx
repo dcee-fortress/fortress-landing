@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import ChoiceCard from "@/components/project/ChoiceCard"
 import PageLoadingShell from "@/components/project/PageLoadingShell"
 import { useProjects } from "@/components/project/ProjectsProvider"
@@ -9,9 +11,22 @@ import { PROJECT_HOME_HUBS, getDashboardHref } from "@/lib/projectRoutes"
 
 export default function HomeMenu({ projectId }) {
   const hasHydrated = useHasHydrated()
+  const router = useRouter()
   const { getProject } = useProjects()
   const project = getProject(projectId)
   const deleted = hasHydrated && isDeletedProjectId(projectId)
+
+  useEffect(() => {
+    if (!projectId) return
+    // Warm hub routes so Finance / QS / Safety open without a compile wait.
+    for (const hub of PROJECT_HOME_HUBS) {
+      try {
+        router.prefetch(getDashboardHref(projectId, hub.view))
+      } catch {
+        // Prefetch is best-effort.
+      }
+    }
+  }, [projectId, router])
 
   if (deleted) {
     return (

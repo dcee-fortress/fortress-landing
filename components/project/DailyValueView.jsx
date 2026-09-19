@@ -3,9 +3,13 @@
 import { memo, useMemo, useState } from "react"
 import Icon from "@/components/icon/icon"
 import Link from "next/link"
+import FileListContextMenu from "@/components/project/FileListContextMenu"
 import ReportFileSearchBar, { useReportFileSearch } from "@/components/project/ReportFileSearch"
+import RestrictedAreaLoginDialog from "@/components/project/RestrictedAreaLoginDialog"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import { useProjects } from "@/components/project/ProjectsProvider"
+import { useDragFileSelection } from "@/hooks/useDragFileSelection"
+import { useFileDeleteAuth } from "@/hooks/useFileDeleteAuth"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import {
   getDailyFileEntryStatus,
@@ -32,15 +36,31 @@ const DailyFileRow = memo(function DailyFileRow({
   projectId,
   status,
   valueEarned,
+  selected,
   deleting,
   onDelete,
+  onMouseDown,
+  onMouseEnter,
+  onMouseMove,
+  onClickCapture,
+  onContextMenu,
 }) {
   return (
-    <li className="flex items-stretch">
+    <li
+      data-file-id={file.id}
+      className={`flex items-stretch select-none ${selected ? "bg-sky-50" : ""}`}
+      onMouseDown={(event) => onMouseDown(event, file.id)}
+      onMouseEnter={(event) => onMouseEnter(event, file.id)}
+      onMouseMove={(event) => onMouseMove(event, file.id)}
+      onContextMenu={(event) => onContextMenu(event, file.id)}
+    >
       <Link
         href={getDailyFileHref(projectId, file.id)}
         prefetch={false}
-        className="app-file-row group min-w-0 flex-1 transition hover:bg-zinc-50"
+        onClickCapture={onClickCapture}
+        className={`app-file-row group min-w-0 flex-1 transition ${
+          selected ? "hover:bg-sky-50" : "hover:bg-zinc-50"
+        }`}
       >
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <div className="app-icon-tile app-icon-tile--amber">
@@ -93,7 +113,9 @@ export default function DailyValueView({ projectName, projectId }) {
   const { refresh: refreshProjects } = useProjects()
   const [showAllFiles, setShowAllFiles] = useState(false)
   const [deletingDayId, setDeletingDayId] = useState("")
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   const hasHydrated = useHasHydrated()
+  const deleteAuth = useFileDeleteAuth()
 
   const savedDayIds = useMemo(() => {
     if (!hasHydrated) return new Set()
@@ -118,6 +140,8 @@ export default function DailyValueView({ projectName, projectId }) {
     return displayFiles.slice(0, INITIAL_VISIBLE_DAILY_FILES)
   }, [displayFiles, search.activeQuery, showAllFiles])
   const hiddenFileCount = Math.max(displayFiles.length - visibleFiles.length, 0)
+  const visibleIds = useMemo(() => visibleFiles.map((file) => file.id), [visibleFiles])
+  const selection = useDragFileSelection(visibleIds)
 
   const rowData = useMemo(() => {
     const dayIds = visibleFiles.map((file) => file.id)
@@ -138,9 +162,9 @@ export default function DailyValueView({ projectName, projectId }) {
     })
   }, [visibleFiles, hasHydrated, projectId, savedDayIds, getDayValueEarnedByIds])
 
-  async function handleDeleteDailyFile(file) {
+  async function performDeleteDailyFile(file) {
     const confirmed = window.confirm(
-      `Delete "${file.label}" from daily valuations?\n\nThis removes the day from weekly, monthly, and project-to-date rollups. This cannot be undone.`
+      `Delete "${file.label}" from daily valuations?\n\nThis also deletes that day's progress report and plant register / plant-on-site data, and updates weekly, monthly, and project-to-date rollups.`
     )
     if (!confirmed) return
 
@@ -160,6 +184,50 @@ export default function DailyValueView({ projectName, projectId }) {
     }
   }
 
+  function handleDeleteDailyFile(file) {
+    deleteAuth.requestDeleteAuth(() => {
+      void performDeleteDailyFile(file)
+    })
+  }
+
+  async function performDeleteSelected() {
+    const ids = [...selection.selectedIds]
+    selection.closeContextMenu()
+    if (ids.length === 0) return
+
+    const confirmed = window.confirm(
+      ids.length === 1
+        ? `Delete this valuation file?\n\nThis also deletes that day's progress report and plant register / plant-on-site data, and updates weekly, monthly, and project-to-date rollups.`
+        : `Delete ${ids.length} valuation files?\n\nThis also deletes those days' progress reports and plant register / plant-on-site data, and updates weekly, monthly, and project-to-date rollups.`
+    )
+    if (!confirmed) return
+
+    setBulkDeleting(true)
+    try {
+      for (const dayId of ids) {
+        const result = await deleteDailyValuationFile(projectId, dayId)
+        if (!result.ok) {
+          window.alert(result.message || `Could not delete ${dayId}.`)
+          break
+        }
+      }
+      selection.clearSelection()
+      refresh()
+      refreshProjects()
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not delete the selected files.")
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
+  function handleDeleteSelected() {
+    selection.closeContextMenu()
+    deleteAuth.requestDeleteAuth(() => {
+      void performDeleteSelected()
+    })
+  }
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -168,8 +236,10 @@ export default function DailyValueView({ projectName, projectId }) {
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
         <p className="max-w-2xl text-zinc-500">
-          Daily files are created from the project start date through today. Open any day to enter
-          or edit hourly dashboards and material schedules.
+          Click a file to open it. Drag across files to select, then use Delete on the selection bar
+          or the trash icon. You will sign in and confirm before anything is removed. Deleting a day
+          also removes its progress report and plant register / plant-on-site data, and updates
+          weekly, monthly, and project-to-date rollups.
         </p>
       </header>
 
@@ -189,6 +259,32 @@ export default function DailyValueView({ projectName, projectId }) {
           placeholder="Search daily files by day, date, or id…"
         />
 
+        {selection.selectedCount > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 bg-sky-50 px-4 py-2 text-sm text-sky-900 sm:px-6">
+            <p>
+              {selection.selectedCount} file{selection.selectedCount === 1 ? "" : "s"} selected
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={selection.clearSelection}
+                className="font-medium underline-offset-2 hover:underline"
+              >
+                Clear selection
+              </button>
+              <button
+                type="button"
+                disabled={bulkDeleting}
+                onClick={handleDeleteSelected}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:opacity-60"
+              >
+                <Icon name="trash-2" size={14} />
+                Delete
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {rowData.length > 0 ? (
           <>
             <ul className="divide-y divide-zinc-200">
@@ -199,8 +295,14 @@ export default function DailyValueView({ projectName, projectId }) {
                   projectId={projectId}
                   status={status}
                   valueEarned={valueEarned}
-                  deleting={deletingDayId === file.id}
+                  selected={selection.selectedIds.has(file.id)}
+                  deleting={deletingDayId === file.id || bulkDeleting}
                   onDelete={handleDeleteDailyFile}
+                  onMouseDown={selection.onRowMouseDown}
+                  onMouseEnter={selection.onRowMouseEnter}
+                  onMouseMove={selection.onRowMouseMove}
+                  onClickCapture={selection.onRowClickCapture}
+                  onContextMenu={selection.onRowContextMenu}
                 />
               ))}
             </ul>
@@ -222,6 +324,24 @@ export default function DailyValueView({ projectName, projectId }) {
           </div>
         )}
       </section>
+
+      <FileListContextMenu
+        open={Boolean(selection.contextMenu)}
+        x={selection.contextMenu?.x ?? 0}
+        y={selection.contextMenu?.y ?? 0}
+        selectedCount={selection.selectedCount}
+        deleting={bulkDeleting}
+        onClose={selection.closeContextMenu}
+        onDelete={handleDeleteSelected}
+      />
+
+      <RestrictedAreaLoginDialog
+        open={deleteAuth.loginOpen}
+        title="Delete files"
+        description="Enter the username and password to continue. You will be asked to confirm deletion next."
+        onCancel={deleteAuth.cancelLogin}
+        onUnlocked={deleteAuth.handleUnlocked}
+      />
     </div>
   )
 }

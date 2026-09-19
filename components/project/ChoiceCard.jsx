@@ -7,9 +7,10 @@ export default function ChoiceCard({
   title,
   description,
   iconClassName = "app-icon-tile--neutral",
+  prefetch = true,
 }) {
   return (
-    <Link href={href} prefetch={false} className="app-choice-card">
+    <Link href={href} prefetch={prefetch} className="app-choice-card">
       <div className={`app-icon-tile ${iconClassName}`}>
         <Icon name={icon} size={22} />
       </div>

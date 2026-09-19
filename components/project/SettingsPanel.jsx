@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Icon from "@/components/icon/icon"
@@ -13,6 +13,14 @@ import {
 } from "@/lib/groveDatabase"
 import { APP_BRAND } from "@/lib/appBrand"
 import { isEndedProject, PROJECT_STATUS } from "@/lib/projectRegistry"
+import {
+  daysRemainingInTrash,
+  getTrashTypeLabel,
+  listTrashEntries,
+  permanentlyDeleteTrashEntry,
+  restoreTrashEntry,
+  TRASH_RETENTION_DAYS,
+} from "@/lib/fileTrash"
 
 function ConfirmNotice({ tone = "amber", title, message }) {
   const tones = {
@@ -67,6 +75,9 @@ export default function SettingsPanel() {
   const [statusMessage, setStatusMessage] = useState("")
   const [busyAction, setBusyAction] = useState("")
   const [endedDeleteConfirmId, setEndedDeleteConfirmId] = useState("")
+  const [recycleOpen, setRecycleOpen] = useState(false)
+  const [trashEntries, setTrashEntries] = useState([])
+  const [trashBusyId, setTrashBusyId] = useState("")
 
   const selectedProject = projects.find((project) => project.id === selectedProjectId)
   const projectToEnd = projects.find((project) => project.id === endProjectId)
@@ -76,6 +87,56 @@ export default function SettingsPanel() {
   const refreshAll = () => {
     refreshProjects()
     projectData?.refresh()
+  }
+
+  const refreshTrash = () => {
+    setTrashEntries(listTrashEntries())
+  }
+
+  useEffect(() => {
+    refreshTrash()
+  }, [])
+
+  const handleRestoreTrashEntry = async (entryId) => {
+    if (trashBusyId) return
+    setTrashBusyId(`restore:${entryId}`)
+    try {
+      const result = await restoreTrashEntry(entryId)
+      refreshTrash()
+      refreshAll()
+      setStatusMessage(
+        result.ok ? "File restored from the recycle bin." : result.message || "Could not restore file."
+      )
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Could not restore file.")
+    } finally {
+      setTrashBusyId("")
+    }
+  }
+
+  const handlePermanentTrashDelete = async (entryId, label) => {
+    if (trashBusyId) return
+    const confirmed = window.confirm(
+      `Permanently delete "${label}"?\n\nThis cannot be undone.`
+    )
+    if (!confirmed) return
+
+    setTrashBusyId(`delete:${entryId}`)
+    try {
+      const result = await permanentlyDeleteTrashEntry(entryId)
+      refreshTrash()
+      setStatusMessage(
+        result.ok
+          ? "File permanently deleted from the recycle bin."
+          : result.message || "Could not permanently delete file."
+      )
+    } catch (error) {
+      setStatusMessage(
+        error instanceof Error ? error.message : "Could not permanently delete file."
+      )
+    } finally {
+      setTrashBusyId("")
+    }
   }
 
   const handleBackup = async () => {
@@ -268,6 +329,91 @@ export default function SettingsPanel() {
             <Icon name="download" size={16} />
             Download backup
           </button>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
+          <h2 className="text-lg font-semibold text-zinc-900">Recycle files</h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Deleted daily files stay here for up to {TRASH_RETENTION_DAYS} days. Restore them, or
+            delete them forever.
+          </p>
+        </div>
+        <div className="space-y-4 px-6 py-6">
+          <button
+            type="button"
+            onClick={() => {
+              refreshTrash()
+              setRecycleOpen((open) => !open)
+            }}
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"
+          >
+            <Icon name="trash-2" size={16} />
+            Recycle files
+            {trashEntries.length > 0 ? (
+              <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-xs font-semibold text-white">
+                {trashEntries.length}
+              </span>
+            ) : null}
+          </button>
+
+          {recycleOpen ? (
+            trashEntries.length === 0 ? (
+              <p className="text-sm text-zinc-500">No deleted files in the recycle bin.</p>
+            ) : (
+              <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200">
+                {trashEntries.map((entry) => {
+                  const daysLeft = daysRemainingInTrash(entry)
+                  const restoreBusy = trashBusyId === `restore:${entry.id}`
+                  const deleteBusy = trashBusyId === `delete:${entry.id}`
+                  const busy = Boolean(trashBusyId)
+                  return (
+                    <li
+                      key={entry.id}
+                      className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-zinc-900">
+                          {entry.label || entry.dayId || entry.id}
+                        </p>
+                        <p className="mt-0.5 text-xs text-zinc-500">
+                          {getTrashTypeLabel(entry.type)}
+                          {entry.projectName ? ` · ${entry.projectName}` : ""}
+                          {` · ${daysLeft} day${daysLeft === 1 ? "" : "s"} left`}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => handleRestoreTrashEntry(entry.id)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Icon name="undo" size={14} />
+                          {restoreBusy ? "Restoring…" : "Restore"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() =>
+                            handlePermanentTrashDelete(
+                              entry.id,
+                              entry.label || entry.dayId || entry.id
+                            )
+                          }
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-800 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Icon name="trash-2" size={14} />
+                          {deleteBusy ? "Deleting…" : "Delete forever"}
+                        </button>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )
+          ) : null}
         </div>
       </section>
 

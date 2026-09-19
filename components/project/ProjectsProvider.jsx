@@ -24,7 +24,7 @@ export function ProjectsProvider({ children }) {
 
     const handleSharedStorageChange = () => {
       window.clearTimeout(refreshTimer)
-      refreshTimer = window.setTimeout(() => refresh(), 80)
+      refreshTimer = window.setTimeout(() => refresh(), 400)
     }
 
     void import("@/lib/sharedPersistence").then(({ startSharedPersistence }) => {

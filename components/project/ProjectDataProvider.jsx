@@ -37,9 +37,32 @@ function extractProjectId(pathname) {
   return match?.[1] ?? null
 }
 
+/** Hub shells that only show buttons — skip calendar/slot bootstrap so they open instantly. */
+function isLightweightDashboardPath(pathname) {
+  if (!pathname) return false
+  const match = pathname.match(/\/dashboard\/([^/?#]+)/)
+  if (!match) return false
+  const rest = pathname.slice(pathname.indexOf("/dashboard/") + "/dashboard/".length)
+  const parts = rest.split("/").filter(Boolean)
+
+  const root = parts[0]
+  if (root === "qs-engineering" || root === "finance") return parts.length === 1
+  if (root === "safety-health") {
+    if (parts.length === 1) return true
+    // PPE parent hub + PPE received/issued shells are list/table UIs.
+    if (parts[1] === "ppe" || parts[1] === "ppe-received" || parts[1] === "ppe-issued") {
+      return true
+    }
+    return false
+  }
+  if (root === "goods-received" || root === "petty-cash") return true
+  return false
+}
+
 export function ProjectDataProvider({ children }) {
   const pathname = usePathname()
   const projectId = extractProjectId(pathname)
+  const lightweight = isLightweightDashboardPath(pathname)
   const [version, setVersion] = useState(0)
   const bootstrappedProjectsRef = useRef(new Set())
 
@@ -48,7 +71,7 @@ export function ProjectDataProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    if (!projectId) return
+    if (!projectId || lightweight) return
 
     const runBootstrap = async () => {
       const [{ initializeGrovePersistence }, { ensureDailyFilesThroughToday }, { getTodayDayId }, { getSharedPersistenceReady }] =
@@ -91,9 +114,11 @@ export function ProjectDataProvider({ children }) {
     }
 
     void runBootstrap()
-  }, [projectId, refresh])
+  }, [lightweight, projectId, refresh])
 
   useEffect(() => {
+    if (lightweight) return
+
     const syncCalendarFiles = () => {
       void import("@/lib/dailyFileSync").then(
         ({ ensureAllActiveProjectsDailyFiles, ensureDailyFilesThroughToday }) => {
@@ -163,7 +188,7 @@ export function ProjectDataProvider({ children }) {
       window.removeEventListener("focus", refreshIfFilesChanged)
       document.removeEventListener("visibilitychange", refreshIfFilesChanged)
     }
-  }, [projectId, refresh])
+  }, [lightweight, projectId, refresh])
 
   const getSlotsForDayFn = useCallback(
     (dayId) => {
