@@ -9,12 +9,13 @@ import {
 export default function RestrictedAreaLoginDialog({
   open,
   title = "Restricted area",
-  description = "Enter the username and password to continue.",
+  description = "Enter the username and password to continue. Without saving, you will be asked again next time.",
   onCancel,
   onUnlocked,
 }) {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [remember, setRemember] = useState(false)
   const [error, setError] = useState("")
 
   if (!open) return null
@@ -25,10 +26,11 @@ export default function RestrictedAreaLoginDialog({
       setError("Incorrect username or password.")
       return
     }
-    unlockRestrictedArea()
+    unlockRestrictedArea({ remember })
     setError("")
     setUsername("")
     setPassword("")
+    setRemember(false)
     onUnlocked?.()
   }
 
@@ -36,6 +38,7 @@ export default function RestrictedAreaLoginDialog({
     setError("")
     setUsername("")
     setPassword("")
+    setRemember(false)
     onCancel?.()
   }
 
@@ -90,6 +93,16 @@ export default function RestrictedAreaLoginDialog({
               className="mt-1.5 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20"
             />
           </div>
+
+          <label className="flex items-start gap-2 text-sm text-zinc-700">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(event) => setRemember(event.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500/30"
+            />
+            <span>Save username and password so this opens automatically next time</span>
+          </label>
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 

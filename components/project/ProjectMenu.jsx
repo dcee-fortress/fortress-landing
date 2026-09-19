@@ -8,7 +8,7 @@ import Icon from "@/components/icon/icon"
 import RestrictedAreaLoginDialog from "@/components/project/RestrictedAreaLoginDialog"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { APP_BRAND } from "@/lib/appBrand"
-import { isRestrictedAreaUnlocked } from "@/lib/restrictedAreaAuth"
+import { isRestrictedAreaRemembered } from "@/lib/restrictedAreaAuth"
 import { getProjectHomeHref } from "@/lib/projectRoutes"
 
 const CreateProjectModal = dynamic(() => import("@/components/project/CreateProjectModal"), {
@@ -60,7 +60,7 @@ export default function ProjectMenu() {
 
   function requestRestrictedAction(intent) {
     setOpen(false)
-    if (isRestrictedAreaUnlocked()) {
+    if (isRestrictedAreaRemembered()) {
       if (intent === "create") setShowCreate(true)
       if (intent === "settings") router.push("/settings")
       return

@@ -5,12 +5,14 @@ import Icon from "@/components/icon/icon"
 import Link from "next/link"
 import ReportFileSearchBar, { useReportFileSearch } from "@/components/project/ReportFileSearch"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
+import { useProjects } from "@/components/project/ProjectsProvider"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import {
   getDailyFileEntryStatus,
   getDailyFileEntryStatusForSsr,
   getDailyFileRowValueEarnedForSsr,
 } from "@/lib/dailyFileSync"
+import { deleteDailyValuationFile } from "@/lib/dailyValuationDelete"
 import { formatCurrency } from "@/lib/formatCurrency"
 import { getProjectStoreDayIds } from "@/lib/periodFiles"
 import { getDailyFileHref } from "@/lib/projectRoutes"
@@ -24,13 +26,20 @@ const STATUS_STYLES = {
   completed: "bg-emerald-50 text-emerald-700 ring-emerald-200",
 }
 
-const DailyFileRow = memo(function DailyFileRow({ file, projectId, status, valueEarned }) {
+const DailyFileRow = memo(function DailyFileRow({
+  file,
+  projectId,
+  status,
+  valueEarned,
+  deleting,
+  onDelete,
+}) {
   return (
-    <li>
+    <li className="flex items-stretch">
       <Link
         href={getDailyFileHref(projectId, file.id)}
         prefetch={false}
-        className="app-file-row group transition hover:bg-zinc-50"
+        className="app-file-row group min-w-0 flex-1 transition hover:bg-zinc-50"
       >
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <div className="app-icon-tile app-icon-tile--amber">
@@ -59,13 +68,30 @@ const DailyFileRow = memo(function DailyFileRow({ file, projectId, status, value
           />
         </div>
       </Link>
+
+      <button
+        type="button"
+        aria-label={`Delete ${file.label}`}
+        title="Delete daily file"
+        disabled={deleting}
+        onClick={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          onDelete(file)
+        }}
+        className="inline-flex shrink-0 items-center justify-center border-l border-zinc-200 px-3 text-zinc-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:cursor-wait disabled:opacity-60 sm:px-4"
+      >
+        <Icon name="trash-2" size={18} />
+      </button>
     </li>
   )
 })
 
 export default function DailyValueView({ projectName, projectId }) {
-  const { version, getDayValueEarnedByIds } = useProjectData()
+  const { version, getDayValueEarnedByIds, refresh } = useProjectData()
+  const { refresh: refreshProjects } = useProjects()
   const [showAllFiles, setShowAllFiles] = useState(false)
+  const [deletingDayId, setDeletingDayId] = useState("")
   const hasHydrated = useHasHydrated()
 
   const savedDayIds = useMemo(() => {
@@ -108,6 +134,28 @@ export default function DailyValueView({ projectName, projectId }) {
     })
   }, [visibleFiles, hasHydrated, projectId, savedDayIds, getDayValueEarnedByIds])
 
+  async function handleDeleteDailyFile(file) {
+    const confirmed = window.confirm(
+      `Delete "${file.label}" from daily valuations?\n\nThis removes the day from weekly, monthly, and project-to-date rollups. This cannot be undone.`
+    )
+    if (!confirmed) return
+
+    setDeletingDayId(file.id)
+    try {
+      const result = await deleteDailyValuationFile(projectId, file.id)
+      if (!result.ok) {
+        window.alert(result.message || "Could not delete this daily file.")
+        return
+      }
+      refresh()
+      refreshProjects()
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not delete this daily file.")
+    } finally {
+      setDeletingDayId("")
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -147,6 +195,8 @@ export default function DailyValueView({ projectName, projectId }) {
                   projectId={projectId}
                   status={status}
                   valueEarned={valueEarned}
+                  deleting={deletingDayId === file.id}
+                  onDelete={handleDeleteDailyFile}
                 />
               ))}
             </ul>
