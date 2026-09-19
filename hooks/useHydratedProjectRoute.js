@@ -9,7 +9,7 @@ import { ensureDailyFilesThroughToday } from "@/lib/dailyFileSync"
 export function useHydratedProjectRoute(projectId, resolveItem) {
   const hasHydrated = useHasHydrated()
   const router = useRouter()
-  const { getProject } = useProjects()
+  const { getProject, syncReady } = useProjects()
   const resolveRef = useRef(resolveItem)
   const preparedRef = useRef(new Set())
   const [checked, setChecked] = useState(false)
@@ -21,6 +21,8 @@ export function useHydratedProjectRoute(projectId, resolveItem) {
 
     const project = getProject(projectId)
     if (!project) {
+      // Wait for cache/Postgres before treating the project as missing.
+      if (!syncReady) return
       router.replace("/")
       return
     }
@@ -38,14 +40,14 @@ export function useHydratedProjectRoute(projectId, resolveItem) {
         }
       })
     }
-  }, [getProject, hasHydrated, projectId, router])
+  }, [getProject, hasHydrated, projectId, router, syncReady])
 
   const project = hasHydrated ? getProject(projectId) : null
   const item =
     hasHydrated && checked && project && resolveRef.current ? resolveRef.current(project) : null
 
   return {
-    isReady: hasHydrated && checked,
+    isReady: hasHydrated && (checked || Boolean(project)),
     project,
     item,
   }

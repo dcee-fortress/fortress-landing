@@ -58,7 +58,7 @@ export function ProjectDataProvider({ children }) {
           import("@/lib/dailyFiles"),
           import("@/lib/sharedPersistence"),
         ])
-      await getSharedPersistenceReady()
+      // Bootstrap from cache immediately — do not wait on Postgres.
       const { ensureProgressReportsExist } = await import("@/lib/progressReports")
       const { ensureHourlyDashboardsForProject } = await import("@/lib/projectData")
       const { runSystemStorageWrite } = await import("@/lib/sharedPersistence")
@@ -82,6 +82,12 @@ export function ProjectDataProvider({ children }) {
           refresh()
         })
       }
+
+      void getSharedPersistenceReady()
+        .then(() => {
+          startTransition(() => refresh())
+        })
+        .catch(() => {})
     }
 
     void runBootstrap()

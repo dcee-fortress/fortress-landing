@@ -29,12 +29,14 @@ export function ProjectsProvider({ children }) {
 
     void import("@/lib/sharedPersistence").then(({ startSharedPersistence }) => {
       if (cancelled) return
+      // Refresh immediately so session-cache projects appear without waiting.
+      refresh()
       stopSharedPersistence = startSharedPersistence()
       window.addEventListener("grove-shared-storage-change", handleSharedStorageChange)
       timeoutId = window.setTimeout(() => {
         setSyncReady(true)
         refresh()
-      }, 8000)
+      }, 2500)
       void stopSharedPersistence.ready?.then(() => {
         window.clearTimeout(timeoutId)
         setSyncReady(true)
