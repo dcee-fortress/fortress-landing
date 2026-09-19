@@ -1,20 +1,24 @@
 "use client"
 
-import dynamic from "next/dynamic"
 import { notFound } from "next/navigation"
 import PageLoadingShell from "@/components/project/PageLoadingShell"
 import RestrictedAreaGate from "@/components/project/RestrictedAreaGate"
+import MaterialScheduleView from "@/components/project/MaterialScheduleView"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
+import { useProjects } from "@/components/project/ProjectsProvider"
 import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
-import { ensureHourlyDashboardsForDay } from "@/lib/projectData"
+import { ensureDailyFilesThroughToday } from "@/lib/dailyFileSync"
+import { ensureHourlyDashboardsForDay, getSlotsForDay as readSlotsForDay } from "@/lib/projectData"
 import { isValidMaterialScheduleType } from "@/lib/materialSchedule"
 
-const MaterialScheduleView = dynamic(
-  () => import("@/components/project/MaterialScheduleView"),
-  {
-    loading: () => <PageLoadingShell />,
-  }
-)
+function resolveScheduleSlot(projectId, dayId, slotId, scheduleType, getSlotsForDay) {
+  if (!isValidMaterialScheduleType(scheduleType)) return null
+  ensureDailyFilesThroughToday(projectId)
+  ensureHourlyDashboardsForDay(projectId, dayId)
+  const fromProvider = getSlotsForDay?.(dayId)?.find((item) => item.id === slotId)
+  if (fromProvider) return fromProvider
+  return readSlotsForDay(projectId, dayId).find((item) => item.id === slotId) ?? null
+}
 
 export default function MaterialSchedulePageClient({
   projectId,
@@ -24,39 +28,44 @@ export default function MaterialSchedulePageClient({
   slotId,
   scheduleType,
 }) {
+  const { syncReady } = useProjects()
   const { getSlotsForDay, version } = useProjectData()
-  const { isReady, project, item: slot } = useHydratedProjectRoute(projectId, () => {
+  const { isReady, project } = useHydratedProjectRoute(projectId, () => {
     void version
-    ensureHourlyDashboardsForDay(projectId, dayId)
-    if (!isValidMaterialScheduleType(scheduleType)) return null
-    return getSlotsForDay(dayId).find((item) => item.id === slotId) ?? null
+    return resolveScheduleSlot(projectId, dayId, slotId, scheduleType, getSlotsForDay)
   })
 
-  if (!isReady) {
-    return <PageLoadingShell />
-  }
+  const slot = isReady
+    ? resolveScheduleSlot(projectId, dayId, slotId, scheduleType, getSlotsForDay)
+    : null
 
-  if (!project || !slot) {
+  if (isReady && syncReady && !project) {
     notFound()
   }
 
-  const slotLabel = `${slot.startTime} – ${slot.endTime}`
+  if (isReady && syncReady && project && !slot) {
+    notFound()
+  }
 
   return (
     <RestrictedAreaGate title="Material Schedule">
-      <div className="app-page-frame text-zinc-900">
-        <div className="mx-auto max-w-6xl">
-          <MaterialScheduleView
-            projectId={projectId}
-            projectName={projectName || project.name}
-            dayId={dayId}
-            dayLabel={dayLabel}
-            slotId={slotId}
-            slotLabel={slotLabel}
-            scheduleType={scheduleType}
-          />
+      {!isReady || !project || !slot ? (
+        <PageLoadingShell />
+      ) : (
+        <div className="app-page-frame text-zinc-900">
+          <div className="mx-auto max-w-6xl">
+            <MaterialScheduleView
+              projectId={projectId}
+              projectName={projectName || project.name}
+              dayId={dayId}
+              dayLabel={dayLabel}
+              slotId={slotId}
+              slotLabel={`${slot.startTime} – ${slot.endTime}`}
+              scheduleType={scheduleType}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </RestrictedAreaGate>
   )
 }
