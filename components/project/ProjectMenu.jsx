@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import Icon from "@/components/icon/icon"
+import RestrictedAreaLoginDialog from "@/components/project/RestrictedAreaLoginDialog"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { APP_BRAND } from "@/lib/appBrand"
+import { isRestrictedAreaUnlocked } from "@/lib/restrictedAreaAuth"
 import { getProjectHomeHref } from "@/lib/projectRoutes"
 
 const CreateProjectModal = dynamic(() => import("@/components/project/CreateProjectModal"), {
@@ -24,8 +26,10 @@ function getActiveProjectId(pathname) {
 export default function ProjectMenu() {
   const [open, setOpen] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
+  const [loginIntent, setLoginIntent] = useState(null)
   const menuRef = useRef(null)
   const pathname = usePathname()
+  const router = useRouter()
   const activeProjectId = getActiveProjectId(pathname)
   const { menuProjects } = useProjects()
   const activeProjects = menuProjects
@@ -41,6 +45,7 @@ export default function ProjectMenu() {
       if (event.key === "Escape") {
         setOpen(false)
         setShowCreate(false)
+        setLoginIntent(null)
       }
     }
 
@@ -52,6 +57,23 @@ export default function ProjectMenu() {
       document.removeEventListener("keydown", handleEscape)
     }
   }, [])
+
+  function requestRestrictedAction(intent) {
+    setOpen(false)
+    if (isRestrictedAreaUnlocked()) {
+      if (intent === "create") setShowCreate(true)
+      if (intent === "settings") router.push("/settings")
+      return
+    }
+    setLoginIntent(intent)
+  }
+
+  function handleLoginUnlocked() {
+    const intent = loginIntent
+    setLoginIntent(null)
+    if (intent === "create") setShowCreate(true)
+    if (intent === "settings") router.push("/settings")
+  }
 
   return (
     <>
@@ -76,9 +98,7 @@ export default function ProjectMenu() {
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-sm font-bold tracking-wide text-white sm:h-9 sm:w-9 lg:h-10 lg:w-10 lg:text-base">
                 F
               </span>
-              <span className="app-brand-name truncate">
-                {APP_BRAND}
-              </span>
+              <span className="app-brand-name truncate">{APP_BRAND}</span>
             </Link>
 
             {open ? (
@@ -129,27 +149,32 @@ export default function ProjectMenu() {
           <button
             type="button"
             aria-label="Create new project"
-            onClick={() => {
-              setOpen(false)
-              setShowCreate(true)
-            }}
+            onClick={() => requestRestrictedAction("create")}
             className="inline-flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 lg:h-11 lg:w-auto lg:gap-2 lg:px-3"
           >
             <Icon name="plus" size={20} />
             <span className="hidden text-sm font-medium lg:inline">New project</span>
           </button>
 
-          <Link
-            href="/settings"
-            prefetch={false}
+          <button
+            type="button"
             aria-label="Open settings"
+            onClick={() => requestRestrictedAction("settings")}
             className="inline-flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-zinc-300 bg-zinc-100 text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-200 lg:h-11 lg:w-auto lg:gap-2 lg:px-3"
           >
             <Icon name="settings-2" size={20} />
             <span className="hidden text-sm font-medium lg:inline">Settings</span>
-          </Link>
+          </button>
         </div>
       </header>
+
+      <RestrictedAreaLoginDialog
+        open={Boolean(loginIntent)}
+        title={loginIntent === "settings" ? "Settings" : "Create new project"}
+        description="Enter the username and password to continue."
+        onCancel={() => setLoginIntent(null)}
+        onUnlocked={handleLoginUnlocked}
+      />
 
       {showCreate ? <CreateProjectModal open onClose={() => setShowCreate(false)} /> : null}
     </>
