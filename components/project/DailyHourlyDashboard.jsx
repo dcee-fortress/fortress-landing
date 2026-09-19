@@ -3,7 +3,6 @@
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import EarnedValueReportTable from "@/components/project/EarnedValueReportTable"
-import { useProjectData } from "@/components/project/ProjectDataProvider"
 import { summarizeEarnedValueActivities } from "@/lib/activities"
 import {
   ACTUAL_COST_SCHEDULE_TYPE,
@@ -21,10 +20,9 @@ export default function DailyHourlyDashboard({
   dayLabel,
   dayId,
 }) {
-  const { getSlotsForDay, version } = useProjectData()
-  void version
-
-  const liveSlot = getSlotsForDay(dayId).find((item) => item.id === slot.id) ?? slot
+  // Use the slot passed from DailyReport (already material-synced) — do not
+  // re-run getSlotsForDay for every card (that was freezing valuations opens).
+  const liveSlot = slot
   const summary = summarizeEarnedValueActivities(liveSlot.activities ?? [])
   const schedule = MATERIAL_SCHEDULE_TYPES[ACTUAL_COST_SCHEDULE_TYPE]
 

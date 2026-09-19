@@ -15,10 +15,11 @@ import {
 import { deleteDailyValuationFile } from "@/lib/dailyValuationDelete"
 import { formatCurrency } from "@/lib/formatCurrency"
 import { getProjectStoreDayIds } from "@/lib/periodFiles"
+import { getMaterialScheduleDayIds } from "@/lib/materialSchedule"
 import { getDailyFileHref } from "@/lib/projectRoutes"
 import { getDailyFiles } from "@/lib/projectFiles"
 
-const INITIAL_VISIBLE_DAILY_FILES = 90
+const INITIAL_VISIBLE_DAILY_FILES = 21
 
 const STATUS_STYLES = {
   awaiting: "bg-sky-50 text-sky-800 ring-sky-200",
@@ -97,7 +98,10 @@ export default function DailyValueView({ projectName, projectId }) {
   const savedDayIds = useMemo(() => {
     if (!hasHydrated) return new Set()
     void version
-    return new Set(getProjectStoreDayIds(projectId))
+    return new Set([
+      ...getMaterialScheduleDayIds(projectId),
+      ...getProjectStoreDayIds(projectId),
+    ])
   }, [projectId, version, hasHydrated])
   const dailyFiles = useMemo(() => {
     void version

@@ -15,11 +15,11 @@ import { getDailyFileEntryStatus } from "@/lib/dailyFileSync"
 import { getDailyFileHref, getDailyValueHref } from "@/lib/projectRoutes"
 
 export default function DailyReport({ projectName, projectId, file, hideHourlyDashboards = false }) {
-  const { version, getSlotsForDay, saveSlotsForDay, getDaySummary } = useProjectData()
+  const { version, getSlotsForDay, saveSlotsForDay, getDaySummaryFromSlots } = useProjectData()
   void version
 
   const slots = getSlotsForDay(file.id)
-  const summary = getDaySummary(file.id)
+  const summary = getDaySummaryFromSlots(file.id, slots)
   const status = getDailyFileEntryStatus(projectId, file)
 
   const missingSlots = getMissingSlotTemplates(slots)

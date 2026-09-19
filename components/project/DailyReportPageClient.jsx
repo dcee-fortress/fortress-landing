@@ -6,11 +6,13 @@ import { useProjects } from "@/components/project/ProjectsProvider"
 import DailyReport from "@/components/project/DailyReport"
 import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
 import { getDailyFile } from "@/lib/projects"
+import { ensureHourlyDashboardsForDay } from "@/lib/projectData"
 
 export default function DailyReportPageClient({ projectId, dayId }) {
   const { version } = useProjects()
   const { isReady, project, item: file } = useHydratedProjectRoute(projectId, () => {
     void version
+    ensureHourlyDashboardsForDay(projectId, dayId)
     return getDailyFile(projectId, dayId)
   })
 

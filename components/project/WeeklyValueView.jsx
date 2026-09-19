@@ -11,7 +11,7 @@ import { isWeeklyFileInProgress } from "@/lib/periodFiles"
 import { getWeeklyFileHref } from "@/lib/projectRoutes"
 import { getWeeklyFiles } from "@/lib/projectFiles"
 
-const INITIAL_VISIBLE_WEEKLY_FILES = 52
+const INITIAL_VISIBLE_WEEKLY_FILES = 12
 
 const WeeklyFileRow = memo(function WeeklyFileRow({ file, projectId, inProgress, valueEarned }) {
   return (

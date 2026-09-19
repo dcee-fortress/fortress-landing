@@ -15,6 +15,7 @@ import { usePathname } from "next/navigation"
 
 import {
   getDaySummary,
+  getDaySummaryFromSlots,
   getDayValueEarnedByIds,
   getMonthSummary,
   getMonthValueEarnedByIds,
@@ -184,6 +185,14 @@ export function ProjectDataProvider({ children }) {
     [projectId]
   )
 
+  const getDaySummaryFromSlotsFn = useCallback(
+    (dayId, slots) => {
+      if (!projectId) return { rows: [], totals: {} }
+      return getDaySummaryFromSlots(projectId, dayId, slots)
+    },
+    [projectId]
+  )
+
   const getDayValueEarnedByIdsFn = useCallback(
     (dayIds) => {
       if (!projectId) return {}
@@ -246,6 +255,7 @@ export function ProjectDataProvider({ children }) {
       getSlotsForDay: getSlotsForDayFn,
       saveSlotsForDay: saveSlotsForDayFn,
       getDaySummary: getDaySummaryFn,
+      getDaySummaryFromSlots: getDaySummaryFromSlotsFn,
       getDayValueEarnedByIds: getDayValueEarnedByIdsFn,
       getWeekSummary: getWeekSummaryFn,
       getWeekValueEarnedByIds: getWeekValueEarnedByIdsFn,
@@ -261,6 +271,7 @@ export function ProjectDataProvider({ children }) {
     getSlotsForDayFn,
     saveSlotsForDayFn,
     getDaySummaryFn,
+    getDaySummaryFromSlotsFn,
     getDayValueEarnedByIdsFn,
     getWeekSummaryFn,
     getWeekValueEarnedByIdsFn,

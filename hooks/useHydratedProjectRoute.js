@@ -19,18 +19,25 @@ export function useHydratedProjectRoute(projectId, resolveItem) {
   useEffect(() => {
     if (!hasHydrated || !projectId) return
 
-    if (!preparedRef.current.has(projectId)) {
-      ensureDailyFilesThroughToday(projectId)
-      preparedRef.current.add(projectId)
-    }
-
     const project = getProject(projectId)
     if (!project) {
       router.replace("/")
       return
     }
 
+    // Unlock the page immediately; calendar ensure can finish after first paint.
     setChecked(true)
+
+    if (!preparedRef.current.has(projectId)) {
+      preparedRef.current.add(projectId)
+      queueMicrotask(() => {
+        try {
+          ensureDailyFilesThroughToday(projectId)
+        } catch {
+          // Non-blocking; next navigation can retry.
+        }
+      })
+    }
   }, [getProject, hasHydrated, projectId, router])
 
   const project = hasHydrated ? getProject(projectId) : null
