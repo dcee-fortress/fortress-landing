@@ -10,15 +10,43 @@ import {
   getMissingSlotTemplates,
   sortSlots,
 } from "@/lib/dailySlots"
-import { createSlotFromTemplate } from "@/lib/projectData"
+import { createSlotFromTemplate, ensureHourlyDashboardsForDay } from "@/lib/projectData"
 import { getDailyFileEntryStatus } from "@/lib/dailyFileSync"
 import { getDailyFileHref, getDailyValueHref } from "@/lib/projectRoutes"
 
 export default function DailyReport({ projectName, projectId, file, hideHourlyDashboards = false }) {
-  const { version, getSlotsForDay, saveSlotsForDay, getDaySummaryFromSlots } = useProjectData()
+  const { version, getSlotsForDay, saveSlotsForDay, getDaySummaryFromSlots, refresh } =
+    useProjectData()
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    // Always restore at least one hourly dashboard so material schedules are reachable.
+    ensureHourlyDashboardsForDay(projectId, file.id)
+    setReady(true)
+    refresh?.()
+
+    void (async () => {
+      const { hasMaterialScheduleDataForDay } = await import("@/lib/materialSchedule")
+      if (cancelled || hasMaterialScheduleDataForDay(projectId, file.id)) return
+      try {
+        const { pullFromLivePostgres } = await import("@/lib/sharedPersistence")
+        await pullFromLivePostgres()
+        if (!cancelled) refresh?.()
+      } catch {
+        // Keep local cache if Postgres is slow/offline.
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [projectId, file.id, refresh])
+
   void version
 
-  const slots = getSlotsForDay(file.id)
+  const slots = ready ? getSlotsForDay(file.id) : []
   const summary = getDaySummaryFromSlots(file.id, slots)
   const status = getDailyFileEntryStatus(projectId, file)
 
@@ -119,48 +147,52 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
         </div>
       </article>
 
-      {!hideHourlyDashboards && <section className="space-y-4">
-        <div className="no-print flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-zinc-900">Hourly Dashboards</h2>
-            <p className="text-sm text-zinc-500">
-              Enter values in material schedules on each hourly dashboard. Totals roll up to daily, weekly, monthly, and project to date.
-            </p>
+      {!hideHourlyDashboards && (
+        <section className="space-y-4">
+          <div className="no-print flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-zinc-900">Hourly Dashboards</h2>
+              <p className="text-sm text-zinc-500">
+                Enter values in material schedules on each hourly dashboard. Totals roll up to daily,
+                weekly, monthly, and project to date.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              disabled={missingSlots.length === 0}
+              onClick={addNextHourlyDashboard}
+              className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+            >
+              <Icon name="plus" size={16} />
+              Add Hourly Dashboard
+            </button>
           </div>
 
-          <button
-            type="button"
-            disabled={missingSlots.length === 0}
-            onClick={addNextHourlyDashboard}
-            className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
-          >
-            <Icon name="plus" size={16} />
-            Add Hourly Dashboard
-          </button>
-        </div>
-
-        {slots.length > 0 ? (
-          <div className="space-y-4">
-            {sortSlots(slots).map((slot) => (
-              <DailyHourlyDashboard
-                key={slot.id}
-                slot={slot}
-                projectId={projectId}
-                projectName={projectName}
-                dayLabel={file.label}
-                dayId={file.id}
-                onDelete={deleteSlot}
-                onChange={updateSlot}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-6 py-12 text-center text-zinc-500">
-            No hourly dashboards yet. Use &quot;Add Hourly Dashboard&quot;, then open each slot&apos;s
-            material schedule to enter and save today&apos;s data.
-          </div>
-        )}
-      </section>}
+          {slots.length > 0 ? (
+            <div className="space-y-4">
+              {sortSlots(slots).map((slot) => (
+                <DailyHourlyDashboard
+                  key={slot.id}
+                  slot={slot}
+                  projectId={projectId}
+                  projectName={projectName}
+                  dayLabel={file.label}
+                  dayId={file.id}
+                  onDelete={deleteSlot}
+                  onChange={updateSlot}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-6 py-12 text-center text-zinc-500">
+              {ready
+                ? "No hourly dashboards yet. Use \"Add Hourly Dashboard\", then open each slot's material schedule to enter and save today's data."
+                : "Loading hourly dashboards…"}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   )
 }
