@@ -1,17 +1,19 @@
 "use client"
 
 import ChoiceCard from "@/components/project/ChoiceCard"
-import { getPersonalProtectiveEquipmentHref } from "@/lib/projectRoutes"
-import { getSiteStaffRegistersHref } from "@/lib/siteStaffRegisters"
+import {
+  getPersonalProtectiveEquipmentHref,
+  getPpeRegistersHref,
+  getSafetyReportsHref,
+} from "@/lib/projectRoutes"
 
 const SAFETY_HEALTH_OPTIONS = [
   {
-    key: "site-staff",
-    label: "Site Staff attendance register",
-    description:
-      "Monthly attendance for site staff — name, role, and day boxes for present or absent",
-    icon: "users",
-    href: getSiteStaffRegistersHref,
+    key: "ppe-registers",
+    label: "PPE registers",
+    description: "Site staff attendance and induction register files",
+    icon: "list",
+    href: getPpeRegistersHref,
   },
   {
     key: "ppe",
@@ -19,6 +21,13 @@ const SAFETY_HEALTH_OPTIONS = [
     description: "PPE received and PPE issued records, files, and period dashboards",
     icon: "hard-hat",
     href: getPersonalProtectiveEquipmentHref,
+  },
+  {
+    key: "safety-reports",
+    label: "Safety reports",
+    description: "SHEQ site inspection and incident reports",
+    icon: "shield",
+    href: getSafetyReportsHref,
   },
 ]
 
@@ -31,8 +40,8 @@ export default function SafetyHealthView({ projectId, projectName }) {
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
         <p className="max-w-2xl text-zinc-500">
-          Safety and health tools for this project — site staff attendance and personal protective
-          equipment tracking.
+          Safety and health tools for this project — PPE registers, personal protective equipment,
+          and safety reports.
         </p>
       </header>
 

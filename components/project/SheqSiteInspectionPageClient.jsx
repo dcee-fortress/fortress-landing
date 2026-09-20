@@ -1,18 +1,17 @@
 "use client"
 
 import { useProjects } from "@/components/project/ProjectsProvider"
-import SafetyHealthView from "@/components/project/SafetyHealthView"
+import SheqSiteInspectionView from "@/components/project/SheqSiteInspectionView"
 
-export default function SafetyHealthPageClient({ projectId }) {
+export default function SheqSiteInspectionPageClient({ projectId }) {
   const { getProject } = useProjects()
   const project = getProject(projectId)
-  // Paint hub buttons immediately — do not wait on sync or a missing registry row.
   const projectName = project?.name || ""
 
   return (
     <div className="app-page-frame text-zinc-900">
       <div className="app-content-shell">
-        <SafetyHealthView projectId={projectId} projectName={projectName} />
+        <SheqSiteInspectionView projectId={projectId} projectName={projectName} />
       </div>
     </div>
   )

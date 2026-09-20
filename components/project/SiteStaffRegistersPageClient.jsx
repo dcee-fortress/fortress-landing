@@ -6,15 +6,12 @@ import SiteStaffRegistersView from "@/components/project/SiteStaffRegistersView"
 export default function SiteStaffRegistersPageClient({ projectId }) {
   const { getProject } = useProjects()
   const project = getProject(projectId)
-
-  if (!project) {
-    return null
-  }
+  const projectName = project?.name || ""
 
   return (
     <div className="app-page-frame text-zinc-900">
       <div className="app-content-shell">
-        <SiteStaffRegistersView projectName={project.name} projectId={projectId} />
+        <SiteStaffRegistersView projectName={projectName} projectId={projectId} />
       </div>
     </div>
   )

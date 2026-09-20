@@ -6,12 +6,12 @@ import Link from "next/link"
 import ReportFileSearchBar, { useReportFileSearch } from "@/components/project/ReportFileSearch"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import { getPpeRegistersHref } from "@/lib/projectRoutes"
-import { ensureSiteStaffRegistersExist } from "@/lib/siteStaffRegisterData"
+import { ensureInductionRegistersExist } from "@/lib/inductionRegisterData"
 import {
-  formatSiteStaffRegisterLabel,
-  getSiteStaffRegisterFiles,
-  getSiteStaffRegisterHref,
-} from "@/lib/siteStaffRegisters"
+  formatInductionRegisterLabel,
+  getInductionRegisterFiles,
+  getInductionRegisterHref,
+} from "@/lib/inductionRegisters"
 import { isMonthlyFileInProgress } from "@/lib/periodFiles"
 
 function RegisterFileRow({ file, projectId }) {
@@ -20,20 +20,20 @@ function RegisterFileRow({ file, projectId }) {
   return (
     <li>
       <Link
-        href={getSiteStaffRegisterHref(projectId, file.id)}
+        href={getInductionRegisterHref(projectId, file.id)}
         className="app-file-row group transition hover:bg-zinc-50"
       >
         <div className="flex min-w-0 items-center gap-4">
           <div className="app-icon-tile app-icon-tile--blue">
-            <Icon name="users" size={20} />
+            <Icon name="file-text" size={20} />
           </div>
           <div className="min-w-0">
             <p className="text-lg font-semibold text-zinc-900">
-              {formatSiteStaffRegisterLabel(file)}
+              {formatInductionRegisterLabel(file)}
             </p>
             <p className="text-sm text-zinc-500">
               {inProgress
-                ? "In progress · Site staff attendance open for the month"
+                ? "In progress · Induction register open for the month"
                 : `Completed ${file.completedAt}`}
             </p>
           </div>
@@ -60,15 +60,15 @@ function RegisterFileRow({ file, projectId }) {
   )
 }
 
-export default function SiteStaffRegistersView({ projectName, projectId }) {
+export default function InductionRegistersView({ projectName, projectId }) {
   const { version, refresh } = useProjectData()
 
   useEffect(() => {
     if (!projectId) return
-    if (ensureSiteStaffRegistersExist(projectId)) refresh()
-  }, [projectId, refresh])
+    if (ensureInductionRegistersExist(projectId)) refresh()
+  }, [projectId, refresh, version])
 
-  const registerFiles = getSiteStaffRegisterFiles(projectId)
+  const registerFiles = getInductionRegisterFiles(projectId)
   const search = useReportFileSearch(registerFiles)
   const displayFiles = search.activeQuery ? search.filteredFiles : registerFiles
 
@@ -83,12 +83,12 @@ export default function SiteStaffRegistersView({ projectName, projectId }) {
           Back to PPE registers
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Site Staff attendance register
+          Induction register
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
         <p className="max-w-2xl text-zinc-500">
-          Monthly site staff registers are created automatically each month. Open a register to
-          enter name and role, then click a day box for present or double-click for absent (X).
+          Monthly induction registers are created automatically each month. Open a file to enter
+          Name, ID Number, Phone number, Position, and Company name.
         </p>
       </header>
 
@@ -102,9 +102,9 @@ export default function SiteStaffRegistersView({ projectName, projectId }) {
 
         <ReportFileSearchBar
           {...search}
-          getFileHref={getSiteStaffRegisterHref}
+          getFileHref={getInductionRegisterHref}
           projectId={projectId}
-          placeholder="Search register files by month, year, or id…"
+          placeholder="Search induction register files…"
         />
 
         {displayFiles.length > 0 ? (
@@ -116,8 +116,8 @@ export default function SiteStaffRegistersView({ projectName, projectId }) {
         ) : (
           <div className="px-6 py-12 text-center text-zinc-500">
             {search.activeQuery
-              ? "No register files match your search."
-              : "No register files yet. They will be created automatically each month from project start."}
+              ? "No induction register files match your search."
+              : "No monthly induction register files yet."}
           </div>
         )}
       </section>

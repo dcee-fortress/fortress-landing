@@ -49,8 +49,14 @@ function isLightweightDashboardPath(pathname) {
   if (root === "qs-engineering" || root === "finance") return parts.length === 1
   if (root === "safety-health") {
     if (parts.length === 1) return true
-    // PPE parent hub + PPE received/issued shells are list/table UIs.
-    if (parts[1] === "ppe" || parts[1] === "ppe-received" || parts[1] === "ppe-issued") {
+    // PPE hubs + PPE received/issued shells are list/table UIs.
+    if (
+      parts[1] === "ppe" ||
+      parts[1] === "ppe-registers" ||
+      parts[1] === "ppe-received" ||
+      parts[1] === "ppe-issued" ||
+      parts[1] === "safety-reports"
+    ) {
       return true
     }
     return false
