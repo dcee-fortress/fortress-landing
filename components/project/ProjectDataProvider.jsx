@@ -114,6 +114,9 @@ export function ProjectDataProvider({ children }) {
 
       void getSharedPersistenceReady()
         .then(() => {
+          // After Postgres/cache hydrate, ensure today's valuation day exists and
+          // is sorted to the top — sync can otherwise leave the calendar stale.
+          runSystemStorageWrite(() => ensureDailyFilesThroughToday(projectId))
           startTransition(() => refresh())
         })
         .catch(() => {})
