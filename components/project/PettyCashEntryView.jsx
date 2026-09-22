@@ -27,6 +27,7 @@ import {
   PROGRESS_PHOTO_ACCEPT,
   dedupeProgressPhotos,
   downloadProgressPhoto,
+  getProgressPhotoSrc,
   hydrateProgressPhotos,
   openPhotoInNewTab,
   persistProgressPhotos,
@@ -556,7 +557,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
                       {/* Base64 uploads from local storage — next/image does not apply */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={photo.data}
+                        src={getProgressPhotoSrc(photo)}
                         alt={photo.name}
                         className="aspect-square w-full object-cover transition group-hover:opacity-90"
                       />
@@ -621,7 +622,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
                 <div className="max-h-[calc(90vh-4rem)] overflow-auto bg-zinc-950">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={viewingPhoto.data}
+                    src={getProgressPhotoSrc(viewingPhoto)}
                     alt={viewingPhoto.name}
                     className="mx-auto max-h-[calc(90vh-4rem)] w-full object-contain"
                   />

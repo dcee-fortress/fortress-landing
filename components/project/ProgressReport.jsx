@@ -35,6 +35,7 @@ import SiteCameraCapture from "@/components/project/SiteCameraCapture"
 import {
   dedupeProgressPhotos,
   downloadProgressPhoto,
+  getProgressPhotoSrc,
   hydrateProgressPhotos,
   normalizeProgressPhotos,
   openPhotoInNewTab,
@@ -671,7 +672,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                           {/* Base64 uploads from local storage — next/image does not apply */}
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={photo.data}
+                            src={getProgressPhotoSrc(photo)}
                             alt={photo.name}
                             className="aspect-square w-full object-cover transition group-hover:opacity-90"
                           />
@@ -737,7 +738,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                       <div className="max-h-[calc(90vh-4rem)] overflow-auto bg-zinc-950">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={viewingPhoto.data}
+                          src={getProgressPhotoSrc(viewingPhoto)}
                           alt={viewingPhoto.name}
                           className="mx-auto max-h-[calc(90vh-4rem)] w-full object-contain"
                         />
