@@ -7,7 +7,14 @@ import {
   validateRestrictedAreaCredentials,
 } from "@/lib/restrictedAreaAuth"
 
-export default function RestrictedAreaGate({ title = "Restricted area", children }) {
+export default function RestrictedAreaGate({
+  title = "Restricted area",
+  description = "Enter the username and password to open this page. Without saving, you will be asked again next time.",
+  children,
+  validateCredentials = validateRestrictedAreaCredentials,
+  unlock = unlockRestrictedArea,
+  isRemembered = isRestrictedAreaRemembered,
+}) {
   const [ready, setReady] = useState(false)
   const [unlocked, setUnlocked] = useState(false)
   const [username, setUsername] = useState("")
@@ -16,17 +23,17 @@ export default function RestrictedAreaGate({ title = "Restricted area", children
   const [error, setError] = useState("")
 
   useEffect(() => {
-    setUnlocked(isRestrictedAreaRemembered())
+    setUnlocked(isRemembered())
     setReady(true)
-  }, [])
+  }, [isRemembered])
 
   function handleSubmit(event) {
     event.preventDefault()
-    if (!validateRestrictedAreaCredentials(username, password)) {
+    if (!validateCredentials(username, password)) {
       setError("Incorrect username or password.")
       return
     }
-    unlockRestrictedArea({ remember })
+    unlock({ remember })
     setError("")
     setUnlocked(true)
   }
@@ -49,10 +56,7 @@ export default function RestrictedAreaGate({ title = "Restricted area", children
             <header className="space-y-1">
               <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Login required</p>
               <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">{title}</h1>
-              <p className="text-sm text-zinc-500">
-                Enter the username and password to open this page. Without saving, you will be asked
-                again next time.
-              </p>
+              <p className="text-sm text-zinc-500">{description}</p>
             </header>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
