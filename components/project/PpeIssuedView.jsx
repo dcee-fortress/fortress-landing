@@ -30,7 +30,7 @@ export default function PpeIssuedView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Choose a PPE issued period to view or enter records.
+          Choose daily files (create with +) or project-to-date cumulative costs.
         </p>
       </header>
 

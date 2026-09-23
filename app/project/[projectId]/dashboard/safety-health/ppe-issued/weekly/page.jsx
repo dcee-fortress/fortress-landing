@@ -1,20 +1,9 @@
-import PpeIssuedRollupPageClient from "@/components/project/PpeIssuedRollupPageClient"
+import { notFound, redirect } from "next/navigation"
 import { isActiveProject } from "@/lib/projectList"
-import { notFound } from "next/navigation"
+import { getPpeIssuedHref } from "@/lib/projectRoutes"
 
 export default async function WeeklyPpeIssuedPage({ params }) {
   const { projectId } = await params
-
-  if (!isActiveProject(projectId)) {
-    notFound()
-  }
-
-  return (
-    <PpeIssuedRollupPageClient
-      projectId={projectId}
-      title="Weekly PPE issued"
-      description="Weekly table of PPE description, quantities, and total cost rolled up from daily PPE issued entries."
-      mode="weekly"
-    />
-  )
+  if (!isActiveProject(projectId)) notFound()
+  redirect(getPpeIssuedHref(projectId))
 }

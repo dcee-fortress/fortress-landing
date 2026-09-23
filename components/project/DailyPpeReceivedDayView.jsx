@@ -5,21 +5,22 @@ import Icon from "@/components/icon/icon"
 import PpeReceivedDashboardTable from "@/components/project/PpeReceivedDashboardTable"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import {
+  formatPpeReceivedDateLabel,
   getPpeReceivedDashboardLinesForDay,
+  getPpeReceivedDailyFile,
   hasPpeReceivedDataForDay,
 } from "@/lib/ppeReceived"
 import {
   getPpeReceivedDailyHref,
   getPpeReceivedEntryHref,
 } from "@/lib/projectRoutes"
-import { getDailyFile } from "@/lib/projectFiles"
 
 export default function DailyPpeReceivedDayView({ projectId, projectName, dayId }) {
   const { version } = useProjects()
   void version
 
-  const file = getDailyFile(projectId, dayId)
-  const dayLabel = file?.label || dayId
+  const file = getPpeReceivedDailyFile(projectId, dayId)
+  const dayLabel = file?.label || formatPpeReceivedDateLabel(dayId) || dayId
   const hasData = hasPpeReceivedDataForDay(projectId, dayId)
   const lines = getPpeReceivedDashboardLinesForDay(projectId, dayId)
 

@@ -12,6 +12,8 @@ export default function RestrictedAreaLoginDialog({
   description = "Enter the username and password to continue. Without saving, you will be asked again next time.",
   onCancel,
   onUnlocked,
+  validateCredentials = validateRestrictedAreaCredentials,
+  unlock = unlockRestrictedArea,
 }) {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -22,11 +24,11 @@ export default function RestrictedAreaLoginDialog({
 
   function handleSubmit(event) {
     event.preventDefault()
-    if (!validateRestrictedAreaCredentials(username, password)) {
+    if (!validateCredentials(username, password)) {
       setError("Incorrect username or password.")
       return
     }
-    unlockRestrictedArea({ remember })
+    unlock({ remember })
     setError("")
     setUsername("")
     setPassword("")

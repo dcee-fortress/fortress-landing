@@ -9,14 +9,14 @@ import RestrictedAreaLoginDialog from "@/components/project/RestrictedAreaLoginD
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { useDragFileSelection } from "@/hooks/useDragFileSelection"
 import { useFileDeleteAuth } from "@/hooks/useFileDeleteAuth"
-import { useHasHydrated } from "@/hooks/useHasHydrated"
-import { ensureDailyFilesThroughToday } from "@/lib/dailyFileSync"
+import { unlockPpeEntry, validateSafetyHealthCredentials } from "@/lib/ppeEntryAuth"
 import {
+  createPpeIssuedDailyFileForToday,
   deletePpeIssuedDay,
-  getPpeIssuedDeletedDayIds,
+  getPpeIssuedDailyFiles,
   getPpeIssuedEntryStatus,
+  migratePpeIssuedToManualOnly,
 } from "@/lib/ppeIssued"
-import { getDailyFiles } from "@/lib/projectFiles"
 import { getPpeIssuedDailyFileHref, getPpeIssuedHref } from "@/lib/projectRoutes"
 
 const INITIAL_VISIBLE = 21
@@ -101,29 +101,34 @@ const DailyPpeIssuedRow = memo(function DailyPpeIssuedRow({
 })
 
 export default function DailyPpeIssuedListView({ projectId, projectName }) {
-  const hasHydrated = useHasHydrated()
   const { version, refresh } = useProjects()
   const [showAll, setShowAll] = useState(false)
   const [deletingDayId, setDeletingDayId] = useState("")
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [ready, setReady] = useState(false)
   const deleteAuth = useFileDeleteAuth()
 
   useEffect(() => {
-    if (!hasHydrated || !projectId) return
-    if (ensureDailyFilesThroughToday(projectId)) refresh()
-  }, [hasHydrated, projectId, refresh])
-
-  const deletedDayIds = useMemo(() => {
-    if (!hasHydrated) return new Set()
-    void version
-    return new Set(getPpeIssuedDeletedDayIds(projectId))
-  }, [hasHydrated, projectId, version])
+    if (!projectId) return undefined
+    let cancelled = false
+    setReady(false)
+    void (async () => {
+      await migratePpeIssuedToManualOnly(projectId)
+      if (cancelled) return
+      refresh()
+      setReady(true)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [projectId, refresh])
 
   const dailyFiles = useMemo(() => {
-    if (!hasHydrated) return []
+    if (!ready) return []
     void version
-    return getDailyFiles(projectId).filter((file) => !deletedDayIds.has(file.id))
-  }, [deletedDayIds, hasHydrated, projectId, version])
+    return getPpeIssuedDailyFiles(projectId)
+  }, [ready, projectId, version])
 
   const search = useReportFileSearch(dailyFiles)
 
@@ -136,9 +141,29 @@ export default function DailyPpeIssuedListView({ projectId, projectName }) {
   const visibleIds = useMemo(() => visibleFiles.map((file) => file.id), [visibleFiles])
   const selection = useDragFileSelection(visibleIds)
 
+  async function handleCreateToday() {
+    if (creating) return
+    setCreating(true)
+    try {
+      const result = await createPpeIssuedDailyFileForToday(projectId)
+      if (!result.ok) {
+        window.alert(result.message || "Could not create today's PPE issued file.")
+        return
+      }
+      if (result.alreadyExists) {
+        window.alert(result.message || "Today's PPE issued file already exists.")
+      }
+      refresh()
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not create today's file.")
+    } finally {
+      setCreating(false)
+    }
+  }
+
   async function performDeleteDailyFile(file) {
     const confirmed = window.confirm(
-      `Delete "${file.label}" from daily PPE issued?\n\nThis removes the day's entry from weekly, monthly, and project-to-date rollups.`
+      `Delete "${file.label}" from daily PPE issued?\n\nThis removes the day's entry from project-to-date rollups.`
     )
     if (!confirmed) return
 
@@ -170,8 +195,8 @@ export default function DailyPpeIssuedListView({ projectId, projectName }) {
 
     const confirmed = window.confirm(
       ids.length === 1
-        ? `Delete this PPE issued file?\n\nThis removes the day's entry from weekly, monthly, and project-to-date rollups.`
-        : `Delete ${ids.length} PPE issued files?\n\nThis removes those days from weekly, monthly, and project-to-date rollups.`
+        ? `Delete this PPE issued file?\n\nThis removes the day's entry from project-to-date rollups.`
+        : `Delete ${ids.length} PPE issued files?\n\nThis removes those days from project-to-date rollups.`
     )
     if (!confirmed) return
 
@@ -203,26 +228,40 @@ export default function DailyPpeIssuedListView({ projectId, projectName }) {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <Link
-          href={getPpeIssuedHref(projectId)}
-          className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
-        >
-          <Icon name="arrow-left" size={16} />
-          Back to PPE issued
-        </Link>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Daily PPE issued
-        </p>
-        <h1
-          suppressHydrationWarning
-          className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl"
-        >
-          {projectName || "Project"}
-        </h1>
-        <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Click a file to open it. Drag to select, then use Delete on the selection bar or the trash
-          icon. You will sign in and confirm before anything is removed.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 space-y-2">
+            <Link
+              href={getPpeIssuedHref(projectId)}
+              className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
+            >
+              <Icon name="arrow-left" size={16} />
+              Back to PPE issued
+            </Link>
+            <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+              Daily PPE issued
+            </p>
+            <h1
+              suppressHydrationWarning
+              className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl"
+            >
+              {projectName || "Project"}
+            </h1>
+            <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
+              Files are never auto-created. Press + to create today&apos;s daily dashboard (dated
+              clearly). Open a file to enter PPE, or delete it — project-to-date keeps cumulative
+              costs from remaining files.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleCreateToday()}
+            disabled={!ready || creating}
+            title="Create today's PPE issued file"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Icon name="plus" size={22} />
+          </button>
+        </div>
       </header>
 
       <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
@@ -259,9 +298,9 @@ export default function DailyPpeIssuedListView({ projectId, projectName }) {
           </div>
         ) : null}
 
-        {!hasHydrated ? (
+        {!ready ? (
           <p className="px-6 py-8 text-sm text-zinc-500">Loading daily files…</p>
-        ) : (
+        ) : visibleFiles.length > 0 ? (
           <ul className="divide-y divide-zinc-200">
             {visibleFiles.map((file) => {
               const status = getPpeIssuedEntryStatus(projectId, file)
@@ -283,6 +322,12 @@ export default function DailyPpeIssuedListView({ projectId, projectName }) {
               )
             })}
           </ul>
+        ) : (
+          <p className="px-6 py-10 text-center text-sm text-zinc-500">
+            {search.activeQuery
+              ? "No files match your search."
+              : "No PPE issued files yet. Press + to create today's file."}
+          </p>
         )}
       </div>
 
@@ -309,7 +354,9 @@ export default function DailyPpeIssuedListView({ projectId, projectName }) {
       <RestrictedAreaLoginDialog
         open={deleteAuth.loginOpen}
         title="Delete files"
-        description="Enter the username and password to continue. You will be asked to confirm deletion next."
+        description="Enter Safety & Health credentials to continue. You will be asked to confirm deletion next."
+        validateCredentials={validateSafetyHealthCredentials}
+        unlock={unlockPpeEntry}
         onCancel={deleteAuth.cancelLogin}
         onUnlocked={deleteAuth.handleUnlocked}
       />

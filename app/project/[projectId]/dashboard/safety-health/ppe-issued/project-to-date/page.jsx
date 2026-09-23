@@ -13,7 +13,7 @@ export default async function ProjectToDatePpeIssuedPage({ params }) {
     <PpeIssuedRollupPageClient
       projectId={projectId}
       title="Project to date PPE issued"
-      description="Project-to-date table of PPE description, quantities, and total cost rolled up from all daily PPE issued entries."
+      description="Cumulative PPE issued quantities and total cost across all daily files for this project."
       mode="project-to-date"
     />
   )

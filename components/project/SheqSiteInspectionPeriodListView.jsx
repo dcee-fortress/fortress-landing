@@ -11,6 +11,7 @@ import { useDragFileSelection } from "@/hooks/useDragFileSelection"
 import { useFileDeleteAuth } from "@/hooks/useFileDeleteAuth"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import { ensureDailyFilesThroughToday } from "@/lib/dailyFileSync"
+import { unlockPpeEntry, validateSafetyHealthCredentials } from "@/lib/ppeEntryAuth"
 import {
   SHEQ_ALERT_KIND_INSPECTION,
   getSheqAlertWeekUsage,
@@ -370,7 +371,9 @@ export default function SheqSiteInspectionPeriodListView({ projectId, projectNam
       <RestrictedAreaLoginDialog
         open={deleteAuth.loginOpen}
         title="Delete files"
-        description="Enter the username and password to continue. You will be asked to confirm deletion next."
+        description="Enter Safety & Health credentials to continue. You will be asked to confirm deletion next."
+        validateCredentials={validateSafetyHealthCredentials}
+        unlock={unlockPpeEntry}
         onCancel={deleteAuth.cancelLogin}
         onUnlocked={deleteAuth.handleUnlocked}
       />

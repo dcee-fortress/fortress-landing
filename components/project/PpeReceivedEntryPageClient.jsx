@@ -5,7 +5,7 @@ import PpeReceivedEntryView from "@/components/project/PpeReceivedEntryView"
 import PageLoadingShell from "@/components/project/PageLoadingShell"
 import RestrictedAreaGate from "@/components/project/RestrictedAreaGate"
 import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
-import { getDailyFile } from "@/lib/projectFiles"
+import { getPpeReceivedDailyFile } from "@/lib/ppeReceived"
 import {
   isPpeEntryRemembered,
   unlockPpeEntry,
@@ -15,7 +15,7 @@ import {
 export default function PpeReceivedEntryPageClient({ projectId, dayId }) {
   const { isReady, syncReady, project, item: file } = useHydratedProjectRoute(
     projectId,
-    () => getDailyFile(projectId, dayId)
+    () => getPpeReceivedDailyFile(projectId, dayId)
   )
 
   if (!isReady) {

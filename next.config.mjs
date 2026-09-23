@@ -11,7 +11,12 @@ const nextConfig = {
     position: "bottom-right",
   },
   experimental: {
-    optimizePackageImports: ["jspdf", "jspdf-autotable", "xlsx"],
+    optimizePackageImports: ["jspdf", "jspdf-autotable", "xlsx", "heic2any"],
+  },
+  onDemandEntries: {
+    // Keep compiled pages warm longer so dashboard hops don't recompile.
+    maxInactiveAge: 60 * 1000,
+    pagesBufferLength: 8,
   },
   async redirects() {
     return [

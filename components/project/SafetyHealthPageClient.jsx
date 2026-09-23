@@ -2,12 +2,14 @@
 
 import { useProjects } from "@/components/project/ProjectsProvider"
 import SafetyHealthView from "@/components/project/SafetyHealthView"
+import { useHasHydrated } from "@/hooks/useHasHydrated"
 
 export default function SafetyHealthPageClient({ projectId }) {
+  const hasHydrated = useHasHydrated()
   const { getProject } = useProjects()
   const project = getProject(projectId)
-  // Paint hub buttons immediately — do not wait on sync or a missing registry row.
-  const projectName = project?.name || ""
+  // Avoid SSR/client name mismatch before the shared registry is available.
+  const projectName = hasHydrated ? project?.name || "Project" : "\u00a0"
 
   return (
     <div className="app-page-frame text-zinc-900">

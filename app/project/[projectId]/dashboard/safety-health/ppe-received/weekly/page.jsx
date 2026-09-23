@@ -1,20 +1,9 @@
-import PpeReceivedRollupPageClient from "@/components/project/PpeReceivedRollupPageClient"
+import { notFound, redirect } from "next/navigation"
 import { isActiveProject } from "@/lib/projectList"
-import { notFound } from "next/navigation"
+import { getPpeReceivedHref } from "@/lib/projectRoutes"
 
 export default async function WeeklyPpeReceivedPage({ params }) {
   const { projectId } = await params
-
-  if (!isActiveProject(projectId)) {
-    notFound()
-  }
-
-  return (
-    <PpeReceivedRollupPageClient
-      projectId={projectId}
-      title="Weekly PPE received"
-      description="Weekly table of PPE description, quantities, and total cost rolled up from daily PPE received entries."
-      mode="weekly"
-    />
-  )
+  if (!isActiveProject(projectId)) notFound()
+  redirect(getPpeReceivedHref(projectId))
 }

@@ -5,21 +5,22 @@ import Icon from "@/components/icon/icon"
 import PpeIssuedDashboardTable from "@/components/project/PpeIssuedDashboardTable"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import {
+  formatPpeIssuedDateLabel,
   getPpeIssuedDashboardLinesForDay,
+  getPpeIssuedDailyFile,
   hasPpeIssuedDataForDay,
 } from "@/lib/ppeIssued"
 import {
   getPpeIssuedDailyHref,
   getPpeIssuedEntryHref,
 } from "@/lib/projectRoutes"
-import { getDailyFile } from "@/lib/projectFiles"
 
 export default function DailyPpeIssuedDayView({ projectId, projectName, dayId }) {
   const { version } = useProjects()
   void version
 
-  const file = getDailyFile(projectId, dayId)
-  const dayLabel = file?.label || dayId
+  const file = getPpeIssuedDailyFile(projectId, dayId)
+  const dayLabel = file?.label || formatPpeIssuedDateLabel(dayId) || dayId
   const hasData = hasPpeIssuedDataForDay(projectId, dayId)
   const lines = getPpeIssuedDashboardLinesForDay(projectId, dayId)
 

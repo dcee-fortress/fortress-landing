@@ -11,6 +11,7 @@ import { useDragFileSelection } from "@/hooks/useDragFileSelection"
 import { useFileDeleteAuth } from "@/hooks/useFileDeleteAuth"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import { ensureDailyFilesThroughToday } from "@/lib/dailyFileSync"
+import { unlockFinanceEntry, validateFinanceEntryCredentials } from "@/lib/financeEntryAuth"
 import {
   deleteGoodsReceivedDay,
   getGoodsReceivedDeletedDayIds,
@@ -309,7 +310,9 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
       <RestrictedAreaLoginDialog
         open={deleteAuth.loginOpen}
         title="Delete files"
-        description="Enter the username and password to continue. You will be asked to confirm deletion next."
+        description="Enter Finance credentials to continue. You will be asked to confirm deletion next."
+        validateCredentials={validateFinanceEntryCredentials}
+        unlock={unlockFinanceEntry}
         onCancel={deleteAuth.cancelLogin}
         onUnlocked={deleteAuth.handleUnlocked}
       />

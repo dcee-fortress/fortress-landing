@@ -4,12 +4,12 @@ import { notFound } from "next/navigation"
 import DailyPpeIssuedDayView from "@/components/project/DailyPpeIssuedDayView"
 import PageLoadingShell from "@/components/project/PageLoadingShell"
 import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
-import { getDailyFile } from "@/lib/projectFiles"
+import { getPpeIssuedDailyFile } from "@/lib/ppeIssued"
 
 export default function DailyPpeIssuedDayPageClient({ projectId, dayId }) {
   const { isReady, syncReady, project, item: file } = useHydratedProjectRoute(
     projectId,
-    () => getDailyFile(projectId, dayId)
+    () => getPpeIssuedDailyFile(projectId, dayId)
   )
 
   if (!isReady) {

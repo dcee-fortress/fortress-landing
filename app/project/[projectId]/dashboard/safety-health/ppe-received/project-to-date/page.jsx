@@ -13,7 +13,7 @@ export default async function ProjectToDatePpeReceivedPage({ params }) {
     <PpeReceivedRollupPageClient
       projectId={projectId}
       title="Project to date PPE received"
-      description="Project-to-date table of PPE description, quantities, and total cost rolled up from all daily PPE received entries."
+      description="Cumulative PPE received quantities and total cost across all daily files for this project."
       mode="project-to-date"
     />
   )
