@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import Icon from "@/components/icon/icon"
 import Link from "next/link"
 import TableCellInput from "@/components/project/TableCellInput"
+import ExportPdfButton from "@/components/project/ExportPdfButton"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import {
   SHEQ_ALERT_KIND_INSPECTION,
@@ -215,24 +216,40 @@ export default function SheqSiteInspectionEntryView({
   const saveLabel =
     saveState === "saving" ? "Saving…" : saveState === "error" ? "Save failed" : "Saved"
 
+  async function exportToPdf() {
+    const { exportSheqSiteInspectionPdf } = await import("@/lib/safetyReportPdf")
+    exportSheqSiteInspectionPdf({
+      projectId,
+      projectName,
+      period,
+      periodId,
+      periodLabel,
+    })
+  }
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <Link
-          href={getSheqSiteInspectionPeriodHref(projectId, period)}
-          className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
-        >
-          <Icon name="arrow-left" size={16} />
-          Back to {PERIOD_LABELS[period] || period} files
-        </Link>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          {PERIOD_LABELS[period]} SHEQ site inspection
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{periodLabel}</h1>
-        <p className="text-sm text-zinc-500">
-          Alerts left this week: {weekUsage.remaining} of {weekUsage.limit} · {saveLabel}
-        </p>
-        {alertMessage ? <p className="text-sm text-amber-800">{alertMessage}</p> : null}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 space-y-2">
+            <Link
+              href={getSheqSiteInspectionPeriodHref(projectId, period)}
+              className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
+            >
+              <Icon name="arrow-left" size={16} />
+              Back to {PERIOD_LABELS[period] || period} files
+            </Link>
+            <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+              {PERIOD_LABELS[period]} SHEQ site inspection
+            </p>
+            <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{periodLabel}</h1>
+            <p className="text-sm text-zinc-500">
+              Alerts left this week: {weekUsage.remaining} of {weekUsage.limit} · {saveLabel}
+            </p>
+            {alertMessage ? <p className="text-sm text-amber-800">{alertMessage}</p> : null}
+          </div>
+          <ExportPdfButton onClick={() => void exportToPdf()} />
+        </div>
       </header>
 
       <section className="space-y-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">

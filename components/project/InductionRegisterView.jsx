@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
+import ExportPdfButton from "@/components/project/ExportPdfButton"
 import InductionRegisterTable from "@/components/project/InductionRegisterTable"
 import { getMonthRegisterMeta } from "@/lib/siteStaffRegisterData"
 import {
@@ -14,6 +15,17 @@ export default function InductionRegisterView({ projectName, projectId, file }) 
   const inProgress = isMonthlyFileInProgress(file)
   const { monthName } = getMonthRegisterMeta(file.id)
 
+  function exportToPdf() {
+    void import("@/lib/safetyReportPdf").then(({ exportInductionRegisterPdf }) => {
+      exportInductionRegisterPdf({
+        projectId,
+        projectName,
+        monthId: file.id,
+        monthLabel: formatInductionRegisterLabel(file),
+      })
+    })
+  }
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -24,14 +36,17 @@ export default function InductionRegisterView({ projectName, projectId, file }) 
           <Icon name="arrow-left" size={16} />
           Back to monthly induction files
         </Link>
-        <header className="space-y-1">
-          <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-            Monthly Induction Register
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
-            {formatInductionRegisterLabel(file)}
-          </h1>
-          <p className="text-zinc-500">{projectName}</p>
+        <header className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1">
+            <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+              Monthly Induction Register
+            </p>
+            <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
+              {formatInductionRegisterLabel(file)}
+            </h1>
+            <p className="text-zinc-500">{projectName}</p>
+          </div>
+          <ExportPdfButton onClick={exportToPdf} />
         </header>
       </div>
 

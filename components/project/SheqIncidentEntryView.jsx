@@ -5,6 +5,7 @@ import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import SiteCameraCapture from "@/components/project/SiteCameraCapture"
 import TableCellInput from "@/components/project/TableCellInput"
+import ExportPdfButton from "@/components/project/ExportPdfButton"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import {
   PROGRESS_PHOTO_ACCEPT,
@@ -198,8 +199,8 @@ export default function SheqIncidentEntryView({ projectId, projectName, dayId })
         return
       }
 
-      await persistProgressPhotos(prepared)
-      const next = dedupeProgressPhotos([...photosRef.current, ...prepared])
+      const uploaded = await persistProgressPhotos(prepared)
+      const next = dedupeProgressPhotos([...photosRef.current, ...uploaded])
       photosRef.current = next
       setPhotos(next)
       dirtyRef.current = true
@@ -207,7 +208,12 @@ export default function SheqIncidentEntryView({ projectId, projectName, dayId })
 
       if (failures.length > 0) {
         setPhotoUploadError(
-          `Added ${prepared.length} photo${prepared.length === 1 ? "" : "s"}. ${failures.length} could not be read.`
+          `Added ${uploaded.length} photo${uploaded.length === 1 ? "" : "s"}. ${failures.length} could not be read.`
+        )
+      }
+      if (uploaded.some((photo) => !photo.url)) {
+        setPhotoUploadError(
+          "Some photos may only be on this device. Shared object storage upload did not finish."
         )
       }
     } catch (error) {
@@ -230,7 +236,8 @@ export default function SheqIncidentEntryView({ projectId, projectName, dayId })
   }
 
   const handleRemovePhoto = (photoId) => {
-    void removeStoredProgressPhoto(photoId)
+    const existing = photosRef.current.find((photo) => photo.id === photoId)
+    void removeStoredProgressPhoto(photoId, existing?.url)
     const next = photosRef.current.filter((photo) => photo.id !== photoId)
     photosRef.current = next
     setPhotos(next)
@@ -312,20 +319,34 @@ export default function SheqIncidentEntryView({ projectId, projectName, dayId })
             </p>
             {alertMessage ? <p className="text-sm text-amber-800">{alertMessage}</p> : null}
           </div>
-          <button
-            type="button"
-            title={
-              weekUsage.remaining > 0
-                ? "Push notification to home page"
-                : "Weekly incident alert limit reached"
-            }
-            disabled={weekUsage.remaining <= 0}
-            onClick={() => void sendHomeAlert()}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <Icon name="triangle-alert" size={14} />
-            Alert home
-          </button>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <ExportPdfButton
+              onClick={() => {
+                void import("@/lib/safetyReportPdf").then(({ exportSheqIncidentPdf }) => {
+                  exportSheqIncidentPdf({
+                    projectId,
+                    projectName,
+                    fileId,
+                    dayLabel,
+                  })
+                })
+              }}
+            />
+            <button
+              type="button"
+              title={
+                weekUsage.remaining > 0
+                  ? "Push notification to home page"
+                  : "Weekly incident alert limit reached"
+              }
+              disabled={weekUsage.remaining <= 0}
+              onClick={() => void sendHomeAlert()}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Icon name="triangle-alert" size={14} />
+              Alert home
+            </button>
+          </div>
         </div>
       </header>
 

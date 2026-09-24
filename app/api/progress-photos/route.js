@@ -1,11 +1,12 @@
-import { readRequestJson } from "@/lib/safeJson"
 import {
   deleteProgressPhotosByIds,
   getProgressPhotoById,
   getProgressPhotosByIds,
   upsertProgressPhotos,
 } from "@/lib/progressPhotoServer"
+import { deleteProgressPhotoBlob, isBlobStorageConfigured } from "@/lib/progressPhotoBlob"
 import { postgresAvailable } from "@/lib/postgres"
+import { readRequestJson } from "@/lib/safeJson"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -116,14 +117,29 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   try {
-    if (!postgresAvailable()) {
-      return withCors(Response.json({ error: "Photo storage is unavailable." }, { status: 503 }))
-    }
-
     const body = await readRequestJson(request, {})
     const ids = Array.isArray(body?.ids) ? body.ids : body?.id ? [body.id] : []
-    const deleted = await deleteProgressPhotosByIds(ids)
-    return withCors(Response.json({ ok: true, deleted }))
+    const urls = Array.isArray(body?.urls) ? body.urls : body?.url ? [body.url] : []
+
+    let deletedBlobs = 0
+    for (const url of urls) {
+      if (await deleteProgressPhotoBlob(url)) deletedBlobs += 1
+    }
+
+    let deletedRows = 0
+    if (postgresAvailable() && ids.length > 0) {
+      deletedRows = await deleteProgressPhotosByIds(ids)
+    }
+
+    return withCors(
+      Response.json({
+        ok: true,
+        deleted: deletedRows + deletedBlobs,
+        deletedRows,
+        deletedBlobs,
+        blobConfigured: isBlobStorageConfigured(),
+      })
+    )
   } catch (error) {
     return withCors(
       Response.json(

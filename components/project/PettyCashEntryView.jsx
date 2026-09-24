@@ -137,15 +137,20 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
         return
       }
 
-      await persistProgressPhotos(prepared)
+      const uploaded = await persistProgressPhotos(prepared)
 
-      const next = dedupeProgressPhotos([...receipts, ...prepared])
+      const next = dedupeProgressPhotos([...receipts, ...uploaded])
       setReceipts(next)
       await persistReceipts(next)
 
       if (failures.length > 0) {
         setPhotoUploadError(
-          `Added ${prepared.length} photo${prepared.length === 1 ? "" : "s"}. ${failures.length} could not be read.`
+          `Added ${uploaded.length} photo${uploaded.length === 1 ? "" : "s"}. ${failures.length} could not be read.`
+        )
+      }
+      if (uploaded.some((photo) => !photo.url)) {
+        setPhotoUploadError(
+          "Some photos may only be on this device. Shared object storage upload did not finish."
         )
       }
     } catch (error) {
@@ -168,7 +173,8 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
   }
 
   const handleRemovePhoto = (photoId) => {
-    void removeStoredProgressPhoto(photoId)
+    const existing = receipts.find((photo) => photo.id === photoId)
+    void removeStoredProgressPhoto(photoId, existing?.url)
     const next = receipts.filter((photo) => photo.id !== photoId)
     setReceipts(next)
     void persistReceipts(next)

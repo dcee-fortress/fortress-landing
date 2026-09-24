@@ -268,19 +268,24 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
         return
       }
 
-      await persistProgressPhotos(prepared)
+      const uploaded = await persistProgressPhotos(prepared)
 
       saveChanges((prev) => ({
         progressUpdate: {
           ...prev.progressUpdate,
-          photos: dedupeProgressPhotos([...(prev.progressUpdate?.photos || []), ...prepared]),
+          photos: dedupeProgressPhotos([...(prev.progressUpdate?.photos || []), ...uploaded]),
           updatedAt: new Date().toISOString(),
         },
       }))
 
       if (failures.length > 0) {
         setPhotoUploadError(
-          `Added ${prepared.length} photo${prepared.length === 1 ? "" : "s"}. ${failures.length} could not be read.`
+          `Added ${uploaded.length} photo${uploaded.length === 1 ? "" : "s"}. ${failures.length} could not be read.`
+        )
+      }
+      if (uploaded.some((photo) => !photo.url)) {
+        setPhotoUploadError(
+          "Some photos may only be on this device. Shared object storage upload did not finish."
         )
       }
     } catch (error) {
@@ -301,7 +306,8 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
   }
 
   const handleRemovePhoto = (photoId) => {
-    void removeStoredProgressPhoto(photoId)
+    const existing = (report?.progressUpdate?.photos || []).find((photo) => photo.id === photoId)
+    void removeStoredProgressPhoto(photoId, existing?.url)
 
     saveChanges((prev) => ({
       progressUpdate: {

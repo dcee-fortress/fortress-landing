@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
+import ExportPdfButton from "@/components/project/ExportPdfButton"
 import PpeReceivedDashboardTable from "@/components/project/PpeReceivedDashboardTable"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import {
@@ -24,26 +25,42 @@ export default function DailyPpeReceivedDayView({ projectId, projectName, dayId 
   const hasData = hasPpeReceivedDataForDay(projectId, dayId)
   const lines = getPpeReceivedDashboardLinesForDay(projectId, dayId)
 
+  function exportToPdf() {
+    void import("@/lib/safetyReportPdf").then(({ exportPpeReceivedDashboardPdf }) => {
+      exportPpeReceivedDashboardPdf({
+        projectName,
+        title: "Daily PPE received dashboard",
+        periodLabel: dayLabel,
+        lines,
+      })
+    })
+  }
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <Link
-          href={getPpeReceivedDailyHref(projectId)}
-          className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
-        >
-          <Icon name="arrow-left" size={16} />
-          Back to daily files
-        </Link>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Daily PPE received dashboard
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
-          {dayLabel}
-        </h1>
-        <p className="text-sm text-zinc-500 sm:text-base">
-          {projectName || "Project"} · PPE description, quantities, and total cost roll up from
-          the PPE received entry. Matching descriptions are combined.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 space-y-2">
+            <Link
+              href={getPpeReceivedDailyHref(projectId)}
+              className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
+            >
+              <Icon name="arrow-left" size={16} />
+              Back to daily files
+            </Link>
+            <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+              Daily PPE received dashboard
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
+              {dayLabel}
+            </h1>
+            <p className="text-sm text-zinc-500 sm:text-base">
+              {projectName || "Project"} · PPE description, quantities, and total cost roll up from
+              the PPE received entry. Matching descriptions are combined.
+            </p>
+          </div>
+          <ExportPdfButton onClick={exportToPdf} />
+        </div>
       </header>
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
