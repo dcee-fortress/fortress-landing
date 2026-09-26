@@ -13,7 +13,7 @@ export default async function ProjectToDateGoodsReceivedPage({ params }) {
     <GoodsReceivedRollupPageClient
       projectId={projectId}
       title="Project to date goods received"
-      description="Project-wide table of description, quantity, and total cost rolled up from all daily goods received entries."
+      description="Project-wide table of description, unit, quantity, total cost, and current goods balance rolled up from all daily goods received entries."
       mode="project-to-date"
     />
   )

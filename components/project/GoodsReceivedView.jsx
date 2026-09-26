@@ -5,7 +5,7 @@ import Icon from "@/components/icon/icon"
 import Link from "next/link"
 import {
   GOODS_RECEIVED_PERIODS,
-  getFinanceHref,
+  getPurchasesHref,
   getGoodsReceivedPeriodHref,
 } from "@/lib/projectRoutes"
 
@@ -14,11 +14,11 @@ export default function GoodsReceivedView({ projectId, projectName }) {
     <div className="space-y-6">
       <header className="space-y-2">
         <Link
-          href={getFinanceHref(projectId)}
+          href={getPurchasesHref(projectId)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Finance
+          Back to Purchases
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
           Goods received

@@ -1,29 +1,21 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
-import AcquiredGoodsBalanceHeading from "@/components/project/AcquiredGoodsBalanceHeading"
 import {
-  GOODS_RECEIVED_COLUMNS,
-  createGoodsReceivedRow,
-  getGoodsReceivedRows,
-  withGoodsReceivedTotals,
-  saveGoodsReceivedRows,
-} from "@/lib/goodsReceived"
-import {
-  getGoodsAcquiredDayTotals,
-  getGoodsAcquiredQuantityByDescription,
+  GOODS_ACQUIRED_COLUMNS,
+  createGoodsAcquiredRow,
+  getGoodsAcquiredRows,
+  withGoodsAcquiredTotals,
+  saveGoodsAcquiredRows,
 } from "@/lib/goodsAcquired"
 import {
-  formatMaterialAmount,
   formatMaterialCurrencyAmount,
   parsePlantCostAmount,
-  roundMaterialAmount,
 } from "@/lib/plantCostCalculations"
-import { getGoodsReceivedDailyFileHref } from "@/lib/projectRoutes"
+import { getGoodsAcquiredDailyFileHref } from "@/lib/projectRoutes"
 import { getDailyFile } from "@/lib/projectFiles"
-import { useProjects } from "@/components/project/ProjectsProvider"
 
 function formatInputAmount(value) {
   if (value === "" || value === null || value === undefined) return ""
@@ -32,8 +24,7 @@ function formatInputAmount(value) {
   return String(parsed)
 }
 
-export default function GoodsReceivedEntryView({ projectId, projectName, dayId }) {
-  const { version } = useProjects()
+export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }) {
   const file = getDailyFile(projectId, dayId)
   const dayLabel = file?.label || dayId
   const [rows, setRows] = useState([])
@@ -41,37 +32,8 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
   const saveTimerRef = useRef(0)
   const rowsRef = useRef([])
 
-  const acquiredTotals = useMemo(() => {
-    void version
-    return getGoodsAcquiredDayTotals(projectId, dayId)
-  }, [dayId, projectId, version])
-
-  const acquiredByDescription = useMemo(() => {
-    void version
-    return getGoodsAcquiredQuantityByDescription(projectId, [dayId])
-  }, [dayId, projectId, version])
-
-  const receivedQtyByDescription = useMemo(() => {
-    const map = new Map()
-    for (const row of rows) {
-      const key = String(row.description || "").trim().toLowerCase()
-      if (!key) continue
-      const qty = Number(parsePlantCostAmount(row.quantity)) || 0
-      map.set(key, (map.get(key) || 0) + qty)
-    }
-    return map
-  }, [rows])
-
-  function balanceForRow(row) {
-    const key = String(row.description || "").trim().toLowerCase()
-    if (!key) return 0
-    const acquired = acquiredByDescription.get(key) || 0
-    const received = receivedQtyByDescription.get(key) || 0
-    return roundMaterialAmount(acquired - received) ?? 0
-  }
-
   const loadRows = useCallback(() => {
-    setRows(getGoodsReceivedRows(projectId, dayId))
+    setRows(getGoodsAcquiredRows(projectId, dayId))
   }, [dayId, projectId])
 
   useEffect(() => {
@@ -86,7 +48,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
     async (nextRows) => {
       setSaveState("saving")
       try {
-        await saveGoodsReceivedRows(projectId, dayId, nextRows)
+        await saveGoodsAcquiredRows(projectId, dayId, nextRows)
         setSaveState("saved")
       } catch {
         setSaveState("error")
@@ -108,7 +70,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
   useEffect(() => {
     const flush = () => {
       window.clearTimeout(saveTimerRef.current)
-      void saveGoodsReceivedRows(projectId, dayId, rowsRef.current)
+      void saveGoodsAcquiredRows(projectId, dayId, rowsRef.current)
     }
     window.addEventListener("pagehide", flush)
     window.addEventListener("beforeunload", flush)
@@ -125,7 +87,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
   function commitRows(updater, { immediate = false } = {}) {
     setRows((current) => {
       const draft = typeof updater === "function" ? updater(current) : updater
-      const next = withGoodsReceivedTotals(draft)
+      const next = withGoodsAcquiredTotals(draft)
       if (immediate) {
         void persist(next)
       } else {
@@ -143,31 +105,30 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
   }
 
   function addRow() {
-    commitRows((current) => [...current, createGoodsReceivedRow()], { immediate: true })
+    commitRows((current) => [...current, createGoodsAcquiredRow()], { immediate: true })
   }
 
   function deleteRow(rowId) {
     commitRows((current) => {
       const next = current.filter((row) => row.id !== rowId)
-      return next.length > 0 ? next : [createGoodsReceivedRow()]
+      return next.length > 0 ? next : [createGoodsAcquiredRow()]
     }, { immediate: true })
   }
 
-  const dayTotal =
-    rows.reduce((sum, row) => sum + (Number(row.totalCost) || 0), 0)
+  const dayTotal = rows.reduce((sum, row) => sum + (Number(row.totalCost) || 0), 0)
 
   return (
     <div className="space-y-6">
       <header className="space-y-2">
         <Link
-          href={getGoodsReceivedDailyFileHref(projectId, dayId)}
+          href={getGoodsAcquiredDailyFileHref(projectId, dayId)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
           Back to daily dashboard
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Goods received entry
+          Goods acquired entry
         </p>
         <h1
           suppressHydrationWarning
@@ -176,21 +137,14 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
           {projectName || "Project"}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
-          {dayLabel} · Total cost of good = quantity × unit price. Current goods balance =
-          acquired quantity − received quantity for each description.
+          {dayLabel} · Total cost = quantity of good acquired × unit price.
         </p>
       </header>
-
-      <AcquiredGoodsBalanceHeading
-        totalQuantity={acquiredTotals.totalQuantity}
-        totalCost={acquiredTotals.totalCost}
-        periodLabel={dayLabel}
-      />
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
           <div>
-            <h2 className="text-base font-semibold text-zinc-900">Goods received entry table</h2>
+            <h2 className="text-base font-semibold text-zinc-900">Goods acquired entry table</h2>
             <p className="text-sm text-zinc-500">
               Day total {formatMaterialCurrencyAmount(dayTotal)}
             </p>
@@ -210,7 +164,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
           <table className="min-w-full border-collapse text-sm">
             <thead>
               <tr className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                {GOODS_RECEIVED_COLUMNS.map((column) => (
+                {GOODS_ACQUIRED_COLUMNS.map((column) => (
                   <th
                     key={column.key}
                     className={`border-b border-zinc-200 px-3 py-3 ${
@@ -249,7 +203,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
                   <td className="px-3 py-2">
                     <input
                       type="text"
-                      value={row.unit}
+                      value={row.unit || ""}
                       onChange={(event) => updateRow(row.id, "unit", event.target.value)}
                       placeholder="Unit"
                       className="w-full min-w-[5rem] rounded-md border border-zinc-200 px-2 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
@@ -300,9 +254,6 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
                   <td className="px-3 py-2 text-right font-medium text-zinc-900">
                     {formatMaterialCurrencyAmount(row.totalCost)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-zinc-800">
-                    {formatMaterialAmount(balanceForRow(row))}
-                  </td>
                   <td className="px-3 py-2 text-right">
                     <button
                       type="button"
@@ -325,7 +276,6 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
                   {formatMaterialCurrencyAmount(dayTotal)}
                 </td>
                 <td className="px-3 py-3" />
-                <td className="px-3 py-3" />
               </tr>
             </tfoot>
           </table>
@@ -341,7 +291,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
             Add row
           </button>
           <p className="text-xs text-zinc-500">
-            Entries save as you type. Total cost and current goods balance update automatically.
+            Entries save as you type. Total cost updates automatically.
           </p>
         </div>
       </section>

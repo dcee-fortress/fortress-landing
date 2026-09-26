@@ -13,7 +13,7 @@ export default async function WeeklyGoodsReceivedPage({ params }) {
     <GoodsReceivedRollupPageClient
       projectId={projectId}
       title="Weekly goods received"
-      description="Weekly table of description, quantity, and total cost rolled up from daily goods received entries."
+      description="Weekly table of description, unit, quantity, total cost, and current goods balance rolled up from daily goods received entries."
       mode="weekly"
     />
   )

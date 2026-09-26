@@ -5,27 +5,22 @@ import {
   formatMaterialCurrencyAmount,
 } from "@/lib/plantCostCalculations"
 
-export const GOODS_RECEIVED_DASHBOARD_COLUMNS = [
+export const GOODS_ACQUIRED_DASHBOARD_COLUMNS = [
   { key: "description", label: "Description of good", align: "left" },
   { key: "unit", label: "Unit", align: "left" },
   { key: "quantity", label: "Quantity of good", align: "right" },
-  { key: "totalCost", label: "Total cost of good", align: "right" },
-  { key: "currentGoodsBalance", label: "Current goods balance", align: "right" },
+  { key: "totalCost", label: "Total cost", align: "right" },
 ]
 
-export default function GoodsReceivedDashboardTable({ lines, emptyMessage }) {
+export default function GoodsAcquiredDashboardTable({ lines, emptyMessage }) {
   const rows = Array.isArray(lines) ? lines : []
   const totalCost = rows.reduce((sum, row) => sum + (Number(row.totalCost) || 0), 0)
   const totalQuantity = rows.reduce((sum, row) => sum + (Number(row.quantity) || 0), 0)
-  const totalBalance = rows.reduce(
-    (sum, row) => sum + (Number(row.currentGoodsBalance) || 0),
-    0
-  )
 
   if (rows.length === 0) {
     return (
       <p className="px-4 py-8 text-center text-sm text-zinc-500 sm:px-5">
-        {emptyMessage || "No goods received entries yet."}
+        {emptyMessage || "No goods acquired entries yet."}
       </p>
     )
   }
@@ -35,7 +30,7 @@ export default function GoodsReceivedDashboardTable({ lines, emptyMessage }) {
       <table className="min-w-full border-collapse text-sm">
         <thead>
           <tr className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            {GOODS_RECEIVED_DASHBOARD_COLUMNS.map((column) => (
+            {GOODS_ACQUIRED_DASHBOARD_COLUMNS.map((column) => (
               <th
                 key={column.key}
                 className={`border-b border-zinc-200 px-3 py-3 ${
@@ -58,9 +53,6 @@ export default function GoodsReceivedDashboardTable({ lines, emptyMessage }) {
               <td className="px-3 py-2.5 text-right tabular-nums font-medium text-zinc-900">
                 {formatMaterialCurrencyAmount(row.totalCost)}
               </td>
-              <td className="px-3 py-2.5 text-right tabular-nums text-zinc-800">
-                {formatMaterialAmount(row.currentGoodsBalance)}
-              </td>
             </tr>
           ))}
         </tbody>
@@ -74,9 +66,6 @@ export default function GoodsReceivedDashboardTable({ lines, emptyMessage }) {
             </td>
             <td className="px-3 py-3 text-right tabular-nums">
               {formatMaterialCurrencyAmount(totalCost)}
-            </td>
-            <td className="px-3 py-3 text-right tabular-nums">
-              {formatMaterialAmount(totalBalance)}
             </td>
           </tr>
         </tfoot>
