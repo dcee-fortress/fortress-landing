@@ -5,7 +5,12 @@ import Icon from "@/components/icon/icon"
 import {
   formatMaterialCurrencyAmount,
 } from "@/lib/plantCostCalculations"
-import { getPettyCashDayTotals, hasPettyCashDataForDay } from "@/lib/pettyCash"
+import PettyCashDashboardTable from "@/components/project/PettyCashDashboardTable"
+import {
+  getPettyCashDashboardLinesForDayIds,
+  getPettyCashDayTotals,
+  hasPettyCashDataForDay,
+} from "@/lib/pettyCash"
 import {
   getPettyCashDailyHref,
   getPettyCashEntryHref,
@@ -46,7 +51,8 @@ export default function DailyPettyCashDayView({ projectId, projectName, dayId })
           <div>
             <h2 className="text-lg font-semibold text-zinc-900">Daily total</h2>
             <p className="mt-1 text-sm text-zinc-500">
-              Totals from the petty cash entry table for this day.
+              Totals from the petty cash entry table for this day. Every day starts at a zero
+              balance; this balance belongs to this day only.
             </p>
           </div>
           <span
@@ -86,6 +92,13 @@ export default function DailyPettyCashDayView({ projectId, projectName, dayId })
             </dd>
           </div>
         </dl>
+
+        <div className="mt-5 overflow-hidden rounded-xl border border-zinc-200">
+          <PettyCashDashboardTable
+            lines={getPettyCashDashboardLinesForDayIds(projectId, [dayId])}
+            emptyMessage="No petty cash entries for this day yet."
+          />
+        </div>
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">

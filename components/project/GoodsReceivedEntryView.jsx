@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import AcquiredGoodsBalanceHeading from "@/components/project/AcquiredGoodsBalanceHeading"
+import FormulaAmountInput from "@/components/project/FormulaAmountInput"
 import {
   GOODS_RECEIVED_COLUMNS,
   createGoodsReceivedRow,
@@ -136,10 +137,14 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
     setSaveState(immediate ? "saving" : "pending")
   }
 
-  function updateRow(rowId, key, value) {
+  function updateRowFields(rowId, patch) {
     commitRows((current) =>
-      current.map((row) => (row.id === rowId ? { ...row, [key]: value } : row))
+      current.map((row) => (row.id === rowId ? { ...row, ...patch } : row))
     )
+  }
+
+  function updateRow(rowId, key, value) {
+    updateRowFields(rowId, { [key]: value })
   }
 
   function addRow() {
@@ -256,13 +261,14 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
                     />
                   </td>
                   <td className="px-3 py-2">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={formatInputAmount(row.quantity)}
-                      onChange={(event) => updateRow(row.id, "quantity", event.target.value)}
-                      placeholder="0"
-                      className="w-full min-w-[6rem] rounded-md border border-zinc-200 px-2 py-1.5 text-right text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
+                    <FormulaAmountInput
+                      ariaLabel="Quantity"
+                      value={row.quantity}
+                      formula={row.quantityFormula}
+                      minWidthClass="min-w-[6rem]"
+                      onChange={(value, formula) =>
+                        updateRowFields(row.id, { quantity: value, quantityFormula: formula })
+                      }
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -341,7 +347,8 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
             Add row
           </button>
           <p className="text-xs text-zinc-500">
-            Entries save as you type. Total cost and current goods balance update automatically.
+            Entries save as you type. Quantity accepts formulas like =12*4 or =(5+3)/2. Total cost
+            and current goods balance update automatically.
           </p>
         </div>
       </section>

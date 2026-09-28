@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
+import FormulaAmountInput, { resolveFormulaAmount } from "@/components/project/FormulaAmountInput"
 import SiteCameraCapture from "@/components/project/SiteCameraCapture"
 import {
   DEFAULT_VAT_RATE,
@@ -35,6 +36,7 @@ import {
   removeStoredProgressPhoto,
   toPhotoMetadata,
 } from "@/lib/progressReportPhotos"
+import { isFormula } from "@/lib/materialScheduleFormulas"
 import { getPettyCashDailyFileHref } from "@/lib/projectRoutes"
 import { getDailyFile } from "@/lib/projectFiles"
 
@@ -56,6 +58,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
   const [photoUploadError, setPhotoUploadError] = useState("")
   const [isCameraOpen, setIsCameraOpen] = useState(false)
   const [viewingPhoto, setViewingPhoto] = useState(null)
+  const [selectedCell, setSelectedCell] = useState(null)
   const saveTimerRef = useRef(0)
   const rowsRef = useRef([])
   const photoInputRef = useRef(null)
@@ -271,6 +274,16 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
     )
   }
 
+  function updateAmountFields(rowId, patch) {
+    commitRows((current) =>
+      current.map((row) =>
+        row.id !== rowId || isVatRow(row)
+          ? row
+          : { ...row, ...patch, date: formatPettyCashDate(dayId) }
+      )
+    )
+  }
+
   function addRow() {
     commitRows((current) => {
       const nonVat = current.filter((row) => !isVatRow(row))
@@ -286,6 +299,33 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
       if (target && isVatRow(target)) return current
       return current.filter((row) => row.id !== rowId)
     }, { immediate: true })
+  }
+
+  const selectedRowIndex = selectedCell
+    ? rows.findIndex((row) => row.id === selectedCell.rowId)
+    : -1
+  const selectedRow = selectedRowIndex >= 0 ? rows[selectedRowIndex] : null
+  const selectedColumnLabel = selectedCell
+    ? PETTY_CASH_COLUMNS.find((column) => column.key === selectedCell.key)?.label || ""
+    : ""
+  const selectedFormula = selectedRow
+    ? String(selectedRow[`${selectedCell.key}Formula`] ?? "")
+    : ""
+  const formulaBarValue = selectedRow
+    ? selectedFormula || String(selectedRow[selectedCell.key] ?? "")
+    : ""
+  const selectedResult =
+    selectedRow && isFormula(selectedFormula) && String(selectedRow[selectedCell.key] ?? "") !== ""
+      ? formatMaterialCurrencyAmount(selectedRow[selectedCell.key])
+      : ""
+
+  function updateSelectedCellFromBar(text) {
+    if (!selectedRow) return
+    const next = resolveFormulaAmount(text)
+    updateAmountFields(selectedRow.id, {
+      [selectedCell.key]: next.value,
+      [`${selectedCell.key}Formula`]: next.formula,
+    })
   }
 
   const closingBalance =
@@ -324,7 +364,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
           <div>
             <h2 className="text-base font-semibold text-zinc-900">Petty cash entry table</h2>
             <p className="text-sm text-zinc-500">
-              Opening balance {formatMaterialCurrencyAmount(openingBalance)}
+              Each day starts at a {formatMaterialCurrencyAmount(openingBalance)} balance
               {vatRow
                 ? ` · VAT rate ${vatRate}% applied to total amount paid`
                 : ""}
@@ -339,6 +379,40 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
                   ? "Save failed"
                   : "Saved"}
           </p>
+        </div>
+
+        <div className="border-b border-zinc-200 bg-white px-4 py-3 sm:px-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="rounded-md bg-zinc-900 px-2 py-1 text-xs font-semibold text-white">
+              {selectedRow ? `${selectedColumnLabel} · Row ${selectedRowIndex + 1}` : "Formula"}
+            </span>
+            <input
+              type="text"
+              inputMode="text"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="enter"
+              aria-label="Formula bar"
+              value={formulaBarValue}
+              disabled={!selectedRow}
+              onChange={(event) => updateSelectedCellFromBar(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault()
+                  event.currentTarget.blur()
+                }
+              }}
+              placeholder="Click a cash received or amount paid cell, then type a number or formula such as =250+120"
+              className="min-w-[16rem] flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 font-mono text-sm text-zinc-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-zinc-50"
+            />
+            {selectedResult ? (
+              <span className="text-sm font-bold tabular-nums text-zinc-900">
+                Result: {selectedResult}
+              </span>
+            ) : null}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -416,15 +490,20 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
                       {vat ? (
                         <span className="block text-right text-sm text-zinc-400">—</span>
                       ) : (
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={formatInputAmount(row.cashReceived)}
-                          onChange={(event) =>
-                            updateRow(row.id, "cashReceived", event.target.value)
+                        <FormulaAmountInput
+                          ariaLabel="Cash received"
+                          value={row.cashReceived}
+                          formula={row.cashReceivedFormula}
+                          isSelected={
+                            selectedCell?.rowId === row.id && selectedCell?.key === "cashReceived"
                           }
-                          placeholder="0"
-                          className="w-full min-w-[7rem] rounded-md border border-zinc-200 px-2 py-1.5 text-right text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
+                          onSelect={() => setSelectedCell({ rowId: row.id, key: "cashReceived" })}
+                          onChange={(value, formula) =>
+                            updateAmountFields(row.id, {
+                              cashReceived: value,
+                              cashReceivedFormula: formula,
+                            })
+                          }
                         />
                       )}
                     </td>
@@ -434,15 +513,20 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
                           {formatMaterialCurrencyAmount(row.amountPaid)}
                         </span>
                       ) : (
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={formatInputAmount(row.amountPaid)}
-                          onChange={(event) =>
-                            updateRow(row.id, "amountPaid", event.target.value)
+                        <FormulaAmountInput
+                          ariaLabel="Amount paid"
+                          value={row.amountPaid}
+                          formula={row.amountPaidFormula}
+                          isSelected={
+                            selectedCell?.rowId === row.id && selectedCell?.key === "amountPaid"
                           }
-                          placeholder="0"
-                          className="w-full min-w-[7rem] rounded-md border border-zinc-200 px-2 py-1.5 text-right text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
+                          onSelect={() => setSelectedCell({ rowId: row.id, key: "amountPaid" })}
+                          onChange={(value, formula) =>
+                            updateAmountFields(row.id, {
+                              amountPaid: value,
+                              amountPaidFormula: formula,
+                            })
+                          }
                         />
                       )}
                     </td>
@@ -472,7 +556,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
             <tfoot>
               <tr className="bg-zinc-50 font-semibold text-zinc-900">
                 <td className="px-3 py-3" colSpan={5}>
-                  Closing cash balance
+                  Cash balance for this day
                 </td>
                 <td className="px-3 py-3 text-right">
                   {formatMaterialCurrencyAmount(closingBalance)}
@@ -493,7 +577,8 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
             Add row
           </button>
           <p className="text-xs text-zinc-500">
-            Entries save as you type. VAT row cannot be deleted.
+            Entries save as you type. Cash received and amount paid accept formulas like
+            =250+120. VAT row cannot be deleted.
           </p>
         </div>
       </section>

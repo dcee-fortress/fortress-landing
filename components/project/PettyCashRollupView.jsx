@@ -4,9 +4,11 @@ import { useMemo } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
+import PettyCashDashboardTable from "@/components/project/PettyCashDashboardTable"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { formatMaterialCurrencyAmount } from "@/lib/plantCostCalculations"
 import {
+  getPettyCashDashboardLinesForDayIds,
   getPettyCashDayIds,
   getPettyCashDayIdsInMonth,
   getPettyCashDayIdsInWeek,
@@ -63,6 +65,7 @@ export default function PettyCashRollupView({
           id: "project-to-date",
           label: "Project to date",
           totals,
+          lines: getPettyCashDashboardLinesForDayIds(projectId, dayIds),
           dayIds,
         },
       ]
@@ -75,6 +78,7 @@ export default function PettyCashRollupView({
           id: file.id,
           label: file.label,
           totals: getPettyCashTotalsForDayIds(projectId, dayIds),
+          lines: getPettyCashDashboardLinesForDayIds(projectId, dayIds),
           dayIds,
         }
       })
@@ -86,6 +90,7 @@ export default function PettyCashRollupView({
         id: file.id,
         label: file.label,
         totals: getPettyCashTotalsForDayIds(projectId, dayIds),
+        lines: getPettyCashDashboardLinesForDayIds(projectId, dayIds),
         dayIds,
       }
     })
@@ -125,12 +130,19 @@ export default function PettyCashRollupView({
                   <h2 className="text-lg font-semibold text-zinc-900">{period.label}</h2>
                   <p className="mt-1 text-sm text-zinc-500">
                     Rolled up from {period.dayIds.length} daily file
-                    {period.dayIds.length === 1 ? "" : "s"} with petty cash entries.
+                    {period.dayIds.length === 1 ? "" : "s"} with petty cash entries. Cash balance
+                    is the sum of each day&apos;s balance; same descriptions add up.
                   </p>
                 </div>
               </div>
               <div className="mt-5">
                 <TotalsGrid totals={period.totals} />
+              </div>
+              <div className="mt-5 overflow-hidden rounded-xl border border-zinc-200">
+                <PettyCashDashboardTable
+                  lines={period.lines}
+                  emptyMessage="No petty cash entries in this period yet."
+                />
               </div>
               {period.dayIds.length > 0 ? (
                 <ul className="mt-4 flex flex-wrap gap-2">

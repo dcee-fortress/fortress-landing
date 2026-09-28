@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import ActivityDescriptionInput from "@/components/project/ActivityDescriptionInput"
+import CellHoverCard from "@/components/project/CellHoverCard"
 import ExportPdfButton from "@/components/project/ExportPdfButton"
 import FormulaSuggestionMenu from "@/components/project/FormulaSuggestionMenu"
 import MaterialScheduleFormulaCell from "@/components/project/MaterialScheduleFormulaCell"
@@ -62,6 +63,8 @@ function MaterialScheduleEditor({
   const [formulaBarMenuOpen, setFormulaBarMenuOpen] = useState(false)
   const [formulaBarDismissed, setFormulaBarDismissed] = useState(false)
   const [formulaBarActiveIndex, setFormulaBarActiveIndex] = useState(0)
+  const [hoverCard, setHoverCard] = useState(null)
+  const closeHoverCard = useCallback(() => setHoverCard(null), [])
   const activitySuggestions = useMemo(() => {
     return [...getAllBoqItemNames(projectId), ...getActivityDescriptionsForSlot(projectId, dayId, slotId)]
   }, [projectId, dayId, slotId])
@@ -517,9 +520,23 @@ function MaterialScheduleEditor({
                         String(rawValue).trim() === "" &&
                         hasMeaningfulAutoValue
 
+                      const showsHoverCard =
+                        column.key !== "date" && column.key !== "activityDescription"
+
                       return (
                         <td
                           key={column.key}
+                          onMouseEnter={
+                            showsHoverCard
+                              ? (event) =>
+                                  setHoverCard({
+                                    rect: event.currentTarget.getBoundingClientRect(),
+                                    description: String(row.activityDescription ?? "").trim(),
+                                    columnLabel: column.label,
+                                  })
+                              : undefined
+                          }
+                          onMouseLeave={showsHoverCard ? closeHoverCard : undefined}
                           className={`px-3 py-3 ${
                             column.key === "activityDescription" || column.key === "details"
                               ? "min-w-[12rem] max-w-[20rem]"
@@ -619,6 +636,7 @@ function MaterialScheduleEditor({
               </tr>
             </tbody>
           </table>
+          <CellHoverCard card={hoverCard} onClose={closeHoverCard} />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 bg-zinc-50 px-6 py-4">
