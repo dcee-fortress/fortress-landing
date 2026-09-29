@@ -37,6 +37,16 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
   const { version } = useProjectData()
   const [hoursById, setHoursById] = useState(() => getDailyEquipmentHoursData(projectId, fileId).entries)
 
+  const [loadedVersion, setLoadedVersion] = useState(version)
+
+  if (loadedVersion !== version) {
+    setLoadedVersion(version)
+    const stored = getDailyEquipmentHoursData(projectId, fileId).entries
+    if (JSON.stringify(stored) !== JSON.stringify(hoursById)) {
+      setHoursById(stored)
+    }
+  }
+
   const persist = useCallback(
     (updater) => {
       setHoursById((current) => {
