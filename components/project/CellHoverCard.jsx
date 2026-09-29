@@ -1,7 +1,41 @@
 "use client"
 
-import { useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { createPortal } from "react-dom"
+
+/**
+ * Row-level hover binding. `labelsByCellIndex[i]` is the column heading for the i-th
+ * cell of the row; cells with no label (e.g. description, date, delete) show no card.
+ */
+export function useCellHoverCard() {
+  const [card, setCard] = useState(null)
+  const close = useCallback(() => setCard(null), [])
+
+  const bindRow = (description, labelsByCellIndex) => ({
+    onMouseOver: (event) => {
+      const cell = event.target.closest?.("td")
+      if (!cell || !event.currentTarget.contains(cell)) return
+      const columnLabel = labelsByCellIndex[cell.cellIndex]
+      if (!columnLabel) {
+        setCard(null)
+        return
+      }
+      setCard((current) =>
+        current?.cell === cell
+          ? current
+          : {
+              cell,
+              rect: cell.getBoundingClientRect(),
+              description: String(description ?? "").trim(),
+              columnLabel,
+            }
+      )
+    },
+    onMouseLeave: close,
+  })
+
+  return { card, close, bindRow }
+}
 
 export default function CellHoverCard({ card, onClose }) {
   useEffect(() => {

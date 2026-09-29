@@ -1,9 +1,13 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
+import CellHoverCard, { useCellHoverCard } from "@/components/project/CellHoverCard"
 import FormulaAmountInput, { resolveFormulaAmount } from "@/components/project/FormulaAmountInput"
+import MemoryTextInput from "@/components/project/MemoryTextInput"
+import { useProjects } from "@/components/project/ProjectsProvider"
+import { buildCellHistory, searchCellHistory } from "@/lib/cellHistory"
 import SiteCameraCapture from "@/components/project/SiteCameraCapture"
 import {
   DEFAULT_VAT_RATE,
@@ -12,6 +16,7 @@ import {
   formatPettyCashDate,
   formatVatDescription,
   getOpeningBalanceForDay,
+  getPettyCashHistoryRows,
   getPettyCashReceipts,
   getPettyCashRows,
   isVatRow,
@@ -47,6 +52,12 @@ function formatInputAmount(value) {
   return String(parsed)
 }
 
+const HOVER_LABELS = PETTY_CASH_COLUMNS.map((column) =>
+  column.key === "date" || column.key === "description" ? null : column.label
+)
+
+const PETTY_CASH_MEMORY_KEYS = ["description", "cashIssuedTo", "cashReceived", "amountPaid"]
+
 export default function PettyCashEntryView({ projectId, projectName, dayId }) {
   const file = getDailyFile(projectId, dayId)
   const dayLabel = file?.label || dayId
@@ -61,6 +72,28 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
   const [selectedCell, setSelectedCell] = useState(null)
   const saveTimerRef = useRef(0)
   const rowsRef = useRef([])
+  const hover = useCellHoverCard()
+  const { version } = useProjects()
+
+  const savedHistoryRows = useMemo(() => {
+    void version
+    return getPettyCashHistoryRows(projectId, dayId)
+  }, [dayId, projectId, version])
+
+  const history = useMemo(
+    () =>
+      buildCellHistory(
+        [...savedHistoryRows, ...rows.filter((row) => !isVatRow(row))],
+        PETTY_CASH_MEMORY_KEYS
+      ),
+    [rows, savedHistoryRows]
+  )
+
+  const suggestFor = (row, key) => (query) =>
+    searchCellHistory(history, key, {
+      query,
+      description: key === "description" ? "" : row.description,
+    })
   const photoInputRef = useRef(null)
 
   const loadRows = useCallback(() => {
@@ -441,6 +474,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
                     className={`border-b border-zinc-100 align-top ${
                       vat ? "bg-amber-50/60" : ""
                     }`}
+                    {...hover.bindRow(row.description, HOVER_LABELS)}
                   >
                     <td className="px-3 py-2 text-zinc-700">{formatPettyCashDate(dayId)}</td>
                     <td className="px-3 py-2">
@@ -460,12 +494,12 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
                           <span className="text-sm font-semibold text-zinc-800">%</span>
                         </div>
                       ) : (
-                        <textarea
+                        <MemoryTextInput
+                          multiline
                           rows={2}
                           value={row.description}
-                          onChange={(event) =>
-                            updateRow(row.id, "description", event.target.value)
-                          }
+                          suggest={suggestFor(row, "description")}
+                          onChange={(value) => updateRow(row.id, "description", value)}
                           placeholder="Description of transaction"
                           className="w-full min-w-[14rem] rounded-md border border-zinc-200 px-2 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
                         />
@@ -475,12 +509,10 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
                       {vat ? (
                         <span className="text-sm text-zinc-400">—</span>
                       ) : (
-                        <input
-                          type="text"
+                        <MemoryTextInput
                           value={row.cashIssuedTo}
-                          onChange={(event) =>
-                            updateRow(row.id, "cashIssuedTo", event.target.value)
-                          }
+                          suggest={suggestFor(row, "cashIssuedTo")}
+                          onChange={(value) => updateRow(row.id, "cashIssuedTo", value)}
                           placeholder="Name"
                           className="w-full min-w-[10rem] rounded-md border border-zinc-200 px-2 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
                         />
@@ -494,6 +526,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
                           ariaLabel="Cash received"
                           value={row.cashReceived}
                           formula={row.cashReceivedFormula}
+                          suggest={suggestFor(row, "cashReceived")}
                           isSelected={
                             selectedCell?.rowId === row.id && selectedCell?.key === "cashReceived"
                           }
@@ -517,6 +550,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
                           ariaLabel="Amount paid"
                           value={row.amountPaid}
                           formula={row.amountPaidFormula}
+                          suggest={suggestFor(row, "amountPaid")}
                           isSelected={
                             selectedCell?.rowId === row.id && selectedCell?.key === "amountPaid"
                           }
@@ -565,6 +599,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
               </tr>
             </tfoot>
           </table>
+          <CellHoverCard card={hover.card} onClose={hover.close} />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 px-4 py-3 sm:px-5">

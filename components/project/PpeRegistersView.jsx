@@ -16,7 +16,7 @@ export default function PpeRegistersView({ projectId, projectName }) {
           <Icon name="arrow-left" size={16} />
           Back to Safety & Health
         </Link>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">PPE registers</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Registers</p>
         <h1
           suppressHydrationWarning
           className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl"

@@ -10,7 +10,7 @@ import {
 const SAFETY_HEALTH_OPTIONS = [
   {
     key: "ppe-registers",
-    label: "PPE registers",
+    label: "Registers",
     description: "Site staff attendance and induction register files",
     icon: "list",
     href: getPpeRegistersHref,
@@ -45,7 +45,7 @@ export default function SafetyHealthView({ projectId, projectName }) {
           {projectName}
         </h1>
         <p className="max-w-2xl text-zinc-500">
-          Safety and health tools for this project — PPE registers, personal protective equipment,
+          Safety and health tools for this project — registers, personal protective equipment,
           and safety reports.
         </p>
       </header>

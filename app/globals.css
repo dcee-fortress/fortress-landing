@@ -340,6 +340,23 @@
     margin: 0.75rem 0 0.5rem;
 }
 
+.rich-text-editor__content h4,
+.rich-text-editor__content h5,
+.rich-text-editor__content h6 {
+    font-size: 12pt;
+    font-weight: 700;
+    margin: 0.75rem 0 0.5rem;
+}
+
+.rich-text-editor__content h5,
+.rich-text-editor__content h6 {
+    font-size: 11pt;
+}
+
+.rich-text-editor__content h6 {
+    font-style: italic;
+}
+
 .rich-text-editor__content p {
     margin: 0 0 0.5rem;
     min-height: 1em;
@@ -357,6 +374,18 @@
 
 .rich-text-editor__content ol {
     list-style-type: decimal;
+}
+
+.rich-text-editor__content ul ul {
+    list-style-type: circle;
+}
+
+.rich-text-editor__content ul ul ul {
+    list-style-type: square;
+}
+
+.rich-text-editor__content ol ol {
+    list-style-type: lower-alpha;
 }
 
 .rich-text-editor__content a {

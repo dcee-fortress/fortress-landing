@@ -27,6 +27,11 @@ const nextConfig = {
         destination: "/favicon.svg",
         permanent: true,
       },
+      {
+        source: "/project/:projectId/dashboard/goods-acquired/:path*",
+        destination: "/project/:projectId/dashboard/goods-requested/:path*",
+        permanent: true,
+      },
     ]
   },
   webpack: (config, { dev }) => {

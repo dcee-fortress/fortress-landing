@@ -1,16 +1,22 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
+import CellHoverCard, { useCellHoverCard } from "@/components/project/CellHoverCard"
 import FormulaAmountInput from "@/components/project/FormulaAmountInput"
+import MemoryTextInput from "@/components/project/MemoryTextInput"
+import { useProjects } from "@/components/project/ProjectsProvider"
+import { buildCellHistory, searchCellHistory } from "@/lib/cellHistory"
 import {
   GOODS_ACQUIRED_COLUMNS,
   createGoodsAcquiredRow,
+  getGoodsAcquiredHistoryRows,
   getGoodsAcquiredRows,
   withGoodsAcquiredTotals,
   saveGoodsAcquiredRows,
 } from "@/lib/goodsAcquired"
+import { getGoodsReceivedHistoryRows } from "@/lib/goodsReceived"
 import {
   formatMaterialCurrencyAmount,
   parsePlantCostAmount,
@@ -25,6 +31,20 @@ function formatInputAmount(value) {
   return String(parsed)
 }
 
+const HOVER_LABELS = GOODS_ACQUIRED_COLUMNS.map((column) =>
+  column.key === "description" ? null : column.label
+)
+
+const GOODS_MEMORY_KEYS = [
+  "description",
+  "supplier",
+  "unit",
+  "quantity",
+  "invoiceNumber",
+  "orderNumber",
+  "unitPrice",
+]
+
 export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }) {
   const file = getDailyFile(projectId, dayId)
   const dayLabel = file?.label || dayId
@@ -32,6 +52,27 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
   const [saveState, setSaveState] = useState("saved")
   const saveTimerRef = useRef(0)
   const rowsRef = useRef([])
+  const hover = useCellHoverCard()
+  const { version } = useProjects()
+
+  const savedHistoryRows = useMemo(() => {
+    void version
+    return [
+      ...getGoodsAcquiredHistoryRows(projectId, dayId),
+      ...getGoodsReceivedHistoryRows(projectId),
+    ]
+  }, [dayId, projectId, version])
+
+  const history = useMemo(
+    () => buildCellHistory([...savedHistoryRows, ...rows], GOODS_MEMORY_KEYS),
+    [rows, savedHistoryRows]
+  )
+
+  const suggestFor = (row, key) => (query) =>
+    searchCellHistory(history, key, {
+      query,
+      description: key === "description" ? "" : row.description,
+    })
 
   const loadRows = useCallback(() => {
     setRows(getGoodsAcquiredRows(projectId, dayId))
@@ -184,32 +225,36 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} className="border-b border-zinc-100 align-top">
+                <tr
+                  key={row.id}
+                  className="border-b border-zinc-100 align-top"
+                  {...hover.bindRow(row.description, HOVER_LABELS)}
+                >
                   <td className="px-3 py-2">
-                    <textarea
+                    <MemoryTextInput
+                      multiline
                       rows={2}
                       value={row.description}
-                      onChange={(event) =>
-                        updateRow(row.id, "description", event.target.value)
-                      }
+                      suggest={suggestFor(row, "description")}
+                      onChange={(value) => updateRow(row.id, "description", value)}
                       placeholder="Description of good"
                       className="w-full min-w-[14rem] rounded-md border border-zinc-200 px-2 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
                     />
                   </td>
                   <td className="px-3 py-2">
-                    <input
-                      type="text"
+                    <MemoryTextInput
                       value={row.supplier}
-                      onChange={(event) => updateRow(row.id, "supplier", event.target.value)}
+                      suggest={suggestFor(row, "supplier")}
+                      onChange={(value) => updateRow(row.id, "supplier", value)}
                       placeholder="Supplier"
                       className="w-full min-w-[10rem] rounded-md border border-zinc-200 px-2 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
                     />
                   </td>
                   <td className="px-3 py-2">
-                    <input
-                      type="text"
+                    <MemoryTextInput
                       value={row.unit || ""}
-                      onChange={(event) => updateRow(row.id, "unit", event.target.value)}
+                      suggest={suggestFor(row, "unit")}
+                      onChange={(value) => updateRow(row.id, "unit", value)}
                       placeholder="Unit"
                       className="w-full min-w-[5rem] rounded-md border border-zinc-200 px-2 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
                     />
@@ -220,39 +265,36 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
                       value={row.quantity}
                       formula={row.quantityFormula}
                       minWidthClass="min-w-[6rem]"
+                      suggest={suggestFor(row, "quantity")}
                       onChange={(value, formula) =>
                         updateRowFields(row.id, { quantity: value, quantityFormula: formula })
                       }
                     />
                   </td>
                   <td className="px-3 py-2">
-                    <input
-                      type="text"
+                    <MemoryTextInput
                       value={row.invoiceNumber}
-                      onChange={(event) =>
-                        updateRow(row.id, "invoiceNumber", event.target.value)
-                      }
+                      suggest={suggestFor(row, "invoiceNumber")}
+                      onChange={(value) => updateRow(row.id, "invoiceNumber", value)}
                       placeholder="Invoice #"
                       className="w-full min-w-[8rem] rounded-md border border-zinc-200 px-2 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
                     />
                   </td>
                   <td className="px-3 py-2">
-                    <input
-                      type="text"
+                    <MemoryTextInput
                       value={row.orderNumber}
-                      onChange={(event) =>
-                        updateRow(row.id, "orderNumber", event.target.value)
-                      }
+                      suggest={suggestFor(row, "orderNumber")}
+                      onChange={(value) => updateRow(row.id, "orderNumber", value)}
                       placeholder="Order #"
                       className="w-full min-w-[8rem] rounded-md border border-zinc-200 px-2 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
                     />
                   </td>
                   <td className="px-3 py-2">
-                    <input
-                      type="text"
+                    <MemoryTextInput
                       inputMode="decimal"
                       value={formatInputAmount(row.unitPrice)}
-                      onChange={(event) => updateRow(row.id, "unitPrice", event.target.value)}
+                      suggest={suggestFor(row, "unitPrice")}
+                      onChange={(value) => updateRow(row.id, "unitPrice", value)}
                       placeholder="0"
                       className="w-full min-w-[7rem] rounded-md border border-zinc-200 px-2 py-1.5 text-right text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
                     />
@@ -285,6 +327,7 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
               </tr>
             </tfoot>
           </table>
+          <CellHoverCard card={hover.card} onClose={hover.close} />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 px-4 py-3 sm:px-5">

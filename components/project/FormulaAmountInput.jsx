@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useEntrySuggestions } from "@/components/project/EntrySuggestionMenu"
 import { evaluateFormula, isFormula } from "@/lib/materialScheduleFormulas"
 import { parsePlantCostAmount } from "@/lib/plantCostCalculations"
 
@@ -30,9 +31,16 @@ export default function FormulaAmountInput({
   minWidthClass = "min-w-[7rem]",
   onSelect,
   isSelected = false,
+  suggest,
 }) {
   const [focused, setFocused] = useState(false)
   const [draft, setDraft] = useState("")
+  const applyText = (text) => {
+    setDraft(text)
+    const next = resolveFormulaAmount(text)
+    onChange(next.value, next.formula)
+  }
+  const suggestions = useEntrySuggestions(suggest, applyText)
   const hasFormula = isFormula(formula)
   const invalid = hasFormula && evaluateFormula(formula) === null
   const idleText = invalid ? formula : formatIdleAmount(value)
@@ -55,13 +63,15 @@ export default function FormulaAmountInput({
           onSelect?.()
         }}
         onChange={(event) => {
-          const text = event.target.value
-          setDraft(text)
-          const next = resolveFormulaAmount(text)
-          onChange(next.value, next.formula)
+          applyText(event.target.value)
+          suggestions.update(event.target.value, event.currentTarget)
         }}
-        onBlur={() => setFocused(false)}
+        onBlur={() => {
+          setFocused(false)
+          suggestions.close()
+        }}
         onKeyDown={(event) => {
+          if (suggestions.handleKeyDown(event)) return
           if (event.key === "Enter") {
             event.preventDefault()
             event.currentTarget.blur()
@@ -87,6 +97,7 @@ export default function FormulaAmountInput({
           fx
         </span>
       ) : null}
+      {suggestions.menu}
     </div>
   )
 }

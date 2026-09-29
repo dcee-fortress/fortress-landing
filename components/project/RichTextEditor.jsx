@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import Icon from "@/components/icon/icon"
+import { cleanPastedHtml } from "@/lib/cleanPastedHtml"
 
 const FONT_FAMILIES = [
   { label: "Calibri", value: "Calibri" },
@@ -264,6 +265,19 @@ export default function RichTextEditor({
     }
   }
 
+  const handlePaste = (event) => {
+    const html = event.clipboardData?.getData("text/html")
+    if (!html) return
+    event.preventDefault()
+    const cleaned = cleanPastedHtml(html)
+    if (cleaned) {
+      document.execCommand("insertHTML", false, cleaned)
+    } else {
+      document.execCommand("insertText", false, event.clipboardData.getData("text/plain"))
+    }
+    emitChange()
+  }
+
   const insertLink = () => {
     focusEditor()
     const url = window.prompt("Enter link URL")
@@ -495,6 +509,7 @@ export default function RichTextEditor({
           aria-label={placeholder}
           spellCheck
           onInput={emitChange}
+          onPaste={handlePaste}
           onKeyDown={handleKeyDown}
           onBlur={syncActiveStates}
           onFocus={syncActiveStates}
