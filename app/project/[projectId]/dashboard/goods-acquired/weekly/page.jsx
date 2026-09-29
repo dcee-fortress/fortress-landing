@@ -8,8 +8,8 @@ export default async function GoodsAcquiredweeklyPage({ params }) {
   return (
     <GoodsAcquiredRollupPageClient
       projectId={projectId}
-      title="Weekly goods acquired"
-      description="Weekly table of description, unit, quantity, and total cost rolled up from daily goods acquired entries."
+      title="Weekly goods requested"
+      description="Weekly table of description, unit, quantity, and total cost rolled up from daily goods requested entries."
       mode="weekly"
     />
   )

@@ -21,7 +21,7 @@ export default function GoodsAcquiredView({ projectId, projectName }) {
           Back to Purchases
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Goods acquired
+          Goods requested
         </p>
         <h1
           suppressHydrationWarning
@@ -30,7 +30,7 @@ export default function GoodsAcquiredView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Choose a goods acquired period to view or enter records.
+          Choose a goods requested period to view or enter records.
         </p>
       </header>
 

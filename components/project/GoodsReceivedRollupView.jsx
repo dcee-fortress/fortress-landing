@@ -112,7 +112,7 @@ export default function GoodsReceivedRollupView({
                   <h2 className="text-base font-semibold text-zinc-900">{period.label}</h2>
                   <p className="mt-0.5 text-sm text-zinc-500">
                     Rolled up from daily goods received entry · matching descriptions combined ·
-                    current goods balance = acquired − received
+                    current goods balance = requested − received
                   </p>
                 </div>
                 <GoodsReceivedDashboardTable lines={period.lines} />

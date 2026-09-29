@@ -70,7 +70,7 @@ export default function GoodsAcquiredRollupView({
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Goods acquired
+          Back to Goods requested
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{title}</p>
         <h1
@@ -87,11 +87,11 @@ export default function GoodsAcquiredRollupView({
       ) : visiblePeriods.length === 0 ? (
         <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div className="border-b border-zinc-200 px-4 py-3 sm:px-5">
-            <h2 className="text-base font-semibold text-zinc-900">Goods acquired table</h2>
+            <h2 className="text-base font-semibold text-zinc-900">Goods requested table</h2>
           </div>
           <GoodsAcquiredDashboardTable
             lines={[]}
-            emptyMessage="No goods acquired in this period yet. Add entries on daily goods acquired."
+            emptyMessage="No goods requested in this period yet. Add entries on daily goods requested."
           />
         </section>
       ) : (
@@ -104,7 +104,7 @@ export default function GoodsAcquiredRollupView({
               <div className="border-b border-zinc-200 px-4 py-3 sm:px-5">
                 <h2 className="text-base font-semibold text-zinc-900">{period.label}</h2>
                 <p className="mt-0.5 text-sm text-zinc-500">
-                  Rolled up from daily goods acquired entry · matching descriptions combined
+                  Rolled up from daily goods requested entry · matching descriptions combined
                 </p>
               </div>
               <GoodsAcquiredDashboardTable lines={period.lines} />

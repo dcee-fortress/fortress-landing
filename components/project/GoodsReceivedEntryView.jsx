@@ -182,7 +182,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
           {dayLabel} · Total cost of good = quantity × unit price. Current goods balance =
-          acquired quantity − received quantity for each description.
+          requested quantity − received quantity for each description.
         </p>
       </header>
 

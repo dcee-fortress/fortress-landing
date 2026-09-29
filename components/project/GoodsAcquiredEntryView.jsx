@@ -133,7 +133,7 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
           Back to daily dashboard
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Goods acquired entry
+          Goods requested entry
         </p>
         <h1
           suppressHydrationWarning
@@ -142,14 +142,14 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
           {projectName || "Project"}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
-          {dayLabel} · Total cost = quantity of good acquired × unit price.
+          {dayLabel} · Total cost = quantity of good requested × unit price.
         </p>
       </header>
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
           <div>
-            <h2 className="text-base font-semibold text-zinc-900">Goods acquired entry table</h2>
+            <h2 className="text-base font-semibold text-zinc-900">Goods requested entry table</h2>
             <p className="text-sm text-zinc-500">
               Day total {formatMaterialCurrencyAmount(dayTotal)}
             </p>
@@ -216,7 +216,7 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
                   </td>
                   <td className="px-3 py-2">
                     <FormulaAmountInput
-                      ariaLabel="Quantity of good acquired"
+                      ariaLabel="Quantity of good requested"
                       value={row.quantity}
                       formula={row.quantityFormula}
                       minWidthClass="min-w-[6rem]"

@@ -8,8 +8,8 @@ export default async function GoodsAcquiredmonthlyPage({ params }) {
   return (
     <GoodsAcquiredRollupPageClient
       projectId={projectId}
-      title="Monthly goods acquired"
-      description="Monthly table of description, unit, quantity, and total cost rolled up from daily goods acquired entries."
+      title="Monthly goods requested"
+      description="Monthly table of description, unit, quantity, and total cost rolled up from daily goods requested entries."
       mode="monthly"
     />
   )

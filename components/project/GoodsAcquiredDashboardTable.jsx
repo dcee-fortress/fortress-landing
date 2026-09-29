@@ -20,7 +20,7 @@ export default function GoodsAcquiredDashboardTable({ lines, emptyMessage }) {
   if (rows.length === 0) {
     return (
       <p className="px-4 py-8 text-center text-sm text-zinc-500 sm:px-5">
-        {emptyMessage || "No goods acquired entries yet."}
+        {emptyMessage || "No goods requested entries yet."}
       </p>
     )
   }

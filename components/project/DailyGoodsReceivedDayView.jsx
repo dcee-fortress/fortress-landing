@@ -45,7 +45,7 @@ export default function DailyGoodsReceivedDayView({ projectId, projectName, dayI
         <p className="text-sm text-zinc-500 sm:text-base">
           {projectName || "Project"} · Description, unit, quantity, total cost, and current goods
           balance roll up from entry. Matching descriptions are combined. Current goods balance =
-          acquired − received.
+          requested − received.
         </p>
       </header>
 
