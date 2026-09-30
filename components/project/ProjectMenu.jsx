@@ -8,7 +8,8 @@ import Icon from "@/components/icon/icon"
 import RestrictedAreaLoginDialog from "@/components/project/RestrictedAreaLoginDialog"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { APP_BRAND } from "@/lib/appBrand"
-import { isRestrictedAreaRemembered } from "@/lib/restrictedAreaAuth"
+import { RESTRICTED_AREA_REMEMBER_KEY, isRestrictedAreaRemembered } from "@/lib/restrictedAreaAuth"
+import { recordSavedLoginAutoOpen } from "@/lib/savedLoginLimit"
 import { getProjectHomeHref } from "@/lib/projectRoutes"
 
 const CreateProjectModal = dynamic(() => import("@/components/project/CreateProjectModal"), {
@@ -61,7 +62,10 @@ export default function ProjectMenu() {
   function requestRestrictedAction(intent) {
     setOpen(false)
     if (isRestrictedAreaRemembered()) {
-      if (intent === "create") setShowCreate(true)
+      if (intent === "create") {
+        recordSavedLoginAutoOpen(RESTRICTED_AREA_REMEMBER_KEY)
+        setShowCreate(true)
+      }
       if (intent === "settings") router.push("/settings")
       return
     }

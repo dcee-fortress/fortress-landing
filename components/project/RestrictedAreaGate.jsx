@@ -1,11 +1,18 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useHasHydrated } from "@/hooks/useHasHydrated"
 import {
+  RESTRICTED_AREA_REMEMBER_KEY,
   isRestrictedAreaRemembered,
   unlockRestrictedArea,
   validateRestrictedAreaCredentials,
 } from "@/lib/restrictedAreaAuth"
+import {
+  SAVED_LOGIN_AUTO_OPEN_LIMIT,
+  getSavedLoginStatus,
+  recordSavedLoginAutoOpen,
+} from "@/lib/savedLoginLimit"
 
 export default function RestrictedAreaGate({
   title = "Restricted area",
@@ -14,18 +21,32 @@ export default function RestrictedAreaGate({
   validateCredentials = validateRestrictedAreaCredentials,
   unlock = unlockRestrictedArea,
   isRemembered = isRestrictedAreaRemembered,
+  rememberKey = RESTRICTED_AREA_REMEMBER_KEY,
 }) {
-  const [ready, setReady] = useState(false)
-  const [unlocked, setUnlocked] = useState(false)
+  const hasHydrated = useHasHydrated()
+  const [access, setAccess] = useState(null)
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [remember, setRemember] = useState(false)
   const [error, setError] = useState("")
+  const countedRef = useRef(false)
+
+  if (hasHydrated && access === null) {
+    const remembered = isRemembered()
+    const renewalDue = !remembered && getSavedLoginStatus(rememberKey).renewalDue
+    setAccess({ unlocked: remembered, auto: remembered, renewalDue })
+    if (renewalDue) setRemember(true)
+  }
 
   useEffect(() => {
-    setUnlocked(isRemembered())
-    setReady(true)
-  }, [isRemembered])
+    if (!access?.auto || countedRef.current) return
+    countedRef.current = true
+    recordSavedLoginAutoOpen(rememberKey)
+  }, [access, rememberKey])
+
+  const ready = access !== null
+  const unlocked = Boolean(access?.unlocked)
+  const renewalDue = Boolean(access?.renewalDue)
 
   function handleSubmit(event) {
     event.preventDefault()
@@ -35,7 +56,7 @@ export default function RestrictedAreaGate({
     }
     unlock({ remember })
     setError("")
-    setUnlocked(true)
+    setAccess({ unlocked: true, auto: false, renewalDue: false })
   }
 
   if (!ready) {
@@ -57,6 +78,13 @@ export default function RestrictedAreaGate({
               <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Login required</p>
               <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">{title}</h1>
               <p className="text-sm text-zinc-500">{description}</p>
+              {renewalDue ? (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  Your saved login has opened this area automatically {SAVED_LOGIN_AUTO_OPEN_LIMIT} times.
+                  Enter the username and password to renew it for another{" "}
+                  {SAVED_LOGIN_AUTO_OPEN_LIMIT} automatic openings.
+                </p>
+              ) : null}
             </header>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -102,7 +130,10 @@ export default function RestrictedAreaGate({
                   onChange={(event) => setRemember(event.target.checked)}
                   className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500/30"
                 />
-                <span>Save username and password so this opens automatically next time</span>
+                <span>
+                  Save username and password so this opens automatically for the next{" "}
+                  {SAVED_LOGIN_AUTO_OPEN_LIMIT} visits
+                </span>
               </label>
 
               {error ? <p className="text-sm text-red-600">{error}</p> : null}

@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCloseOnOutsideScroll, useEntrySuggestions } from "@/components/project/EntrySuggestionMenu"
 import FormulaSuggestionMenu from "@/components/project/FormulaSuggestionMenu"
 import {
   rememberMaterialFormula,
@@ -33,17 +34,18 @@ export default function MaterialScheduleFormulaCell({
   onSelect,
   isSelected = false,
   columnLabel = "",
+  suggest = null,
 }) {
   const inputRef = useRef(null)
   const focusedRef = useRef(false)
   const draftRef = useRef("")
   const source = formulaValue || String(rawValue ?? "")
   const sourceRef = useRef(source)
-  sourceRef.current = source
   const [draft, setDraft] = useState(source)
   const [menuOpen, setMenuOpen] = useState(false)
   const [dismissed, setDismissed] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
+  const [menuRect, setMenuRect] = useState(null)
 
   const storedText = String(rawValue ?? "").trim()
   const autoAnswer = storedText === "" ? String(fallbackDisplay ?? "").trim() : ""
@@ -70,15 +72,17 @@ export default function MaterialScheduleFormulaCell({
   )
 
   const highlightedIndex = Math.min(activeIndex, Math.max(0, suggestions.length - 1))
+  const closeFormulaMenu = useCallback(() => setMenuOpen(false), [])
+  useCloseOnOutsideScroll(menuOpen && suggestions.length > 0, closeFormulaMenu)
+
+  useEffect(() => {
+    sourceRef.current = source
+  }, [source])
 
   useEffect(() => {
     if (focusedRef.current || !inputRef.current) return
     inputRef.current.value = idleValue
   }, [idleValue])
-
-  useEffect(() => {
-    setActiveIndex(0)
-  }, [draft, description, columnKey])
 
   const showFormatted = (value) => {
     if (!inputRef.current) return
@@ -123,6 +127,23 @@ export default function MaterialScheduleFormulaCell({
     setDismissed(true)
   }
 
+  const applyEntry = (text) => {
+    const next = String(text ?? "")
+    draftRef.current = next
+    setDraft(next)
+    if (inputRef.current) inputRef.current.value = next
+    persistDraft(next)
+    onLiveChange?.(next)
+  }
+
+  const entrySuggestions = useEntrySuggestions(suggest, applyEntry)
+
+  const refreshEntrySuggestions = (text, element) => {
+    if (!suggest) return
+    if (String(text ?? "").trim().startsWith("=")) entrySuggestions.close()
+    else entrySuggestions.update(text, element)
+  }
+
   return (
     <div className="relative min-w-[7rem]">
       <input
@@ -145,7 +166,10 @@ export default function MaterialScheduleFormulaCell({
           setDraft(sourceRef.current)
           event.target.value = sourceRef.current
           setDismissed(false)
+          setActiveIndex(0)
+          setMenuRect(event.currentTarget.getBoundingClientRect())
           setMenuOpen(isFormula(sourceRef.current) || sourceRef.current === "=")
+          refreshEntrySuggestions(sourceRef.current, event.currentTarget)
           onSelect?.()
           onLiveChange?.(sourceRef.current)
         }}
@@ -154,12 +178,16 @@ export default function MaterialScheduleFormulaCell({
           draftRef.current = text
           setDraft(text)
           setDismissed(false)
+          setActiveIndex(0)
+          setMenuRect(event.currentTarget.getBoundingClientRect())
           setMenuOpen(text.trim().startsWith("="))
+          refreshEntrySuggestions(text, event.currentTarget)
           onLiveChange?.(text)
           persistDraft(text)
         }}
         onBlur={() => {
           focusedRef.current = false
+          entrySuggestions.close()
           const { value, formula } = commitFormulaInput(draftRef.current, numeric)
           rememberIfFormula(formula || draftRef.current)
           onChange(value, formula)
@@ -168,6 +196,8 @@ export default function MaterialScheduleFormulaCell({
           setMenuOpen(false)
         }}
         onKeyDown={(event) => {
+          if (entrySuggestions.isOpen && entrySuggestions.handleKeyDown(event)) return
+
           if (menuOpen && suggestions.length > 0) {
             if (event.key === "ArrowDown") {
               event.preventDefault()
@@ -217,6 +247,7 @@ export default function MaterialScheduleFormulaCell({
 
       {menuOpen ? (
         <FormulaSuggestionMenu
+          rect={menuRect}
           suggestions={suggestions}
           activeIndex={highlightedIndex}
           onHover={setActiveIndex}
@@ -224,6 +255,7 @@ export default function MaterialScheduleFormulaCell({
           onDismiss={dismissMenu}
         />
       ) : null}
+      {entrySuggestions.menu}
     </div>
   )
 }

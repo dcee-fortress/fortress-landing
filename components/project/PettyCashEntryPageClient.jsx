@@ -7,6 +7,7 @@ import RestrictedAreaGate from "@/components/project/RestrictedAreaGate"
 import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
 import { getDailyFile } from "@/lib/projectFiles"
 import {
+  FINANCE_ENTRY_REMEMBER_KEY,
   isFinanceEntryRemembered,
   unlockFinanceEntry,
   validateFinanceEntryCredentials,
@@ -37,6 +38,7 @@ export default function PettyCashEntryPageClient({ projectId, dayId }) {
       validateCredentials={validateFinanceEntryCredentials}
       unlock={unlockFinanceEntry}
       isRemembered={isFinanceEntryRemembered}
+      rememberKey={FINANCE_ENTRY_REMEMBER_KEY}
     >
       <div className="app-page-frame text-zinc-900">
         <div className="app-content-shell">

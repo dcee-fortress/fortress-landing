@@ -8,7 +8,9 @@ import CellHoverCard from "@/components/project/CellHoverCard"
 import ExportPdfButton from "@/components/project/ExportPdfButton"
 import FormulaSuggestionMenu from "@/components/project/FormulaSuggestionMenu"
 import MaterialScheduleFormulaCell from "@/components/project/MaterialScheduleFormulaCell"
+import MemoryTextInput from "@/components/project/MemoryTextInput"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
+import { buildCellHistory, searchCellHistory } from "@/lib/cellHistory"
 import {
   MATERIAL_SCHEDULE_COLUMNS,
   MATERIAL_SCHEDULE_TYPES,
@@ -17,6 +19,7 @@ import {
   formatMaterialScheduleResolvedValue,
   getHourlyDashboardHref,
   getMaterialFormulaFieldKey,
+  getMaterialScheduleHistoryRows,
   getMaterialRawFieldKey,
   normalizeMaterialScheduleRows,
   readMaterialScheduleEditorRows,
@@ -36,6 +39,8 @@ import {
 import { sortSlots } from "@/lib/dailySlots"
 import { formatMaterialCurrencyAmount, formatMaterialAmount } from "@/lib/plantCostCalculations"
 import { getAllBoqItemNames } from "@/lib/boqData"
+
+const MATERIAL_MEMORY_KEYS = ["details", "plantName", "unit"]
 
 function loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType) {
   return readMaterialScheduleEditorRows(projectId, dayId, slotId, scheduleType)
@@ -63,17 +68,40 @@ function MaterialScheduleEditor({
   const [formulaBarMenuOpen, setFormulaBarMenuOpen] = useState(false)
   const [formulaBarDismissed, setFormulaBarDismissed] = useState(false)
   const [formulaBarActiveIndex, setFormulaBarActiveIndex] = useState(0)
+  const [formulaBarRect, setFormulaBarRect] = useState(null)
   const [hoverCard, setHoverCard] = useState(null)
   const closeHoverCard = useCallback(() => setHoverCard(null), [])
-  const activitySuggestions = useMemo(() => {
-    return [...getAllBoqItemNames(projectId), ...getActivityDescriptionsForSlot(projectId, dayId, slotId)]
-  }, [projectId, dayId, slotId])
-
   rowsRef.current = rows
 
+  const savedHistoryRows = useMemo(() => {
+    void version
+    return getMaterialScheduleHistoryRows(projectId)
+  }, [projectId, version])
+
+  const activitySuggestions = useMemo(() => {
+    return [
+      ...getAllBoqItemNames(projectId),
+      ...getActivityDescriptionsForSlot(projectId, dayId, slotId),
+      ...savedHistoryRows.map((row) => row.activityDescription),
+    ]
+  }, [projectId, dayId, slotId, savedHistoryRows])
+
+  const cellHistory = useMemo(
+    () => buildCellHistory([...savedHistoryRows, ...rows], MATERIAL_MEMORY_KEYS, "activityDescription"),
+    [rows, savedHistoryRows]
+  )
+
+  const suggestFor = (row, key) => (query) =>
+    searchCellHistory(cellHistory, key, {
+      query,
+      description: row.activityDescription,
+      showAllWhenEmpty: true,
+      limit: 200,
+    })
+
   const persistRows = useCallback(
-    (nextRows = rowsRef.current) => {
-      return saveMaterialScheduleRows(projectId, dayId, slotId, scheduleType, nextRows)
+    (nextRows = rowsRef.current, options) => {
+      return saveMaterialScheduleRows(projectId, dayId, slotId, scheduleType, nextRows, options)
     },
     [projectId, dayId, slotId, scheduleType]
   )
@@ -87,7 +115,11 @@ function MaterialScheduleEditor({
     setFormulaBarMenuOpen(false)
     setFormulaBarDismissed(false)
 
-    harvestMaterialFormulasFromRows(projectId, loaded, MATERIAL_SCHEDULE_COLUMNS)
+    harvestMaterialFormulasFromRows(
+      projectId,
+      [...getMaterialScheduleHistoryRows(projectId), ...loaded],
+      MATERIAL_SCHEDULE_COLUMNS
+    )
   }, [projectId, dayId, slotId, scheduleType])
 
   useEffect(() => {
@@ -103,7 +135,7 @@ function MaterialScheduleEditor({
     if (!hasEditedRef.current) return undefined
 
     const timeoutId = window.setTimeout(() => {
-      persistRows(rowsRef.current)
+      persistRows(rowsRef.current, { rememberDescriptions: false })
     }, 200)
 
     return () => window.clearTimeout(timeoutId)
@@ -386,14 +418,16 @@ function MaterialScheduleEditor({
               spellCheck={false}
               enterKeyHint="enter"
               value={formulaBarValue}
-              onFocus={() => {
+              onFocus={(event) => {
                 const text = String(formulaBarValue ?? "")
+                setFormulaBarRect(event.currentTarget.getBoundingClientRect())
                 setFormulaBarDismissed(false)
                 setFormulaBarMenuOpen(text.trim().startsWith("="))
               }}
               onChange={(event) => {
                 if (!selectedCell) return
                 const text = event.target.value
+                setFormulaBarRect(event.currentTarget.getBoundingClientRect())
                 hasEditedRef.current = true
                 setLiveDraft(text)
                 setSavedMessage("")
@@ -460,6 +494,7 @@ function MaterialScheduleEditor({
             />
             {formulaBarMenuOpen ? (
               <FormulaSuggestionMenu
+                rect={formulaBarRect}
                 suggestions={formulaBarSuggestions}
                 activeIndex={formulaBarHighlightedIndex}
                 onHover={setFormulaBarActiveIndex}
@@ -553,15 +588,17 @@ function MaterialScheduleEditor({
                               onChange={(value) => updateRow(rowIndex, fieldKey, value)}
                             />
                           ) : column.key === "details" ? (
-                            <textarea
+                            <MemoryTextInput
+                              multiline
                               rows={2}
                               inputMode="text"
-                              autoComplete="off"
                               autoCorrect="off"
                               autoCapitalize="sentences"
                               enterKeyHint="enter"
                               value={rawValue}
-                              onChange={(event) => updateRow(rowIndex, fieldKey, event.target.value)}
+                              suggest={suggestFor(row, "details")}
+                              suggestOnFocus
+                              onChange={(value) => updateRow(rowIndex, fieldKey, value)}
                               placeholder="Add row details"
                               className="w-full resize-y rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                             />
@@ -582,6 +619,11 @@ function MaterialScheduleEditor({
                               align={column.align}
                               numeric={column.numeric}
                               columnLabel={column.label}
+                              suggest={
+                                MATERIAL_MEMORY_KEYS.includes(column.key)
+                                  ? suggestFor(row, column.key)
+                                  : null
+                              }
                               isSelected={
                                 selectedCell?.rowIndex === rowIndex &&
                                 selectedCell?.columnKey === column.key

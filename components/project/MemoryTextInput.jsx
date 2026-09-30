@@ -2,7 +2,14 @@
 
 import { useEntrySuggestions } from "@/components/project/EntrySuggestionMenu"
 
-export default function MemoryTextInput({ value, onChange, suggest, multiline = false, ...inputProps }) {
+export default function MemoryTextInput({
+  value,
+  onChange,
+  suggest,
+  multiline = false,
+  suggestOnFocus = false,
+  ...inputProps
+}) {
   const suggestions = useEntrySuggestions(suggest, onChange)
   const Field = multiline ? "textarea" : "input"
 
@@ -13,6 +20,10 @@ export default function MemoryTextInput({ value, onChange, suggest, multiline = 
         {...inputProps}
         autoComplete="off"
         value={value ?? ""}
+        onFocus={(event) => {
+          if (suggestOnFocus) suggestions.update(event.currentTarget.value, event.currentTarget)
+          inputProps.onFocus?.(event)
+        }}
         onChange={(event) => {
           onChange(event.target.value)
           suggestions.update(event.target.value, event.currentTarget)

@@ -7,6 +7,7 @@ import RestrictedAreaGate from "@/components/project/RestrictedAreaGate"
 import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
 import { getPpeIssuedDailyFile } from "@/lib/ppeIssued"
 import {
+  PPE_ENTRY_REMEMBER_KEY,
   isPpeEntryRemembered,
   unlockPpeEntry,
   validatePpeEntryCredentials,
@@ -37,6 +38,7 @@ export default function PpeIssuedEntryPageClient({ projectId, dayId }) {
       validateCredentials={validatePpeEntryCredentials}
       unlock={unlockPpeEntry}
       isRemembered={isPpeEntryRemembered}
+      rememberKey={PPE_ENTRY_REMEMBER_KEY}
     >
       <div className="app-page-frame text-zinc-900">
         <div className="app-content-shell">
