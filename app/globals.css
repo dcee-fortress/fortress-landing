@@ -429,6 +429,18 @@
     word-break: break-word;
 }
 
+.rich-text-editor__content td > p:last-child,
+.rich-text-editor__content th > p:last-child {
+    margin-bottom: 0;
+}
+
+.rich-text-editor__content img {
+    display: inline-block;
+    max-width: 100%;
+    height: auto;
+    vertical-align: bottom;
+}
+
 html {
   overflow-x: hidden;
   overflow-y: auto;

@@ -1,5 +1,6 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
@@ -28,22 +29,33 @@ import {
 import {
   SHEQ_INCIDENT_TYPES,
   SHEQ_INCIDENT_YES_NO,
+  buildSheqIncidentDescriptionTable,
   createEmptySheqIncidentReport,
-  getSheqIncidentDailyFile,
+  getSheqIncidentDayId,
+  getSheqIncidentDescriptionHtml,
+  getSheqIncidentFileInfo,
   getSheqIncidentReport,
-  parseSheqIncidentFileId,
   saveSheqIncidentReport,
 } from "@/lib/sheqIncident"
 import { getSheqIncidentReportHref } from "@/lib/projectRoutes"
 
+const RichTextEditor = dynamic(() => import("@/components/project/RichTextEditor"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-[520px] items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 text-sm text-zinc-500">
+      Loading editor…
+    </div>
+  ),
+})
+
 export default function SheqIncidentEntryView({ projectId, projectName, dayId }) {
   const hasHydrated = useHasHydrated()
   const fileId = dayId
-  const file = getSheqIncidentDailyFile(projectId, fileId)
-  const calendarDayId = parseSheqIncidentFileId(fileId).dayId
-  const dayLabel = file?.label || fileId
 
   const [report, setReport] = useState(() => createEmptySheqIncidentReport(fileId))
+  const calendarDayId = getSheqIncidentDayId(fileId, report)
+  const fileInfo = getSheqIncidentFileInfo(fileId, report)
+  const dayLabel = fileInfo.label
   const [saveState, setSaveState] = useState("saved")
   const [photos, setPhotos] = useState([])
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
@@ -312,6 +324,41 @@ export default function SheqIncidentEntryView({ projectId, projectName, dayId })
               SHEQ Incident report · {projectName || "Project"}
             </p>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{dayLabel}</h1>
+            {fileInfo.customName ? (
+              <p className="text-sm text-zinc-500">{fileInfo.dateLabel}</p>
+            ) : null}
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="block space-y-1">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  File name
+                </span>
+                <input
+                  type="text"
+                  value={report.fileName || ""}
+                  maxLength={120}
+                  placeholder={fileInfo.dateLabel}
+                  onChange={(event) => updateField("fileName", event.target.value)}
+                  className="block w-64 max-w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Incident date
+                </span>
+                <input
+                  type="date"
+                  value={calendarDayId}
+                  onChange={(event) => {
+                    if (event.target.value) updateField("reportDate", event.target.value)
+                  }}
+                  className="block rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+                />
+              </label>
+            </div>
+            <p className="text-xs text-zinc-500">
+              Changing the date moves this incident into that date&apos;s week on the weekly SHEQ
+              report&apos;s incident summary.
+            </p>
             <p className="text-sm text-zinc-500" suppressHydrationWarning>
               {hasHydrated
                 ? `Alerts left this week: ${weekUsage.remaining} of ${weekUsage.limit} · ${saveLabel}`
@@ -396,18 +443,63 @@ export default function SheqIncidentEntryView({ projectId, projectName, dayId })
             </select>
           </label>
 
-          <label className="block space-y-1.5 sm:col-span-2">
+          <label className="block space-y-1.5">
             <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Description (how it happened)
+              Employee occupation
             </span>
-            <textarea
-              value={report.description}
-              placeholder="Narrative of what happened…"
-              rows={4}
-              onChange={(event) => updateField("description", event.target.value)}
-              className={`${fieldClass} resize-y`}
+            <TableCellInput
+              value={report.employeeOccupation}
+              placeholder="Job title / occupation"
+              onChange={(value) => updateField("employeeOccupation", value)}
             />
           </label>
+
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Department
+            </span>
+            <TableCellInput
+              value={report.department}
+              placeholder="Department"
+              onChange={(value) => updateField("department", value)}
+            />
+          </label>
+
+          <label className="block space-y-1.5 sm:col-span-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Activity taking place at time of incident
+            </span>
+            <TableCellInput
+              value={report.activityAtIncident}
+              placeholder="What work was being done"
+              onChange={(value) => updateField("activityAtIncident", value)}
+            />
+          </label>
+
+          <div className="space-y-1.5 sm:col-span-2">
+            <span className="block text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Description (how it happened)
+            </span>
+            <p className="text-xs text-zinc-500">
+              Type straight onto the page, or press &quot;Insert incident table&quot; for the
+              standard table. Use &quot;Add row&quot; to add rows and &quot;Delete table&quot; to
+              remove it.
+            </p>
+            <RichTextEditor
+              editorKey={`${projectId}-sheq-incident-${fileId}`}
+              value={getSheqIncidentDescriptionHtml(report)}
+              onChange={(html) => updateField("description", html)}
+              placeholder="Describe how the incident happened…"
+              minHeight={520}
+              autoFocus
+              allowWordImport
+              wordExportFileName={`SHEQ incident - ${dayLabel}`}
+              tableTemplate={{
+                label: "Insert incident table",
+                html: buildSheqIncidentDescriptionTable(),
+              }}
+            />
+          </div>
 
           <label className="block space-y-1.5 sm:col-span-2">
             <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">

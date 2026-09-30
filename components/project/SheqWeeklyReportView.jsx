@@ -56,10 +56,24 @@ export default function SheqWeeklyReportView({
     reportRef.current = report
   }, [report])
 
+  const [incidentDataVersion, setIncidentDataVersion] = useState(0)
+
+  useEffect(() => {
+    if (isTarget) return undefined
+    const onStorageChange = () => setIncidentDataVersion((current) => current + 1)
+    window.addEventListener("grove-shared-storage-change", onStorageChange)
+    window.addEventListener("focus", onStorageChange)
+    return () => {
+      window.removeEventListener("grove-shared-storage-change", onStorageChange)
+      window.removeEventListener("focus", onStorageChange)
+    }
+  }, [isTarget])
+
   const autoIncidentCounts = useMemo(() => {
     if (isTarget) return null
+    void incidentDataVersion
     return getSheqWeeklyIncidentSummary(projectId, weekId)
-  }, [isTarget, projectId, weekId])
+  }, [isTarget, projectId, weekId, incidentDataVersion])
 
   const incidentLines = useMemo(() => {
     if (isTarget || !autoIncidentCounts) return []
@@ -349,7 +363,9 @@ export default function SheqWeeklyReportView({
           <p className="mt-1 text-xs text-zinc-500">
             {isTarget
               ? "Use the Word-style toolbar to write and format this week’s target SHEQ plan — same document platform as Progress reports."
-              : "Starts with Major Highlight — edit or replace that heading anytime. Use the Word-style toolbar like Progress reports."}
+              : "Starts with Major Highlight — edit or replace that heading anytime. Use the Word-style toolbar like Progress reports."}{" "}
+            Copy from MS Word and paste here, or import a Word document below — headings, tables
+            and pictures come across.
           </p>
         </div>
         <div className="p-4 md:p-6">
@@ -363,6 +379,7 @@ export default function SheqWeeklyReportView({
                 : "Write SHEQ weekly notes, observations, and actions…"
             }
             minHeight={480}
+            allowWordImport
           />
         </div>
       </section>

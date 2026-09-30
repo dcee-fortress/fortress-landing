@@ -67,7 +67,9 @@ const IncidentFileRow = memo(function IncidentFileRow({
             <p className="truncate text-base font-semibold text-zinc-900 sm:text-lg">
               {file.label}
             </p>
-            <p className="text-sm text-zinc-500">{status.description}</p>
+            <p className="text-sm text-zinc-500">
+              {file.customName ? `${file.dateLabel} · ${status.description}` : status.description}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
