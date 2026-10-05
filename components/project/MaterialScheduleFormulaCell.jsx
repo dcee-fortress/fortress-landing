@@ -136,7 +136,7 @@ export default function MaterialScheduleFormulaCell({
     onLiveChange?.(next)
   }
 
-  const entrySuggestions = useEntrySuggestions(suggest, applyEntry)
+  const entrySuggestions = useEntrySuggestions(suggest, applyEntry, { below: true })
 
   const refreshEntrySuggestions = (text, element) => {
     if (!suggest) return
@@ -247,6 +247,7 @@ export default function MaterialScheduleFormulaCell({
 
       {menuOpen ? (
         <FormulaSuggestionMenu
+          below
           rect={menuRect}
           suggestions={suggestions}
           activeIndex={highlightedIndex}

@@ -32,7 +32,7 @@ export default function ActivityDescriptionInput({
       .filter((text) => text.trim().toLowerCase() !== String(query ?? "").trim().toLowerCase())
       .map((text) => ({ value: text }))
 
-  const suggestions = useEntrySuggestions(search, onChange, { enterSelects: true })
+  const suggestions = useEntrySuggestions(search, onChange, { enterSelects: true, below: true })
 
   return (
     <div className="relative min-w-[12rem] max-w-[20rem]">

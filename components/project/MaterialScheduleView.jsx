@@ -598,6 +598,7 @@ function MaterialScheduleEditor({
                               value={rawValue}
                               suggest={suggestFor(row, "details")}
                               suggestOnFocus
+                              openBelow
                               onChange={(value) => updateRow(rowIndex, fieldKey, value)}
                               placeholder="Add row details"
                               className="w-full resize-y rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
@@ -678,7 +679,7 @@ function MaterialScheduleEditor({
               </tr>
             </tbody>
           </table>
-          <CellHoverCard card={hoverCard} onClose={closeHoverCard} />
+          <CellHoverCard below card={hoverCard} onClose={closeHoverCard} />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 bg-zinc-50 px-6 py-4">

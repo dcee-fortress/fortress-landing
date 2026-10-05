@@ -37,7 +37,7 @@ export function useCellHoverCard() {
   return { card, close, bindRow }
 }
 
-export default function CellHoverCard({ card, onClose }) {
+export default function CellHoverCard({ card, onClose, below = false }) {
   useEffect(() => {
     if (!card) return undefined
     window.addEventListener("scroll", onClose, true)
@@ -51,7 +51,7 @@ export default function CellHoverCard({ card, onClose }) {
   if (!card || typeof document === "undefined") return null
 
   const { rect, description, columnLabel } = card
-  const showBelow = rect.top < 72
+  const showBelow = below || rect.top < 72
   const left = Math.min(Math.max(rect.left + rect.width / 2, 140), window.innerWidth - 140)
 
   return createPortal(

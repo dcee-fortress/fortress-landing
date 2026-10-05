@@ -9,12 +9,14 @@ export default function FormulaSuggestionMenu({
   onSelect,
   onDismiss,
   rect = null,
+  below = false,
 }) {
   if (!suggestions?.length) return null
 
   return (
     <SuggestionCard
       rect={rect}
+      below={below}
       title="Saved formulas"
       items={suggestions.map((item) => ({
         key: item.formula,

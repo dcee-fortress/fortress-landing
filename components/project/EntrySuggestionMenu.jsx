@@ -53,7 +53,7 @@ export function handleSuggestionKeys(event, { count, highlighted, setActiveIndex
   return false
 }
 
-export function useEntrySuggestions(search, apply, { enterSelects = false } = {}) {
+export function useEntrySuggestions(search, apply, { enterSelects = false, below = false } = {}) {
   const [open, setOpen] = useState(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const suggestions = open && search ? search(open.query) : []
@@ -91,18 +91,19 @@ export function useEntrySuggestions(search, apply, { enterSelects = false } = {}
       onHover={setActiveIndex}
       onSelect={choose}
       onDismiss={close}
+      below={below}
     />
   )
 
   return { update, close, handleKeyDown, menu, isOpen: isOpen && suggestions.length > 0 }
 }
 
-function getCardPlacement(rect) {
+function getCardPlacement(rect, belowOnly = false) {
   const viewportHeight = window.innerHeight
   const viewportWidth = window.innerWidth
   const spaceBelow = viewportHeight - rect.bottom - 12
   const spaceAbove = rect.top - 12
-  const openUp = spaceBelow < 220 && spaceAbove > spaceBelow
+  const openUp = !belowOnly && spaceBelow < 220 && spaceAbove > spaceBelow
   const space = openUp ? spaceAbove : spaceBelow
   const width = Math.min(Math.max(rect.width, CARD_MIN_WIDTH), CARD_MAX_WIDTH, viewportWidth - 16)
   const left = Math.max(8, Math.min(rect.left, viewportWidth - width - 8))
@@ -129,6 +130,7 @@ export function SuggestionCard({
   onSelect,
   onDismiss,
   footer = "Click an entry or press Tab to use the highlighted one. Esc closes.",
+  below = false,
 }) {
   const listRef = useRef(null)
 
@@ -139,7 +141,7 @@ export function SuggestionCard({
 
   if (!items.length || typeof document === "undefined") return null
 
-  const placement = rect ? getCardPlacement(rect) : null
+  const placement = rect ? getCardPlacement(rect, below) : null
   const moveBy = (step) => onHover(Math.max(0, Math.min(activeIndex + step, items.length - 1)))
 
   const card = (
@@ -230,12 +232,13 @@ export function SuggestionCard({
   return placement ? createPortal(card, document.body) : card
 }
 
-export default function EntrySuggestionMenu({ rect, suggestions, activeIndex, onHover, onSelect, onDismiss }) {
+export default function EntrySuggestionMenu({ rect, suggestions, activeIndex, onHover, onSelect, onDismiss, below = false }) {
   if (!rect || !suggestions?.length) return null
 
   return (
     <SuggestionCard
       rect={rect}
+      below={below}
       title="Previous entries"
       items={suggestions.map((item) => ({ key: item.value, value: item.value, hint: item.hint }))}
       activeIndex={activeIndex}

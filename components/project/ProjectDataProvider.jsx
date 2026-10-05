@@ -113,10 +113,20 @@ export function ProjectDataProvider({ children }) {
       }
 
       void getSharedPersistenceReady()
-        .then(() => {
+        .then(async () => {
           // After Postgres/cache hydrate, ensure today's valuation day exists and
           // is sorted to the top — sync can otherwise leave the calendar stale.
-          runSystemStorageWrite(() => ensureDailyFilesThroughToday(projectId))
+          const { ensurePlantOperatorRegistersExist } = await import(
+            "@/lib/plantOperatorRegisterData"
+          )
+          const { ensureSiteStaffRegistersExist } = await import("@/lib/siteStaffRegisterData")
+          const { ensureInductionRegistersExist } = await import("@/lib/inductionRegisterData")
+          runSystemStorageWrite(() => {
+            ensureDailyFilesThroughToday(projectId)
+            ensurePlantOperatorRegistersExist(projectId)
+            ensureSiteStaffRegistersExist(projectId)
+            ensureInductionRegistersExist(projectId)
+          })
           startTransition(() => refresh())
         })
         .catch(() => {})

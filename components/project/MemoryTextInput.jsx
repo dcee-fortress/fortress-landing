@@ -8,9 +8,10 @@ export default function MemoryTextInput({
   suggest,
   multiline = false,
   suggestOnFocus = false,
+  openBelow = false,
   ...inputProps
 }) {
-  const suggestions = useEntrySuggestions(suggest, onChange)
+  const suggestions = useEntrySuggestions(suggest, onChange, { below: openBelow })
   const Field = multiline ? "textarea" : "input"
 
   return (
