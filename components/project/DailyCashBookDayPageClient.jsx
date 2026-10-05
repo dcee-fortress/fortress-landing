@@ -1,12 +1,12 @@
 "use client"
 
 import { notFound } from "next/navigation"
-import DailyPettyCashDayView from "@/components/project/DailyPettyCashDayView"
+import DailyCashBookDayView from "@/components/project/DailyCashBookDayView"
 import PageLoadingShell from "@/components/project/PageLoadingShell"
 import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
 import { getDailyFile } from "@/lib/projectFiles"
 
-export default function DailyPettyCashDayPageClient({ projectId, dayId }) {
+export default function DailyCashBookDayPageClient({ projectId, dayId, bookId }) {
   const { isReady, syncReady, project, item: file } = useHydratedProjectRoute(
     projectId,
     () => getDailyFile(projectId, dayId)
@@ -27,10 +27,11 @@ export default function DailyPettyCashDayPageClient({ projectId, dayId }) {
   return (
     <div className="app-page-frame text-zinc-900">
       <div className="app-content-shell">
-        <DailyPettyCashDayView
+        <DailyCashBookDayView
           projectId={projectId}
           projectName={project?.name || ""}
           dayId={dayId}
+          bookId={bookId}
         />
       </div>
     </div>

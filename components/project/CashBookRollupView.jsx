@@ -4,19 +4,12 @@ import { useMemo } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
-import PettyCashDashboardTable from "@/components/project/PettyCashDashboardTable"
+import CashBookDashboardTable from "@/components/project/CashBookDashboardTable"
 import { useProjects } from "@/components/project/ProjectsProvider"
+import { getCashBook } from "@/lib/cashBooks"
 import { formatMaterialCurrencyAmount } from "@/lib/plantCostCalculations"
-import {
-  getPettyCashDashboardLinesForDayIds,
-  getPettyCashDayIds,
-  getPettyCashDayIdsInMonth,
-  getPettyCashDayIdsInWeek,
-  getPettyCashProjectTotals,
-  getPettyCashTotalsForDayIds,
-} from "@/lib/pettyCash"
 import { getMonthlyFiles, getWeeklyFiles } from "@/lib/projectFiles"
-import { getPettyCashHref, getPettyCashDailyFileHref } from "@/lib/projectRoutes"
+import { getCashBookDailyFileHref, getCashBookHref } from "@/lib/projectRoutes"
 
 function TotalsGrid({ totals }) {
   return (
@@ -43,9 +36,10 @@ function TotalsGrid({ totals }) {
   )
 }
 
-export default function PettyCashRollupView({
+export default function CashBookRollupView({
   projectId,
   projectName,
+  bookId,
   title,
   description,
   mode,
@@ -53,19 +47,21 @@ export default function PettyCashRollupView({
   const hasHydrated = useHasHydrated()
   const { version } = useProjects()
   void version
+  const book = getCashBook(bookId)
 
   const periods = useMemo(() => {
     if (!hasHydrated) return []
+    const data = book.data
 
     if (mode === "project-to-date") {
-      const totals = getPettyCashProjectTotals(projectId)
-      const dayIds = getPettyCashDayIds(projectId)
+      const totals = data.getProjectTotals(projectId)
+      const dayIds = data.getDayIds(projectId)
       return [
         {
           id: "project-to-date",
           label: "Project to date",
           totals,
-          lines: getPettyCashDashboardLinesForDayIds(projectId, dayIds),
+          lines: data.getDashboardLinesForDayIds(projectId, dayIds),
           dayIds,
         },
       ]
@@ -73,38 +69,38 @@ export default function PettyCashRollupView({
 
     if (mode === "weekly") {
       return getWeeklyFiles(projectId).map((file) => {
-        const dayIds = getPettyCashDayIdsInWeek(projectId, file.id)
+        const dayIds = data.getDayIdsInWeek(projectId, file.id)
         return {
           id: file.id,
           label: file.label,
-          totals: getPettyCashTotalsForDayIds(projectId, dayIds),
-          lines: getPettyCashDashboardLinesForDayIds(projectId, dayIds),
+          totals: data.getTotalsForDayIds(projectId, dayIds),
+          lines: data.getDashboardLinesForDayIds(projectId, dayIds),
           dayIds,
         }
       })
     }
 
     return getMonthlyFiles(projectId).map((file) => {
-      const dayIds = getPettyCashDayIdsInMonth(projectId, file.id)
+      const dayIds = data.getDayIdsInMonth(projectId, file.id)
       return {
         id: file.id,
         label: file.label,
-        totals: getPettyCashTotalsForDayIds(projectId, dayIds),
-        lines: getPettyCashDashboardLinesForDayIds(projectId, dayIds),
+        totals: data.getTotalsForDayIds(projectId, dayIds),
+        lines: data.getDashboardLinesForDayIds(projectId, dayIds),
         dayIds,
       }
     })
-  }, [hasHydrated, mode, projectId, version])
+  }, [book, hasHydrated, mode, projectId, version])
 
   return (
     <div className="space-y-6">
       <header className="space-y-2">
         <Link
-          href={getPettyCashHref(projectId)}
+          href={getCashBookHref(projectId, book.id)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Petty cash
+          Back to {book.label}
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{title}</p>
         <h1
@@ -130,7 +126,7 @@ export default function PettyCashRollupView({
                   <h2 className="text-lg font-semibold text-zinc-900">{period.label}</h2>
                   <p className="mt-1 text-sm text-zinc-500">
                     Rolled up from {period.dayIds.length} daily file
-                    {period.dayIds.length === 1 ? "" : "s"} with petty cash entries. Cash balance
+                    {period.dayIds.length === 1 ? "" : "s"} with {book.name} entries. Cash balance
                     is the sum of each day&apos;s balance; same descriptions add up.
                   </p>
                 </div>
@@ -139,9 +135,9 @@ export default function PettyCashRollupView({
                 <TotalsGrid totals={period.totals} />
               </div>
               <div className="mt-5 overflow-hidden rounded-xl border border-zinc-200">
-                <PettyCashDashboardTable
+                <CashBookDashboardTable
                   lines={period.lines}
-                  emptyMessage="No petty cash entries in this period yet."
+                  emptyMessage={`No ${book.name} entries in this period yet.`}
                 />
               </div>
               {period.dayIds.length > 0 ? (
@@ -149,7 +145,7 @@ export default function PettyCashRollupView({
                   {period.dayIds.map((dayId) => (
                     <li key={dayId}>
                       <Link
-                        href={getPettyCashDailyFileHref(projectId, dayId)}
+                        href={getCashBookDailyFileHref(projectId, book.id, dayId)}
                         className="inline-flex rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-200"
                       >
                         {dayId}

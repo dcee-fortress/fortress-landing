@@ -2,7 +2,7 @@ import CashBookRollupPageClient from "@/components/project/CashBookRollupPageCli
 import { isActiveProject } from "@/lib/projectList"
 import { notFound } from "next/navigation"
 
-export default async function MonthlyPettyCashPage({ params }) {
+export default async function MonthlyFoodCashPage({ params }) {
   const { projectId } = await params
 
   if (!isActiveProject(projectId)) {
@@ -12,9 +12,9 @@ export default async function MonthlyPettyCashPage({ params }) {
   return (
     <CashBookRollupPageClient
       projectId={projectId}
-      bookId="petty-cash"
-      title="Monthly petty cash"
-      description="Monthly petty cash totals rolled up from daily entries."
+      bookId="food-cash"
+      title="Monthly food cash"
+      description="Monthly food cash totals rolled up from daily entries."
       mode="monthly"
     />
   )

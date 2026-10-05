@@ -1,10 +1,10 @@
 "use client"
 
 import PageLoadingShell from "@/components/project/PageLoadingShell"
-import DailyPettyCashListView from "@/components/project/DailyPettyCashListView"
+import DailyCashBookListView from "@/components/project/DailyCashBookListView"
 import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
 
-export default function DailyPettyCashListPageClient({ projectId }) {
+export default function DailyCashBookListPageClient({ projectId, bookId }) {
   const { isReady, project } = useHydratedProjectRoute(projectId, () => true)
 
   if (!isReady) {
@@ -14,7 +14,11 @@ export default function DailyPettyCashListPageClient({ projectId }) {
   return (
     <div className="app-page-frame text-zinc-900">
       <div className="app-content-shell">
-        <DailyPettyCashListView projectId={projectId} projectName={project?.name || ""} />
+        <DailyCashBookListView
+          projectId={projectId}
+          projectName={project?.name || ""}
+          bookId={bookId}
+        />
       </div>
     </div>
   )

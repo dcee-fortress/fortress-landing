@@ -5,40 +5,37 @@ import Icon from "@/components/icon/icon"
 import {
   formatMaterialCurrencyAmount,
 } from "@/lib/plantCostCalculations"
-import PettyCashDashboardTable from "@/components/project/PettyCashDashboardTable"
+import CashBookDashboardTable from "@/components/project/CashBookDashboardTable"
+import { getCashBook } from "@/lib/cashBooks"
 import {
-  getPettyCashDashboardLinesForDayIds,
-  getPettyCashDayTotals,
-  hasPettyCashDataForDay,
-} from "@/lib/pettyCash"
-import {
-  getPettyCashDailyHref,
-  getPettyCashEntryHref,
+  getCashBookDailyHref,
+  getCashBookEntryHref,
 } from "@/lib/projectRoutes"
 import { getDailyFile } from "@/lib/projectFiles"
 import { useProjects } from "@/components/project/ProjectsProvider"
 
-export default function DailyPettyCashDayView({ projectId, projectName, dayId }) {
+export default function DailyCashBookDayView({ projectId, projectName, dayId, bookId }) {
   const { version } = useProjects()
   void version
 
+  const book = getCashBook(bookId)
   const file = getDailyFile(projectId, dayId)
   const dayLabel = file?.label || dayId
-  const hasData = hasPettyCashDataForDay(projectId, dayId)
-  const totals = getPettyCashDayTotals(projectId, dayId)
+  const hasData = book.data.hasDataForDay(projectId, dayId)
+  const totals = book.data.getDayTotals(projectId, dayId)
 
   return (
     <div className="space-y-6">
       <header className="space-y-2">
         <Link
-          href={getPettyCashDailyHref(projectId)}
+          href={getCashBookDailyHref(projectId, book.id)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
           Back to daily files
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Daily petty cash dashboard
+          Daily {book.name} dashboard
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
           {dayLabel}
@@ -51,7 +48,7 @@ export default function DailyPettyCashDayView({ projectId, projectName, dayId })
           <div>
             <h2 className="text-lg font-semibold text-zinc-900">Daily total</h2>
             <p className="mt-1 text-sm text-zinc-500">
-              Totals from the petty cash entry table for this day. Every day starts at a zero
+              Totals from the {book.name} entry table for this day. Every day starts at a zero
               balance; this balance belongs to this day only.
             </p>
           </div>
@@ -94,25 +91,25 @@ export default function DailyPettyCashDayView({ projectId, projectName, dayId })
         </dl>
 
         <div className="mt-5 overflow-hidden rounded-xl border border-zinc-200">
-          <PettyCashDashboardTable
-            lines={getPettyCashDashboardLinesForDayIds(projectId, [dayId])}
-            emptyMessage="No petty cash entries for this day yet."
+          <CashBookDashboardTable
+            lines={book.data.getDashboardLinesForDayIds(projectId, [dayId])}
+            emptyMessage={`No ${book.name} entries for this day yet.`}
           />
         </div>
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Petty cash entry</h2>
+        <h2 className="text-lg font-semibold text-zinc-900">{book.label} entry</h2>
         <p className="mt-1 text-sm text-zinc-500">
           Open the entry table to add transactions for this day. Weekly, monthly, and project to date
           dashboards update from these daily entries.
         </p>
         <Link
-          href={getPettyCashEntryHref(projectId, dayId)}
+          href={getCashBookEntryHref(projectId, book.id, dayId)}
           className="mt-4 inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800"
         >
-          <Icon name="banknote" size={18} />
-          Petty cash entry
+          <Icon name={book.icon} size={18} />
+          {book.label} entry
         </Link>
       </section>
     </div>

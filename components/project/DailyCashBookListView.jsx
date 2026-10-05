@@ -13,14 +13,9 @@ import { useHasHydrated } from "@/hooks/useHasHydrated"
 import { ensureDailyFilesThroughToday } from "@/lib/dailyFileSync"
 import { unlockFinanceEntry, validateFinanceEntryCredentials } from "@/lib/financeEntryAuth"
 import { formatMaterialCurrencyAmount } from "@/lib/plantCostCalculations"
-import {
-  deletePettyCashDay,
-  getPettyCashDayTotals,
-  getPettyCashDeletedDayIds,
-  getPettyCashEntryStatus,
-} from "@/lib/pettyCash"
+import { getCashBook } from "@/lib/cashBooks"
 import { getDailyFiles } from "@/lib/projectFiles"
-import { getPettyCashDailyFileHref, getPettyCashHref } from "@/lib/projectRoutes"
+import { getCashBookDailyFileHref, getCashBookHref } from "@/lib/projectRoutes"
 
 const INITIAL_VISIBLE = 21
 
@@ -29,9 +24,10 @@ const STATUS_STYLES = {
   "in-progress": "bg-amber-50 text-amber-800 ring-amber-200",
 }
 
-const DailyPettyCashRow = memo(function DailyPettyCashRow({
+const DailyCashBookRow = memo(function DailyCashBookRow({
   file,
   projectId,
+  book,
   status,
   totals,
   selected,
@@ -55,7 +51,7 @@ const DailyPettyCashRow = memo(function DailyPettyCashRow({
       onContextMenu={(event) => onContextMenu(event, file.id)}
     >
       <Link
-        href={getPettyCashDailyFileHref(projectId, file.id)}
+        href={getCashBookDailyFileHref(projectId, book.id, file.id)}
         prefetch={false}
         onClickCapture={onClickCapture}
         className={`app-file-row group min-w-0 flex-1 transition ${
@@ -64,7 +60,7 @@ const DailyPettyCashRow = memo(function DailyPettyCashRow({
       >
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <div className="app-icon-tile app-icon-tile--emerald">
-            <Icon name="banknote" size={20} />
+            <Icon name={book.icon} size={20} />
           </div>
           <div className="min-w-0">
             <p className="truncate text-base font-semibold text-zinc-900 sm:text-lg">
@@ -95,7 +91,7 @@ const DailyPettyCashRow = memo(function DailyPettyCashRow({
       <button
         type="button"
         aria-label={`Delete ${file.label}`}
-        title="Delete daily petty cash file"
+        title={`Delete daily ${book.name} file`}
         disabled={deleting}
         onClick={(event) => {
           event.preventDefault()
@@ -110,7 +106,8 @@ const DailyPettyCashRow = memo(function DailyPettyCashRow({
   )
 })
 
-export default function DailyPettyCashListView({ projectId, projectName }) {
+export default function DailyCashBookListView({ projectId, projectName, bookId }) {
+  const book = getCashBook(bookId)
   const hasHydrated = useHasHydrated()
   const { version, refresh } = useProjects()
   const [showAll, setShowAll] = useState(false)
@@ -126,8 +123,8 @@ export default function DailyPettyCashListView({ projectId, projectName }) {
   const deletedDayIds = useMemo(() => {
     if (!hasHydrated) return new Set()
     void version
-    return new Set(getPettyCashDeletedDayIds(projectId))
-  }, [hasHydrated, projectId, version])
+    return new Set(book.data.getDeletedDayIds(projectId))
+  }, [book, hasHydrated, projectId, version])
 
   const dailyFiles = useMemo(() => {
     if (!hasHydrated) return []
@@ -148,13 +145,13 @@ export default function DailyPettyCashListView({ projectId, projectName }) {
 
   async function performDeleteDailyFile(file) {
     const confirmed = window.confirm(
-      `Delete "${file.label}" from daily petty cash?\n\nThis removes the day's entry from weekly, monthly, and project-to-date rollups.`
+      `Delete "${file.label}" from daily ${book.name}?\n\nThis removes the day's entry from weekly, monthly, and project-to-date rollups.`
     )
     if (!confirmed) return
 
     setDeletingDayId(file.id)
     try {
-      const result = await deletePettyCashDay(projectId, file.id)
+      const result = await book.data.deleteDay(projectId, file.id)
       if (!result.ok) {
         window.alert(result.message || "Could not delete this daily file.")
         return
@@ -180,15 +177,15 @@ export default function DailyPettyCashListView({ projectId, projectName }) {
 
     const confirmed = window.confirm(
       ids.length === 1
-        ? `Delete this petty cash file?\n\nThis removes the day's entry from weekly, monthly, and project-to-date rollups.`
-        : `Delete ${ids.length} petty cash files?\n\nThis removes those days from weekly, monthly, and project-to-date rollups.`
+        ? `Delete this ${book.name} file?\n\nThis removes the day's entry from weekly, monthly, and project-to-date rollups.`
+        : `Delete ${ids.length} ${book.name} files?\n\nThis removes those days from weekly, monthly, and project-to-date rollups.`
     )
     if (!confirmed) return
 
     setBulkDeleting(true)
     try {
       for (const dayId of ids) {
-        const result = await deletePettyCashDay(projectId, dayId)
+        const result = await book.data.deleteDay(projectId, dayId)
         if (!result.ok) {
           window.alert(result.message || `Could not delete ${dayId}.`)
           break
@@ -214,13 +211,13 @@ export default function DailyPettyCashListView({ projectId, projectName }) {
     <div className="space-y-6">
       <header className="space-y-2">
         <Link
-          href={getPettyCashHref(projectId)}
+          href={getCashBookHref(projectId, book.id)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Petty cash
+          Back to {book.label}
         </Link>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Daily petty cash</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Daily {book.name}</p>
         <h1
           suppressHydrationWarning
           className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl"
@@ -237,8 +234,8 @@ export default function DailyPettyCashListView({ projectId, projectName }) {
         <ReportFileSearchBar
           {...search}
           projectId={projectId}
-          getFileHref={getPettyCashDailyFileHref}
-          placeholder="Search daily petty cash files"
+          getFileHref={(id, dayId) => getCashBookDailyFileHref(id, book.id, dayId)}
+          placeholder={`Search daily ${book.name} files`}
         />
 
         {selection.selectedCount > 0 ? (
@@ -272,16 +269,17 @@ export default function DailyPettyCashListView({ projectId, projectName }) {
         ) : (
           <ul className="divide-y divide-zinc-200">
             {visibleFiles.map((file) => {
-              const status = getPettyCashEntryStatus(projectId, file)
+              const status = book.data.getEntryStatus(projectId, file)
               const totals =
                 status.key === "awaiting"
                   ? { closingBalance: 0 }
-                  : getPettyCashDayTotals(projectId, file.id)
+                  : book.data.getDayTotals(projectId, file.id)
               return (
-                <DailyPettyCashRow
+                <DailyCashBookRow
                   key={file.id}
                   file={file}
                   projectId={projectId}
+                  book={book}
                   status={status}
                   totals={totals}
                   selected={selection.selectedIds.has(file.id)}

@@ -2,14 +2,14 @@
 
 import { formatMaterialCurrencyAmount } from "@/lib/plantCostCalculations"
 
-export const PETTY_CASH_DASHBOARD_COLUMNS = [
+export const CASH_BOOK_DASHBOARD_COLUMNS = [
   { key: "description", label: "Description of transaction", align: "left" },
   { key: "cashReceived", label: "Cash received", align: "right" },
   { key: "amountPaid", label: "Amount paid", align: "right" },
   { key: "cashBalance", label: "Cash balance", align: "right" },
 ]
 
-export default function PettyCashDashboardTable({ lines, emptyMessage }) {
+export default function CashBookDashboardTable({ lines, emptyMessage }) {
   const rows = Array.isArray(lines) ? lines : []
   const totalReceived = rows.reduce((sum, row) => sum + (Number(row.cashReceived) || 0), 0)
   const totalPaid = rows.reduce((sum, row) => sum + (Number(row.amountPaid) || 0), 0)
@@ -18,7 +18,7 @@ export default function PettyCashDashboardTable({ lines, emptyMessage }) {
   if (rows.length === 0) {
     return (
       <p className="px-4 py-8 text-center text-sm text-zinc-500 sm:px-5">
-        {emptyMessage || "No petty cash entries yet."}
+        {emptyMessage || "No entries yet."}
       </p>
     )
   }
@@ -28,7 +28,7 @@ export default function PettyCashDashboardTable({ lines, emptyMessage }) {
       <table className="min-w-full border-collapse text-sm">
         <thead>
           <tr className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            {PETTY_CASH_DASHBOARD_COLUMNS.map((column) => (
+            {CASH_BOOK_DASHBOARD_COLUMNS.map((column) => (
               <th
                 key={column.key}
                 className={`border-b border-zinc-200 px-3 py-3 ${

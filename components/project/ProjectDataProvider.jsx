@@ -61,7 +61,16 @@ function isLightweightDashboardPath(pathname) {
     }
     return false
   }
-  if (root === "goods-received" || root === "goods-requested" || root === "purchases" || root === "petty-cash") return true
+  if (
+    root === "goods-received" ||
+    root === "goods-requested" ||
+    root === "purchases" ||
+    root === "cash-books" ||
+    root === "petty-cash" ||
+    root === "food-cash"
+  ) {
+    return true
+  }
   return false
 }
 

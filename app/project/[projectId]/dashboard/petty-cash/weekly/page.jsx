@@ -1,4 +1,4 @@
-import PettyCashRollupPageClient from "@/components/project/PettyCashRollupPageClient"
+import CashBookRollupPageClient from "@/components/project/CashBookRollupPageClient"
 import { isActiveProject } from "@/lib/projectList"
 import { notFound } from "next/navigation"
 
@@ -10,8 +10,9 @@ export default async function WeeklyPettyCashPage({ params }) {
   }
 
   return (
-    <PettyCashRollupPageClient
+    <CashBookRollupPageClient
       projectId={projectId}
+      bookId="petty-cash"
       title="Weekly petty cash"
       description="Weekly petty cash totals rolled up from daily entries."
       mode="weekly"

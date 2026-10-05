@@ -1,9 +1,9 @@
 "use client"
 
 import { useProjects } from "@/components/project/ProjectsProvider"
-import PettyCashView from "@/components/project/PettyCashView"
+import CashBookView from "@/components/project/CashBookView"
 
-export default function PettyCashPageClient({ projectId }) {
+export default function CashBookPageClient({ projectId, bookId }) {
   const { getProject } = useProjects()
   const project = getProject(projectId)
   const projectName = project?.name || ""
@@ -11,7 +11,7 @@ export default function PettyCashPageClient({ projectId }) {
   return (
     <div className="app-page-frame text-zinc-900">
       <div className="app-content-shell">
-        <PettyCashView projectId={projectId} projectName={projectName} />
+        <CashBookView projectId={projectId} projectName={projectName} bookId={bookId} />
       </div>
     </div>
   )

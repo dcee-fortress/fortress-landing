@@ -669,6 +669,20 @@ body {
     color: #7c3aed;
 }
 
+.app-icon-tile--gold {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 55%, #fcd34d 100%);
+    color: #a16207;
+    box-shadow: inset 0 0 0 1px rgba(202, 138, 4, 0.35);
+}
+
+.app-gold-lining {
+    border: 3px solid transparent;
+    background:
+        linear-gradient(#ffffff, #ffffff) padding-box,
+        linear-gradient(135deg, #fde68a 0%, #d4a017 35%, #fcd34d 55%, #b8860b 80%, #fde68a 100%) border-box;
+    box-shadow: 0 0 0 4px rgba(252, 211, 77, 0.18), 0 10px 30px -12px rgba(161, 98, 7, 0.45);
+}
+
 .app-file-row {
     display: flex;
     min-width: 0;

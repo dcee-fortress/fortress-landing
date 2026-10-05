@@ -7,7 +7,7 @@ const VALUATION_OPTIONS = [
   {
     view: "project-to-date",
     label: "Project to date valuations",
-    description: "Main activity, actual cost on site, and production totals",
+    description: "Cumulative cost incurred for the project to date",
     icon: "hard-hat",
   },
   {

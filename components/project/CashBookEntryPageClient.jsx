@@ -1,10 +1,11 @@
 "use client"
 
 import { notFound } from "next/navigation"
-import PettyCashEntryView from "@/components/project/PettyCashEntryView"
+import CashBookEntryView from "@/components/project/CashBookEntryView"
 import PageLoadingShell from "@/components/project/PageLoadingShell"
 import RestrictedAreaGate from "@/components/project/RestrictedAreaGate"
 import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
+import { getCashBook } from "@/lib/cashBooks"
 import { getDailyFile } from "@/lib/projectFiles"
 import {
   FINANCE_ENTRY_REMEMBER_KEY,
@@ -13,7 +14,7 @@ import {
   validateFinanceEntryCredentials,
 } from "@/lib/financeEntryAuth"
 
-export default function PettyCashEntryPageClient({ projectId, dayId }) {
+export default function CashBookEntryPageClient({ projectId, dayId, bookId }) {
   const { isReady, syncReady, project, item: file } = useHydratedProjectRoute(
     projectId,
     () => getDailyFile(projectId, dayId)
@@ -33,7 +34,7 @@ export default function PettyCashEntryPageClient({ projectId, dayId }) {
 
   return (
     <RestrictedAreaGate
-      title="Petty cash entry"
+      title={`${getCashBook(bookId).label} entry`}
       description="Enter the finance username and password to open this entry form. Without saving, you will be asked again next time."
       validateCredentials={validateFinanceEntryCredentials}
       unlock={unlockFinanceEntry}
@@ -42,10 +43,11 @@ export default function PettyCashEntryPageClient({ projectId, dayId }) {
     >
       <div className="app-page-frame text-zinc-900">
         <div className="app-content-shell">
-          <PettyCashEntryView
+          <CashBookEntryView
             projectId={projectId}
             projectName={project?.name || ""}
             dayId={dayId}
+            bookId={bookId}
           />
         </div>
       </div>

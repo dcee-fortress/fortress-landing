@@ -22,7 +22,9 @@ export default function RestrictedAreaGate({
   unlock = unlockRestrictedArea,
   isRemembered = isRestrictedAreaRemembered,
   rememberKey = RESTRICTED_AREA_REMEMBER_KEY,
+  tone = "default",
 }) {
+  const gold = tone === "gold"
   const hasHydrated = useHasHydrated()
   const [access, setAccess] = useState(null)
   const [username, setUsername] = useState("")
@@ -73,9 +75,19 @@ export default function RestrictedAreaGate({
     return (
       <div className="app-page-frame text-zinc-900">
         <div className="app-content-shell flex min-h-[60vh] items-center justify-center">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white px-6 py-8 shadow-sm">
+          <div
+            className={`w-full max-w-md rounded-2xl px-6 py-8 ${
+              gold ? "app-gold-lining" : "border border-zinc-200 bg-white shadow-sm"
+            }`}
+          >
             <header className="space-y-1">
-              <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Login required</p>
+              <p
+                className={`text-sm font-medium uppercase tracking-wide ${
+                  gold ? "text-amber-700" : "text-zinc-500"
+                }`}
+              >
+                Login required
+              </p>
               <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">{title}</h1>
               <p className="text-sm text-zinc-500">{description}</p>
               {renewalDue ? (

@@ -10,21 +10,13 @@ import { useProjects } from "@/components/project/ProjectsProvider"
 import { buildCellHistory, searchCellHistory } from "@/lib/cellHistory"
 import SiteCameraCapture from "@/components/project/SiteCameraCapture"
 import {
+  CASH_BOOK_COLUMNS,
   DEFAULT_VAT_RATE,
-  PETTY_CASH_COLUMNS,
-  createPettyCashRow,
-  formatPettyCashDate,
+  formatCashBookDate,
   formatVatDescription,
-  getOpeningBalanceForDay,
-  getPettyCashHistoryRows,
-  getPettyCashReceipts,
-  getPettyCashRows,
-  isVatRow,
   parseVatRate,
-  preparePettyCashRows,
-  savePettyCashReceipts,
-  savePettyCashRows,
-} from "@/lib/pettyCash"
+} from "@/lib/cashBook"
+import { getCashBook } from "@/lib/cashBooks"
 import {
   formatMaterialCurrencyAmount,
   parsePlantCostAmount,
@@ -42,7 +34,7 @@ import {
   toPhotoMetadata,
 } from "@/lib/progressReportPhotos"
 import { isFormula } from "@/lib/materialScheduleFormulas"
-import { getPettyCashDailyFileHref } from "@/lib/projectRoutes"
+import { getCashBookDailyFileHref } from "@/lib/projectRoutes"
 import { getDailyFile } from "@/lib/projectFiles"
 
 function formatInputAmount(value) {
@@ -52,13 +44,25 @@ function formatInputAmount(value) {
   return String(parsed)
 }
 
-const HOVER_LABELS = PETTY_CASH_COLUMNS.map((column) =>
+const HOVER_LABELS = CASH_BOOK_COLUMNS.map((column) =>
   column.key === "date" || column.key === "description" ? null : column.label
 )
 
-const PETTY_CASH_MEMORY_KEYS = ["description", "cashIssuedTo", "cashReceived", "amountPaid"]
+const CASH_BOOK_MEMORY_KEYS = ["description", "cashIssuedTo", "cashReceived", "amountPaid"]
 
-export default function PettyCashEntryView({ projectId, projectName, dayId }) {
+export default function CashBookEntryView({ projectId, projectName, dayId, bookId }) {
+  const book = getCashBook(bookId)
+  const {
+    createRow,
+    getHistoryRows,
+    getOpeningBalanceForDay,
+    getReceipts,
+    getRows,
+    isVatRow,
+    prepareRows,
+    saveReceipts,
+    saveRows,
+  } = book.data
   const file = getDailyFile(projectId, dayId)
   const dayLabel = file?.label || dayId
   const [rows, setRows] = useState([])
@@ -77,16 +81,16 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
 
   const savedHistoryRows = useMemo(() => {
     void version
-    return getPettyCashHistoryRows(projectId, dayId)
-  }, [dayId, projectId, version])
+    return getHistoryRows(projectId, dayId)
+  }, [dayId, getHistoryRows, projectId, version])
 
   const history = useMemo(
     () =>
       buildCellHistory(
         [...savedHistoryRows, ...rows.filter((row) => !isVatRow(row))],
-        PETTY_CASH_MEMORY_KEYS
+        CASH_BOOK_MEMORY_KEYS
       ),
-    [rows, savedHistoryRows]
+    [isVatRow, rows, savedHistoryRows]
   )
 
   const suggestFor = (row, key) => (query) =>
@@ -98,20 +102,20 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
 
   const loadRows = useCallback(() => {
     const opening = getOpeningBalanceForDay(projectId, dayId)
-    const nextRows = getPettyCashRows(projectId, dayId)
+    const nextRows = getRows(projectId, dayId)
     setOpeningBalance(opening)
     setRows(
       nextRows.length > 0
         ? nextRows
-        : preparePettyCashRows([createPettyCashRow(dayId)], dayId, opening)
+        : prepareRows([createRow(dayId)], dayId, opening)
     )
-  }, [dayId, projectId])
+  }, [createRow, dayId, getOpeningBalanceForDay, getRows, prepareRows, projectId])
 
   const loadReceipts = useCallback(async () => {
-    const meta = getPettyCashReceipts(projectId, dayId)
+    const meta = getReceipts(projectId, dayId)
     const hydrated = await hydrateProgressPhotos(meta)
     setReceipts(dedupeProgressPhotos(hydrated))
-  }, [dayId, projectId])
+  }, [dayId, getReceipts, projectId])
 
   useEffect(() => {
     loadRows()
@@ -126,7 +130,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
     async (nextReceipts) => {
       setSaveState("saving")
       try {
-        await savePettyCashReceipts(
+        await saveReceipts(
           projectId,
           dayId,
           nextReceipts.map(toPhotoMetadata)
@@ -136,7 +140,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
         setSaveState("error")
       }
     },
-    [dayId, projectId]
+    [dayId, projectId, saveReceipts]
   )
 
   const addReceiptPhotos = async (files) => {
@@ -223,13 +227,13 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
     async (nextRows) => {
       setSaveState("saving")
       try {
-        await savePettyCashRows(projectId, dayId, nextRows)
+        await saveRows(projectId, dayId, nextRows)
         setSaveState("saved")
       } catch {
         setSaveState("error")
       }
     },
-    [dayId, projectId]
+    [dayId, projectId, saveRows]
   )
 
   const schedulePersist = useCallback(
@@ -245,7 +249,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
   useEffect(() => {
     const flush = () => {
       window.clearTimeout(saveTimerRef.current)
-      void savePettyCashRows(projectId, dayId, rowsRef.current)
+      void saveRows(projectId, dayId, rowsRef.current)
     }
     window.addEventListener("pagehide", flush)
     window.addEventListener("beforeunload", flush)
@@ -257,12 +261,12 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
       window.removeEventListener("pagehide", flush)
       window.removeEventListener("beforeunload", flush)
     }
-  }, [dayId, projectId])
+  }, [dayId, projectId, saveRows])
 
   function commitRows(updater, { immediate = false } = {}) {
     setRows((current) => {
       const draft = typeof updater === "function" ? updater(current) : updater
-      const next = preparePettyCashRows(draft, dayId, openingBalance)
+      const next = prepareRows(draft, dayId, openingBalance)
       if (immediate) {
         void persist(next)
       } else {
@@ -292,7 +296,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
               description: formatVatDescription(safeRate),
               cashIssuedTo: "",
               cashReceived: "",
-              date: formatPettyCashDate(dayId),
+              date: formatCashBookDate(dayId),
             }
           }
           return row
@@ -301,7 +305,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
         return {
           ...row,
           [key]: value,
-          date: formatPettyCashDate(dayId),
+          date: formatCashBookDate(dayId),
         }
       })
     )
@@ -312,7 +316,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
       current.map((row) =>
         row.id !== rowId || isVatRow(row)
           ? row
-          : { ...row, ...patch, date: formatPettyCashDate(dayId) }
+          : { ...row, ...patch, date: formatCashBookDate(dayId) }
       )
     )
   }
@@ -321,7 +325,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
     commitRows((current) => {
       const nonVat = current.filter((row) => !isVatRow(row))
       const vat = current.find((row) => isVatRow(row))
-      const nextNonVat = [...nonVat, createPettyCashRow(dayId)]
+      const nextNonVat = [...nonVat, createRow(dayId)]
       return vat ? [...nextNonVat, vat] : nextNonVat
     }, { immediate: true })
   }
@@ -339,7 +343,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
     : -1
   const selectedRow = selectedRowIndex >= 0 ? rows[selectedRowIndex] : null
   const selectedColumnLabel = selectedCell
-    ? PETTY_CASH_COLUMNS.find((column) => column.key === selectedCell.key)?.label || ""
+    ? CASH_BOOK_COLUMNS.find((column) => column.key === selectedCell.key)?.label || ""
     : ""
   const selectedFormula = selectedRow
     ? String(selectedRow[`${selectedCell.key}Formula`] ?? "")
@@ -370,14 +374,14 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
     <div className="space-y-6">
       <header className="space-y-2">
         <Link
-          href={getPettyCashDailyFileHref(projectId, dayId)}
+          href={getCashBookDailyFileHref(projectId, book.id, dayId)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
           Back to daily dashboard
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Petty cash entry
+          {book.label} entry
         </p>
         <h1
           suppressHydrationWarning
@@ -386,16 +390,16 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
-          {dayLabel} · When you start entering rows, a VAT@ {DEFAULT_VAT_RATE}% row is added
-          automatically. Change the % if needed. Cash balance = cash received − amount paid
-          including VAT.
+          {book.data.withVat
+            ? `${dayLabel} · When you start entering rows, a VAT@ ${DEFAULT_VAT_RATE}% row is added automatically. Change the % if needed. Cash balance = cash received − amount paid including VAT.`
+            : `${dayLabel} · Cash balance = cash received − amount paid.`}
         </p>
       </header>
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
           <div>
-            <h2 className="text-base font-semibold text-zinc-900">Petty cash entry table</h2>
+            <h2 className="text-base font-semibold text-zinc-900">{book.label} entry table</h2>
             <p className="text-sm text-zinc-500">
               Each day starts at a {formatMaterialCurrencyAmount(openingBalance)} balance
               {vatRow
@@ -452,7 +456,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
           <table className="min-w-full border-collapse text-sm">
             <thead>
               <tr className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                {PETTY_CASH_COLUMNS.map((column) => (
+                {CASH_BOOK_COLUMNS.map((column) => (
                   <th
                     key={column.key}
                     className={`border-b border-zinc-200 px-3 py-3 ${
@@ -476,7 +480,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
                     }`}
                     {...hover.bindRow(row.description, HOVER_LABELS)}
                   >
-                    <td className="px-3 py-2 text-zinc-700">{formatPettyCashDate(dayId)}</td>
+                    <td className="px-3 py-2 text-zinc-700">{formatCashBookDate(dayId)}</td>
                     <td className="px-3 py-2">
                       {vat ? (
                         <div className="flex min-w-[14rem] items-center gap-2">
@@ -613,7 +617,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
           </button>
           <p className="text-xs text-zinc-500">
             Entries save as you type. Cash received and amount paid accept formulas like
-            =250+120. VAT row cannot be deleted.
+            =250+120.{book.data.withVat ? " VAT row cannot be deleted." : ""}
           </p>
         </div>
       </section>
@@ -624,7 +628,7 @@ export default function PettyCashEntryView({ projectId, projectName, dayId }) {
             Receipt photos
           </h2>
           <p className="mt-1 text-xs text-zinc-600">
-            Upload petty cash receipt pictures from your files or photo gallery, or take a live
+            Upload {book.name} receipt pictures from your files or photo gallery, or take a live
             photo with the camera.
           </p>
         </div>

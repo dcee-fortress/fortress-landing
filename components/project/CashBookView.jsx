@@ -3,24 +3,27 @@
 import ChoiceCard from "@/components/project/ChoiceCard"
 import Icon from "@/components/icon/icon"
 import Link from "next/link"
+import { getCashBook } from "@/lib/cashBooks"
 import {
-  PETTY_CASH_PERIODS,
-  getFinanceHref,
-  getPettyCashPeriodHref,
+  getCashBookPeriodHref,
+  getCashBookPeriods,
+  getCashBooksHref,
 } from "@/lib/projectRoutes"
 
-export default function PettyCashView({ projectId, projectName }) {
+export default function CashBookView({ projectId, projectName, bookId }) {
+  const book = getCashBook(bookId)
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
         <Link
-          href={getFinanceHref(projectId)}
+          href={getCashBooksHref(projectId)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Finance
+          Back to Cash books
         </Link>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Petty cash</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{book.label}</p>
         <h1
           suppressHydrationWarning
           className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl"
@@ -28,15 +31,15 @@ export default function PettyCashView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Choose a petty cash period to view or enter records.
+          Choose a {book.name} period to view or enter records.
         </p>
       </header>
 
       <div className="app-choice-grid">
-        {PETTY_CASH_PERIODS.map((item) => (
+        {getCashBookPeriods(book.name).map((item) => (
           <ChoiceCard
             key={item.period}
-            href={getPettyCashPeriodHref(projectId, item.period)}
+            href={getCashBookPeriodHref(projectId, book.id, item.period)}
             icon={item.icon}
             title={item.label}
             description={item.description}
