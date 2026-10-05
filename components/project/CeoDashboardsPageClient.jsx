@@ -12,7 +12,7 @@ import {
 export default function CeoDashboardsPageClient({ projectId }) {
   return (
     <RestrictedAreaGate
-      title="Exclusive CEO Dashboards"
+      title="CEO EXCLUSIVE"
       description="Enter the master key username and password to open the CEO dashboards. Without saving, you will be asked again next time."
       validateCredentials={validateCeoDashboardCredentials}
       unlock={unlockCeoDashboard}
@@ -22,7 +22,7 @@ export default function CeoDashboardsPageClient({ projectId }) {
     >
       <DepartmentPlaceholderPageClient
         projectId={projectId}
-        title="Exclusive CEO Dashboards"
+        title="CEO EXCLUSIVE"
         description="Executive overview of project performance."
       />
     </RestrictedAreaGate>

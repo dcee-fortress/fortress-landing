@@ -314,6 +314,8 @@ export default function HomeMenu({ projectId }) {
             href={getDashboardHref(projectId, hub.view)}
             icon={hub.icon}
             iconClassName={hub.iconClassName}
+            className={hub.cardClassName}
+            hoverText={hub.hoverText}
             title={hub.label}
             description={hub.description}
           />
