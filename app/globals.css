@@ -735,6 +735,10 @@ body {
         ceo-gold-border-flow 3s linear infinite;
 }
 
+.app-choice-card.app-choice-card--ceo {
+    align-items: center;
+}
+
 .app-choice-card--ceo .app-icon-tile svg path:first-of-type {
     fill: #facc15;
 }
