@@ -10,7 +10,13 @@ import {
 } from "@/lib/earnedValueTable"
 import { formatCurrency } from "@/lib/formatCurrency"
 
-export default function EarnedValueReportTable({ summary, footnote, onExportPdf }) {
+export default function EarnedValueReportTable({
+  summary,
+  footnote,
+  onExportPdf,
+  rowIdPrefix,
+  highlightedRowIndex = null,
+}) {
   const totalRate = resolveEarnedValueTotalRate(summary.totals)
 
   return (
@@ -32,8 +38,14 @@ export default function EarnedValueReportTable({ summary, footnote, onExportPdf 
             </tr>
           </thead>
           <tbody>
-            {summary.rows.map((row) => (
-              <tr key={row.description} className="border-b border-zinc-200">
+            {summary.rows.map((row, index) => (
+              <tr
+                key={row.description}
+                id={rowIdPrefix ? `${rowIdPrefix}-${index}` : undefined}
+                className={`border-b border-zinc-200 transition-colors ${
+                  index === highlightedRowIndex ? "bg-amber-100 outline outline-2 outline-amber-400" : ""
+                }`}
+              >
                 <td className="px-4 py-4 font-medium text-zinc-900">{row.description}</td>
                 <td className="px-4 py-4 text-right tabular-nums text-zinc-900">
                   {formatCurrency(row.valueEarned)}

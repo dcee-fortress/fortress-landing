@@ -7,9 +7,18 @@ import {
   INDUCTION_REGISTER_COLUMNS,
   createEmptyInductionRow,
   ensureInductionRegistersExist,
+  fillMissingInductionDates,
   getInductionRegisterData,
   saveInductionRegisterData,
 } from "@/lib/inductionRegisterData"
+
+function readRegisterWithDates(projectId, monthId) {
+  const register = getInductionRegisterData(projectId, monthId)
+  const filled = fillMissingInductionDates(register)
+  if (!filled) return register
+  saveInductionRegisterData(projectId, monthId, filled)
+  return filled
+}
 
 export default function InductionRegisterTable({ projectId, monthId }) {
   const { refresh, version } = useProjectData()
@@ -21,7 +30,7 @@ export default function InductionRegisterTable({ projectId, monthId }) {
   const loadRegister = useCallback(() => {
     if (editingCountRef.current > 0) return
     ensureInductionRegistersExist(projectId)
-    const next = getInductionRegisterData(projectId, monthId)
+    const next = readRegisterWithDates(projectId, monthId)
     const current = registerRef.current
     if ((current?.rows?.length ?? 0) > (next?.rows?.length ?? 0)) return
     registerRef.current = next
@@ -34,7 +43,7 @@ export default function InductionRegisterTable({ projectId, monthId }) {
 
   useEffect(() => {
     if (editingCountRef.current > 0) return
-    const next = getInductionRegisterData(projectId, monthId)
+    const next = readRegisterWithDates(projectId, monthId)
     const current = registerRef.current
     if (JSON.stringify(current?.rows) === JSON.stringify(next?.rows)) return
     if ((current?.rows?.length ?? 0) > (next?.rows?.length ?? 0)) return
@@ -154,14 +163,26 @@ export default function InductionRegisterTable({ projectId, monthId }) {
                 <tr key={row.id} className="bg-white hover:bg-zinc-50/80">
                   {INDUCTION_REGISTER_COLUMNS.map((column) => (
                     <td key={column.field} className="border-t border-zinc-100 px-2 py-1.5">
-                      <TableCellInput
-                        value={row[column.field] ?? ""}
-                        placeholder={column.placeholder}
-                        onFocus={beginEdit}
-                        onBlur={endEdit}
-                        onChange={(value) => updateRow(row.id, column.field, value)}
-                        className="w-full min-w-[8rem] rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-300 focus:bg-white"
-                      />
+                      {column.type === "date" ? (
+                        <input
+                          type="date"
+                          aria-label={column.label}
+                          value={row[column.field] ?? ""}
+                          onFocus={beginEdit}
+                          onBlur={endEdit}
+                          onChange={(event) => updateRow(row.id, column.field, event.target.value)}
+                          className="w-full min-w-[9.5rem] rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-300 focus:bg-white"
+                        />
+                      ) : (
+                        <TableCellInput
+                          value={row[column.field] ?? ""}
+                          placeholder={column.placeholder}
+                          onFocus={beginEdit}
+                          onBlur={endEdit}
+                          onChange={(value) => updateRow(row.id, column.field, value)}
+                          className="w-full min-w-[8rem] rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-300 focus:bg-white"
+                        />
+                      )}
                     </td>
                   ))}
                   <td className="border-t border-zinc-100 px-3 py-1.5 text-right">

@@ -5,11 +5,33 @@ import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import CashBookDashboardTable from "@/components/project/CashBookDashboardTable"
+import DashboardSearch, { useDashboardSearch } from "@/components/project/DashboardSearch"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { getCashBook } from "@/lib/cashBooks"
 import { formatMaterialCurrencyAmount } from "@/lib/plantCostCalculations"
 import { getMonthlyFiles, getWeeklyFiles } from "@/lib/projectFiles"
 import { getCashBookDailyFileHref, getCashBookHref } from "@/lib/projectRoutes"
+
+const SEARCH_ROW_ID_PREFIX = "cash-book-row"
+
+function getCashLineSearchText(line) {
+  return [
+    line.description,
+    formatMaterialCurrencyAmount(line.cashReceived),
+    formatMaterialCurrencyAmount(line.amountPaid),
+    formatMaterialCurrencyAmount(line.cashBalance),
+    String(line.cashReceived ?? ""),
+    String(line.amountPaid ?? ""),
+  ].join(" ")
+}
+
+function getCashLineDetails(line) {
+  return [
+    { label: "Cash received", value: formatMaterialCurrencyAmount(line.cashReceived) },
+    { label: "Amount paid", value: formatMaterialCurrencyAmount(line.amountPaid) },
+    { label: "Cash balance", value: formatMaterialCurrencyAmount(line.cashBalance) },
+  ]
+}
 
 function TotalsGrid({ totals }) {
   return (
@@ -43,6 +65,9 @@ export default function CashBookRollupView({
   title,
   description,
   mode,
+  backHref,
+  backLabel,
+  children,
 }) {
   const hasHydrated = useHasHydrated()
   const { version } = useProjects()
@@ -92,15 +117,24 @@ export default function CashBookRollupView({
     })
   }, [book, hasHydrated, mode, projectId, version])
 
+  const searchable = mode === "project-to-date"
+  const searchLines = searchable ? (periods[0]?.lines ?? []) : []
+  const search = useDashboardSearch({
+    rows: searchLines,
+    getSearchText: getCashLineSearchText,
+    rowIdPrefix: SEARCH_ROW_ID_PREFIX,
+    panelId: "cash-book-search",
+  })
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
         <Link
-          href={getCashBookHref(projectId, book.id)}
+          href={backHref ?? getCashBookHref(projectId, book.id)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to {book.label}
+          {backLabel ?? `Back to ${book.label}`}
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{title}</p>
         <h1
@@ -111,6 +145,8 @@ export default function CashBookRollupView({
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">{description}</p>
       </header>
+
+      {children}
 
       {!hasHydrated ? (
         <p className="text-sm text-zinc-500">Loading…</p>
@@ -134,10 +170,23 @@ export default function CashBookRollupView({
               <div className="mt-5">
                 <TotalsGrid totals={period.totals} />
               </div>
+              {searchable && period.lines.length > 0 ? (
+                <DashboardSearch
+                  search={search}
+                  rows={searchLines}
+                  placeholder="Search transaction description or amount…"
+                  ariaLabel={`Search the ${book.name} dashboard`}
+                  noMatchLabel="No transaction matches"
+                  getDetails={getCashLineDetails}
+                  className="mt-5"
+                />
+              ) : null}
               <div className="mt-5 overflow-hidden rounded-xl border border-zinc-200">
                 <CashBookDashboardTable
                   lines={period.lines}
                   emptyMessage={`No ${book.name} entries in this period yet.`}
+                  rowIdPrefix={searchable ? SEARCH_ROW_ID_PREFIX : undefined}
+                  highlightedRowIndex={searchable ? search.highlightedIndex : null}
                 />
               </div>
               {period.dayIds.length > 0 ? (

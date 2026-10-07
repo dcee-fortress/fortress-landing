@@ -57,7 +57,7 @@ export default function InductionRegisterView({ projectName, projectId, file }) 
               Induction register
             </h2>
             <p className="mt-1 text-sm text-zinc-600">
-              {monthName} — record Name, ID Number, Phone number, Position, and Company name.
+              {monthName} — record Date, Name, ID Number, Phone number, Position, and Company name.
             </p>
           </div>
           <span

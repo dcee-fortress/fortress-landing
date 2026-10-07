@@ -9,7 +9,12 @@ export const CASH_BOOK_DASHBOARD_COLUMNS = [
   { key: "cashBalance", label: "Cash balance", align: "right" },
 ]
 
-export default function CashBookDashboardTable({ lines, emptyMessage }) {
+export default function CashBookDashboardTable({
+  lines,
+  emptyMessage,
+  rowIdPrefix,
+  highlightedRowIndex = null,
+}) {
   const rows = Array.isArray(lines) ? lines : []
   const totalReceived = rows.reduce((sum, row) => sum + (Number(row.cashReceived) || 0), 0)
   const totalPaid = rows.reduce((sum, row) => sum + (Number(row.amountPaid) || 0), 0)
@@ -41,8 +46,14 @@ export default function CashBookDashboardTable({ lines, emptyMessage }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.id} className="border-b border-zinc-100">
+          {rows.map((row, index) => (
+            <tr
+              key={row.id}
+              id={rowIdPrefix ? `${rowIdPrefix}-${index}` : undefined}
+              className={`border-b border-zinc-100 transition-colors ${
+                index === highlightedRowIndex ? "bg-amber-100 outline outline-2 outline-amber-400" : ""
+              }`}
+            >
               <td className="px-3 py-2.5 text-zinc-800">{row.description}</td>
               <td className="px-3 py-2.5 text-right tabular-nums text-zinc-800">
                 {formatMaterialCurrencyAmount(row.cashReceived)}
