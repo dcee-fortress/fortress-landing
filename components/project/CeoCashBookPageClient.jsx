@@ -32,6 +32,7 @@ export default function CeoCashBookPageClient({ projectId, bookId, title }) {
               mode="project-to-date"
               backHref={getCeoDashboardsHref(projectId)}
               backLabel="Back to CEO EXCLUSIVE"
+              exportable
             >
               <CeoFilesToggle
                 icon="banknote"

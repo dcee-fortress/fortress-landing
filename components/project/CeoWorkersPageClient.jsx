@@ -3,6 +3,7 @@
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import CeoFilesToggle from "@/components/project/CeoFilesToggle"
+import ExportPdfButton from "@/components/project/ExportPdfButton"
 import ProjectPageClientShell from "@/components/project/ProjectPageClientShell"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
@@ -33,20 +34,43 @@ function normalizePersonName(name) {
     .trim()
 }
 
-function namesFromRows(rows, field) {
-  return (rows ?? []).map((row) => normalizePersonName(row?.[field])).filter(Boolean)
+const REGISTER_LABELS = {
+  induction: "Induction",
+  admin: "Site Staff (admin)",
+  operators: "Operator",
+}
+
+function peopleFromRows(rows, field) {
+  return (rows ?? [])
+    .map((row) => ({ key: normalizePersonName(row?.[field]), name: String(row?.[field] ?? "").trim() }))
+    .filter((person) => person.key)
 }
 
 function readMonthNames(projectId, monthId) {
   return {
-    induction: namesFromRows(getInductionRegisterData(projectId, monthId).rows, "name"),
-    admin: namesFromRows(getSiteStaffRegisterData(projectId, monthId).rows, "name"),
-    operators: namesFromRows(getPlantOperatorRegisterData(projectId, monthId).rows, "operatorName"),
+    induction: peopleFromRows(getInductionRegisterData(projectId, monthId).rows, "name"),
+    admin: peopleFromRows(getSiteStaffRegisterData(projectId, monthId).rows, "name"),
+    operators: peopleFromRows(getPlantOperatorRegisterData(projectId, monthId).rows, "operatorName"),
   }
 }
 
-function countUnique(...nameLists) {
-  return new Set(nameLists.flat()).size
+function countUnique(...peopleLists) {
+  return new Set(peopleLists.flat().map((person) => person.key)).size
+}
+
+/** One entry per person, with every register they appear in. */
+function listPeople(names) {
+  const byKey = new Map()
+  for (const [register, people] of Object.entries(names)) {
+    for (const person of people) {
+      const entry = byKey.get(person.key) ?? { name: person.name, registers: [] }
+      if (!entry.registers.includes(REGISTER_LABELS[register])) {
+        entry.registers.push(REGISTER_LABELS[register])
+      }
+      byKey.set(person.key, entry)
+    }
+  }
+  return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name))
 }
 
 /** Head counts for this month, or the latest earlier month where any register has names. */
@@ -70,6 +94,7 @@ function getHeadCounts(projectId) {
     admin: countUnique(names.admin),
     operators: countUnique(names.operators),
     workersOnSite: countUnique(names.induction, names.admin, names.operators),
+    people: listPeople(names),
   }
 }
 
@@ -116,6 +141,16 @@ function CeoWorkersView({ projectId, projectName }) {
 
   const headCounts = hasHydrated ? getHeadCounts(projectId) : null
 
+  async function exportToPdf() {
+    if (!headCounts) return
+    const { exportWorkersPdf } = await import("@/lib/ceoReportPdf")
+    exportWorkersPdf({
+      projectName: projectName || "Project",
+      reportDate: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+      headCounts,
+    })
+  }
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -126,13 +161,20 @@ function CeoWorkersView({ projectId, projectName }) {
           <Icon name="arrow-left" size={16} />
           Back to CEO EXCLUSIVE
         </Link>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Total number of workers</p>
-        <h1
-          suppressHydrationWarning
-          className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl"
-        >
-          {projectName || "Project"}
-        </h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-2">
+            <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+              Total number of workers
+            </p>
+            <h1
+              suppressHydrationWarning
+              className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl"
+            >
+              {projectName || "Project"}
+            </h1>
+          </div>
+          {headCounts ? <ExportPdfButton onClick={exportToPdf} /> : null}
+        </div>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
           People on site this month from the induction, site staff and operator registers. A name
           listed in more than one register is counted once.

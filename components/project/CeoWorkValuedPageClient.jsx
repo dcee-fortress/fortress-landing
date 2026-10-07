@@ -40,7 +40,7 @@ export default function CeoWorkValuedPageClient({ projectId }) {
               <Icon name="arrow-left" size={16} />
               Back to CEO EXCLUSIVE
             </Link>
-            <ProjectToDateReport projectName={project.name}>
+            <ProjectToDateReport projectName={project.name} headerExport>
               <CeoFilesToggle
                 icon="chart-bar"
                 title="Valuations"

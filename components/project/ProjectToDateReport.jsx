@@ -2,6 +2,7 @@
 
 import DashboardSearch, { useDashboardSearch } from "@/components/project/DashboardSearch"
 import EarnedValueReportTable from "@/components/project/EarnedValueReportTable"
+import ExportPdfButton from "@/components/project/ExportPdfButton"
 import ProjectToDateCostCard from "@/components/project/ProjectToDateCostCard"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import {
@@ -34,7 +35,7 @@ function getActivityDetails(row) {
   ]
 }
 
-export default function ProjectToDateReport({ projectName, children }) {
+export default function ProjectToDateReport({ projectName, headerExport = false, children }) {
   const { getProjectSummary, version } = useProjectData()
   void version
   const summary = getProjectSummary()
@@ -58,11 +59,14 @@ export default function ProjectToDateReport({ projectName, children }) {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Project to Date Report
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+            Project to Date Report
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
+        </div>
+        {headerExport ? <ExportPdfButton onClick={exportToPdf} /> : null}
       </header>
 
       {children ? <div className="no-print">{children}</div> : null}
@@ -100,7 +104,7 @@ export default function ProjectToDateReport({ projectName, children }) {
             />
             <EarnedValueReportTable
               summary={summary}
-              onExportPdf={exportToPdf}
+              onExportPdf={headerExport ? undefined : exportToPdf}
               rowIdPrefix={ROW_ID_PREFIX}
               highlightedRowIndex={search.highlightedIndex}
             />

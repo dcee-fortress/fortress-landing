@@ -6,6 +6,7 @@ import Icon from "@/components/icon/icon"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import CashBookDashboardTable from "@/components/project/CashBookDashboardTable"
 import DashboardSearch, { useDashboardSearch } from "@/components/project/DashboardSearch"
+import ExportPdfButton from "@/components/project/ExportPdfButton"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { getCashBook } from "@/lib/cashBooks"
 import { formatMaterialCurrencyAmount } from "@/lib/plantCostCalculations"
@@ -67,6 +68,7 @@ export default function CashBookRollupView({
   mode,
   backHref,
   backLabel,
+  exportable = false,
   children,
 }) {
   const hasHydrated = useHasHydrated()
@@ -126,6 +128,22 @@ export default function CashBookRollupView({
     panelId: "cash-book-search",
   })
 
+  const exportPeriod = exportable && mode === "project-to-date" ? periods[0] : null
+
+  async function exportToPdf() {
+    if (!exportPeriod) return
+    const { exportCashBookProjectToDatePdf } = await import("@/lib/ceoReportPdf")
+    exportCashBookProjectToDatePdf({
+      projectName: projectName || "Project",
+      title,
+      bookLabel: book.label,
+      reportDate: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+      totals: exportPeriod.totals,
+      lines: exportPeriod.lines,
+      dayCount: exportPeriod.dayIds.length,
+    })
+  }
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -136,13 +154,18 @@ export default function CashBookRollupView({
           <Icon name="arrow-left" size={16} />
           {backLabel ?? `Back to ${book.label}`}
         </Link>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{title}</p>
-        <h1
-          suppressHydrationWarning
-          className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl"
-        >
-          {projectName || "Project"}
-        </h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-2">
+            <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{title}</p>
+            <h1
+              suppressHydrationWarning
+              className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl"
+            >
+              {projectName || "Project"}
+            </h1>
+          </div>
+          {exportPeriod ? <ExportPdfButton onClick={exportToPdf} /> : null}
+        </div>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">{description}</p>
       </header>
 
