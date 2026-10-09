@@ -3,13 +3,8 @@
 import ChoiceCard from "@/components/project/ChoiceCard"
 import { getDashboardHref } from "@/lib/projectRoutes"
 
+/** Project to date valuations are CEO EXCLUSIVE only. */
 const VALUATION_OPTIONS = [
-  {
-    view: "project-to-date",
-    label: "Project to date valuations",
-    description: "Cumulative cost incurred for the project to date",
-    icon: "hard-hat",
-  },
   {
     view: "monthly-value",
     label: "Monthly valuations",

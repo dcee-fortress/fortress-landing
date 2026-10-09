@@ -1,7 +1,8 @@
-import CashBookRollupPageClient from "@/components/project/CashBookRollupPageClient"
 import { isActiveProject } from "@/lib/projectList"
-import { notFound } from "next/navigation"
+import { getCeoCashBookHref } from "@/lib/projectRoutes"
+import { notFound, redirect } from "next/navigation"
 
+/** Project to date petty cash is CEO EXCLUSIVE only. */
 export default async function ProjectToDatePettyCashPage({ params }) {
   const { projectId } = await params
 
@@ -9,13 +10,5 @@ export default async function ProjectToDatePettyCashPage({ params }) {
     notFound()
   }
 
-  return (
-    <CashBookRollupPageClient
-      projectId={projectId}
-      bookId="petty-cash"
-      title="Project to date"
-      description="Petty cash totals for the whole project, rolled up from daily entries."
-      mode="project-to-date"
-    />
-  )
+  redirect(getCeoCashBookHref(projectId, "petty-cash"))
 }

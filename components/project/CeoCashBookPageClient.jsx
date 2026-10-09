@@ -8,15 +8,13 @@ import { getCashBookPeriodHref, getCashBookPeriods, getCeoDashboardsHref } from 
 
 export default function CeoCashBookPageClient({ projectId, bookId, title }) {
   const book = getCashBook(bookId)
-  const fileItems = getCashBookPeriods(book.name)
-    .filter((item) => item.period !== "project-to-date")
-    .map((item) => ({
-      key: item.period,
-      href: getCashBookPeriodHref(projectId, bookId, item.period),
-      icon: item.icon,
-      title: item.label,
-      description: item.description,
-    }))
+  const fileItems = getCashBookPeriods(book.name).map((item) => ({
+    key: item.period,
+    href: getCashBookPeriodHref(projectId, bookId, item.period),
+    icon: item.icon,
+    title: item.label,
+    description: item.description,
+  }))
 
   return (
     <ProjectPageClientShell projectId={projectId}>

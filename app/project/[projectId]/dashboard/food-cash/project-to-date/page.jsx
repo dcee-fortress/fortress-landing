@@ -1,7 +1,8 @@
-import CashBookRollupPageClient from "@/components/project/CashBookRollupPageClient"
 import { isActiveProject } from "@/lib/projectList"
-import { notFound } from "next/navigation"
+import { getCeoCashBookHref } from "@/lib/projectRoutes"
+import { notFound, redirect } from "next/navigation"
 
+/** Project to date food cash is CEO EXCLUSIVE only. */
 export default async function ProjectToDateFoodCashPage({ params }) {
   const { projectId } = await params
 
@@ -9,13 +10,5 @@ export default async function ProjectToDateFoodCashPage({ params }) {
     notFound()
   }
 
-  return (
-    <CashBookRollupPageClient
-      projectId={projectId}
-      bookId="food-cash"
-      title="Project to date"
-      description="Food cash totals for the whole project, rolled up from daily entries."
-      mode="project-to-date"
-    />
-  )
+  redirect(getCeoCashBookHref(projectId, "food-cash"))
 }
