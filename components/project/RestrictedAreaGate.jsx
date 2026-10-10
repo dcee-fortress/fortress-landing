@@ -33,12 +33,13 @@ export default function RestrictedAreaGate({
   const [error, setError] = useState("")
   const countedRef = useRef(false)
 
-  if (hasHydrated && access === null) {
+  useEffect(() => {
+    if (!hasHydrated) return
     const remembered = isRemembered()
     const renewalDue = !remembered && getSavedLoginStatus(rememberKey).renewalDue
-    setAccess({ unlocked: remembered, auto: remembered, renewalDue })
+    setAccess((current) => current ?? { unlocked: remembered, auto: remembered, renewalDue })
     if (renewalDue) setRemember(true)
-  }
+  }, [hasHydrated, isRemembered, rememberKey])
 
   useEffect(() => {
     if (!access?.auto || countedRef.current) return
@@ -61,11 +62,19 @@ export default function RestrictedAreaGate({
     setAccess({ unlocked: true, auto: false, renewalDue: false })
   }
 
+  const cardClass = `app-rise w-full max-w-md rounded-2xl px-6 py-8 ${
+    gold ? "app-gold-lining" : "border border-zinc-200 bg-white shadow-sm"
+  }`
+
   if (!ready) {
     return (
       <div className="app-page-frame text-zinc-900">
-        <div className="app-content-shell">
-          <p className="text-sm text-zinc-500">Checking access…</p>
+        <div className="app-content-shell flex min-h-[60vh] items-center justify-center">
+          <div className={cardClass}>
+            <p className="text-sm text-zinc-500" suppressHydrationWarning>
+              Checking access…
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -75,11 +84,7 @@ export default function RestrictedAreaGate({
     return (
       <div className="app-page-frame text-zinc-900">
         <div className="app-content-shell flex min-h-[60vh] items-center justify-center">
-          <div
-            className={`w-full max-w-md rounded-2xl px-6 py-8 ${
-              gold ? "app-gold-lining" : "border border-zinc-200 bg-white shadow-sm"
-            }`}
-          >
+          <div className={cardClass}>
             <header className="space-y-1">
               <p
                 className={`text-sm font-medium uppercase tracking-wide ${
@@ -163,5 +168,5 @@ export default function RestrictedAreaGate({
     )
   }
 
-  return children
+  return <div className="app-rise">{children}</div>
 }
