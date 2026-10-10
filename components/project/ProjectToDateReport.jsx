@@ -13,6 +13,7 @@ import {
   formatEarnedValueRate,
   resolveEarnedValueRowRate,
 } from "@/lib/earnedValueTable"
+import CumulativePeriodNote from "@/components/project/CumulativePeriodNote"
 import { formatCurrency } from "@/lib/formatCurrency"
 
 const ROW_ID_PREFIX = "project-to-date-row"
@@ -35,7 +36,12 @@ function getActivityDetails(row) {
   ]
 }
 
-export default function ProjectToDateReport({ projectName, headerExport = false, children }) {
+export default function ProjectToDateReport({
+  projectName,
+  projectId = "",
+  headerExport = false,
+  children,
+}) {
   const { getProjectSummary, version } = useProjectData()
   void version
   const summary = getProjectSummary()
@@ -65,6 +71,7 @@ export default function ProjectToDateReport({ projectName, headerExport = false,
             Project to Date Report
           </p>
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
+          <CumulativePeriodNote projectId={projectId} />
         </div>
         {headerExport ? <ExportPdfButton onClick={exportToPdf} /> : null}
       </header>

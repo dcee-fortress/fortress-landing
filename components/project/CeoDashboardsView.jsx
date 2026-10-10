@@ -5,6 +5,7 @@ import Icon from "@/components/icon/icon"
 import Link from "next/link"
 import {
   getCeoCashBookHref,
+  getCeoGoodsOverviewHref,
   getCeoWorkValuedHref,
   getCeoWorkersHref,
   getProjectHomeHref,
@@ -39,6 +40,13 @@ function getCeoDashboardItems(projectId) {
       description: "Workers on site, admin members and registers",
       icon: "users",
       href: getCeoWorkersHref(projectId),
+    },
+    {
+      key: "goods-overview",
+      label: "Goods overview",
+      description: "Ordered, received and pending goods for the project to date",
+      icon: "package",
+      href: getCeoGoodsOverviewHref(projectId),
     },
   ]
 }

@@ -5,6 +5,7 @@ import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import CashBookDashboardTable from "@/components/project/CashBookDashboardTable"
+import CumulativePeriodNote from "@/components/project/CumulativePeriodNote"
 import DashboardSearch, { useDashboardSearch } from "@/components/project/DashboardSearch"
 import ExportPdfButton from "@/components/project/ExportPdfButton"
 import { useProjects } from "@/components/project/ProjectsProvider"
@@ -167,6 +168,7 @@ export default function CashBookRollupView({
           {exportPeriod ? <ExportPdfButton onClick={exportToPdf} /> : null}
         </div>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">{description}</p>
+        {mode === "project-to-date" ? <CumulativePeriodNote projectId={projectId} /> : null}
       </header>
 
       {children}

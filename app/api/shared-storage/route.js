@@ -1,6 +1,7 @@
 import {
   removeSharedValue,
   readSharedStorage,
+  readSharedStorageRevision,
   replaceSharedStorage,
   writeSharedValue,
   writeSharedValues,
@@ -13,8 +14,17 @@ export const runtime = "nodejs"
 
 const allowedKeys = new Set(SHARED_STORAGE_KEYS)
 
-export async function GET() {
+export async function GET(request) {
   try {
+    const check = new URL(request.url).searchParams.get("check")
+    if (check === "1") {
+      const updatedAt = await readSharedStorageRevision()
+      return Response.json(
+        { updatedAt },
+        { headers: { "Cache-Control": "no-store" } }
+      )
+    }
+
     const storage = await readSharedStorage()
     return Response.json(storage, {
       headers: { "Cache-Control": "no-store" },

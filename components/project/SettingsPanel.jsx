@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import LoginDetailsPanel from "@/components/project/LoginDetailsPanel"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Icon from "@/components/icon/icon"
@@ -76,6 +77,7 @@ export default function SettingsPanel() {
   const [busyAction, setBusyAction] = useState("")
   const [endedDeleteConfirmId, setEndedDeleteConfirmId] = useState("")
   const [recycleOpen, setRecycleOpen] = useState(false)
+  const [showLoginDetails, setShowLoginDetails] = useState(false)
   const [trashEntries, setTrashEntries] = useState([])
   const [trashBusyId, setTrashBusyId] = useState("")
 
@@ -263,6 +265,10 @@ export default function SettingsPanel() {
     setEndDate(formatDateInputValue())
   }
 
+  if (showLoginDetails) {
+    return <LoginDetailsPanel onBack={() => setShowLoginDetails(false)} />
+  }
+
   return (
     <div className="mx-auto max-w-2xl space-y-8 p-6">
       <div className="space-y-2">
@@ -282,6 +288,15 @@ export default function SettingsPanel() {
           </p>
         </header>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setShowLoginDetails(true)}
+        className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"
+      >
+        <Icon name="list" size={16} />
+        Login details
+      </button>
 
       <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">

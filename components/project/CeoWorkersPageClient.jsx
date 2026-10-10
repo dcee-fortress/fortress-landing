@@ -1,5 +1,6 @@
 "use client"
 
+import CumulativePeriodNote from "@/components/project/CumulativePeriodNote"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import CeoFilesToggle from "@/components/project/CeoFilesToggle"
@@ -175,6 +176,7 @@ function CeoWorkersView({ projectId, projectName }) {
           </div>
           {headCounts ? <ExportPdfButton onClick={exportToPdf} /> : null}
         </div>
+        <CumulativePeriodNote projectId={projectId} />
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
           People on site this month from the induction, site staff and operator registers. A name
           listed in more than one register is counted once.

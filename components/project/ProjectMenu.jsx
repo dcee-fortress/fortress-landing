@@ -8,7 +8,18 @@ import Icon from "@/components/icon/icon"
 import RestrictedAreaLoginDialog from "@/components/project/RestrictedAreaLoginDialog"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { APP_BRAND } from "@/lib/appBrand"
-import { RESTRICTED_AREA_REMEMBER_KEY, isRestrictedAreaRemembered } from "@/lib/restrictedAreaAuth"
+import {
+  CEO_DASHBOARD_REMEMBER_KEY,
+  isCeoDashboardRemembered,
+  unlockCeoDashboard,
+  validateCeoDashboardCredentials,
+} from "@/lib/ceoDashboardAuth"
+import {
+  RESTRICTED_AREA_REMEMBER_KEY,
+  isRestrictedAreaRemembered,
+  unlockRestrictedArea,
+  validateRestrictedAreaCredentials,
+} from "@/lib/restrictedAreaAuth"
 import { recordSavedLoginAutoOpen } from "@/lib/savedLoginLimit"
 import { getProjectHomeHref } from "@/lib/projectRoutes"
 
@@ -61,12 +72,14 @@ export default function ProjectMenu() {
 
   function requestRestrictedAction(intent) {
     setOpen(false)
-    if (isRestrictedAreaRemembered()) {
-      if (intent === "create") {
-        recordSavedLoginAutoOpen(RESTRICTED_AREA_REMEMBER_KEY)
-        setShowCreate(true)
-      }
-      if (intent === "settings") router.push("/settings")
+    if (intent === "settings" && isCeoDashboardRemembered()) {
+      recordSavedLoginAutoOpen(CEO_DASHBOARD_REMEMBER_KEY)
+      router.push("/settings")
+      return
+    }
+    if (intent === "create" && isRestrictedAreaRemembered()) {
+      recordSavedLoginAutoOpen(RESTRICTED_AREA_REMEMBER_KEY)
+      setShowCreate(true)
       return
     }
     setLoginIntent(intent)
@@ -175,7 +188,17 @@ export default function ProjectMenu() {
       <RestrictedAreaLoginDialog
         open={Boolean(loginIntent)}
         title={loginIntent === "settings" ? "Settings" : "Create new project"}
-        description="Enter the username and password to continue."
+        description={
+          loginIntent === "settings"
+            ? "Enter the CEO EXCLUSIVE username and password to open Settings."
+            : "Enter the username and password to continue."
+        }
+        validateCredentials={
+          loginIntent === "settings"
+            ? validateCeoDashboardCredentials
+            : validateRestrictedAreaCredentials
+        }
+        unlock={loginIntent === "settings" ? unlockCeoDashboard : unlockRestrictedArea}
         onCancel={() => setLoginIntent(null)}
         onUnlocked={handleLoginUnlocked}
       />

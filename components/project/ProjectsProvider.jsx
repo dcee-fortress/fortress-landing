@@ -33,10 +33,12 @@ export function ProjectsProvider({ children }) {
       refresh()
       stopSharedPersistence = startSharedPersistence()
       window.addEventListener("grove-shared-storage-change", handleSharedStorageChange)
+      // Stay on the opening screen until the first download finishes.
+      // A short timeout was marking the page ready and then showing nothing on a slow bundle.
       timeoutId = window.setTimeout(() => {
         setSyncReady(true)
         refresh()
-      }, 2500)
+      }, 90_000)
       void stopSharedPersistence.ready?.then(() => {
         window.clearTimeout(timeoutId)
         setSyncReady(true)

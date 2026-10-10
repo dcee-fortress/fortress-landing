@@ -12,7 +12,7 @@ export default function CeoDashboardsGate({ children }) {
   return (
     <RestrictedAreaGate
       title="CEO EXCLUSIVE"
-      description="Enter the master key username and password to open the CEO dashboards. Without saving, you will be asked again next time."
+      description="Enter the CEO EXCLUSIVE username and password. Without saving, you will be asked again next time."
       validateCredentials={validateCeoDashboardCredentials}
       unlock={unlockCeoDashboard}
       isRemembered={isCeoDashboardRemembered}
