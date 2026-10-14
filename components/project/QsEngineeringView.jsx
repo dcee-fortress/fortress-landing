@@ -24,7 +24,7 @@ export default function QsEngineeringView({ projectId, projectName }) {
           {projectName}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Open valuations, plant on site, progress reports, and rate analysis for this project.
+          Open valuations, the material schedule, plant on site, progress reports, and rate analysis for this project.
         </p>
       </header>
 

@@ -6,7 +6,6 @@ import EarnedValueReportTable from "@/components/project/EarnedValueReportTable"
 import { summarizeEarnedValueActivities } from "@/lib/activities"
 import {
   ACTUAL_COST_SCHEDULE_TYPE,
-  MATERIAL_SCHEDULE_TYPES,
   getMaterialScheduleHref,
 } from "@/lib/materialSchedule"
 import { formatSlotLabel } from "@/lib/projectData"
@@ -24,7 +23,6 @@ export default function DailyHourlyDashboard({
   // re-run getSlotsForDay for every card (that was freezing valuations opens).
   const liveSlot = slot
   const summary = summarizeEarnedValueActivities(liveSlot.activities ?? [])
-  const schedule = MATERIAL_SCHEDULE_TYPES[ACTUAL_COST_SCHEDULE_TYPE]
 
   const exportToPdf = async () => {
     const { exportHourlyDashboardPdf } = await import("@/lib/earnedValuePdf")
@@ -95,16 +93,13 @@ export default function DailyHourlyDashboard({
       </div>
 
       <div className="no-print border-t border-zinc-200 bg-zinc-50 px-6 py-4">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          Material Schedule
-        </p>
         <Link
           href={getMaterialScheduleHref(projectId, dayId, slot.id, ACTUAL_COST_SCHEDULE_TYPE)}
           prefetch={false}
           className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100"
         >
           <Icon name="table" size={16} />
-          {schedule.shortLabel}
+          Valuations entry
         </Link>
       </div>
     </section>

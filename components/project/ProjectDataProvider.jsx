@@ -129,11 +129,13 @@ export function ProjectDataProvider({ children }) {
             "@/lib/plantOperatorRegisterData"
           )
           const { ensureSiteStaffRegistersExist } = await import("@/lib/siteStaffRegisterData")
+          const { ensureLaborRegistersExist } = await import("@/lib/laborRegisterData")
           const { ensureInductionRegistersExist } = await import("@/lib/inductionRegisterData")
           runSystemStorageWrite(() => {
             ensureDailyFilesThroughToday(projectId)
             ensurePlantOperatorRegistersExist(projectId)
             ensureSiteStaffRegistersExist(projectId)
+            ensureLaborRegistersExist(projectId)
             ensureInductionRegistersExist(projectId)
           })
           startTransition(() => refresh())

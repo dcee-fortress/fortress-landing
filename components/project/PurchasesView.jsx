@@ -24,7 +24,7 @@ export default function PurchasesView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Open goods received or goods requested for this project.
+          Open goods received, goods requested, or goods analysis for this project.
         </p>
       </header>
 

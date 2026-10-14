@@ -35,30 +35,16 @@ function stickyStyle(index, background) {
   }
 }
 
-function AttendanceCell({ value, onPresent, onAbsent }) {
-  const clickTimerRef = useRef(0)
+function AttendanceCell({ value, onCycle }) {
   const label =
     value === "present" ? "Present" : value === "absent" ? "Absent" : "Not marked"
-
-  useEffect(() => {
-    return () => window.clearTimeout(clickTimerRef.current)
-  }, [])
 
   return (
     <button
       type="button"
       aria-label={label}
-      title="Click for present. Double-click for absent (X)."
-      onClick={(event) => {
-        window.clearTimeout(clickTimerRef.current)
-        if (event.detail >= 2) {
-          onAbsent()
-          return
-        }
-        clickTimerRef.current = window.setTimeout(() => {
-          onPresent()
-        }, 280)
-      }}
+      title="Click once for a tick. Click again for an X. The next click is a tick again."
+      onClick={onCycle}
       className={`flex h-9 w-9 items-center justify-center rounded-md border text-sm font-bold leading-none transition hover:border-zinc-400 ${
         value === "present"
           ? "border-emerald-300 bg-emerald-50 text-emerald-700"
@@ -193,8 +179,9 @@ export default function PlantOperatorRegisterTable({ projectId, monthId }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-zinc-600">
           Add an operator, then use the day boxes beside their name.{" "}
-          <span className="font-semibold text-emerald-700">Click ✓</span> for present.{" "}
-          <span className="font-semibold text-rose-700">Double-click X</span> for absent.
+          <span className="font-semibold text-emerald-700">Click once for ✓</span>.{" "}
+          <span className="font-semibold text-rose-700">Click again for X</span>. The next click
+          is a tick again.
           Scroll sideways to see every day of {monthName}.
         </p>
         <button
@@ -268,8 +255,13 @@ export default function PlantOperatorRegisterTable({ projectId, monthId }) {
                       <div className="flex justify-center">
                         <AttendanceCell
                           value={row.attendance[String(day)]}
-                          onPresent={() => setAttendance(row.id, day, "present")}
-                          onAbsent={() => setAttendance(row.id, day, "absent")}
+                          onCycle={() =>
+                            setAttendance(
+                              row.id,
+                              day,
+                              row.attendance[String(day)] === "present" ? "absent" : "present"
+                            )
+                          }
                         />
                       </div>
                     </td>

@@ -43,7 +43,8 @@ export default function PlantOperatorRegisterView({ projectName, projectId, file
             </h2>
             <p className="mt-1 text-sm text-zinc-600">
               {monthName} attendance. Add a supplier and operator, then click a day box for present
-              or double-click for absent. Scroll sideways to see every day.
+              Click a day box once for a tick, again for an X, and the next click is a tick again.
+              Scroll sideways to see every day.
             </p>
           </div>
           <span
