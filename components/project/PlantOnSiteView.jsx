@@ -1,19 +1,9 @@
 "use client"
 
 import ChoiceCard from "@/components/project/ChoiceCard"
-import {
-  getEquipmentInUseHref,
-  getPlantOperatorsHref,
-} from "@/lib/projectRoutes"
+import { getEquipmentInUseHref } from "@/lib/projectRoutes"
 
 const PLANT_ON_SITE_OPTIONS = [
-  {
-    key: "plant-operators",
-    label: "Register for Plant Operators",
-    description: "Register operators, assign plant, and manage operator records on site",
-    icon: "users",
-    href: getPlantOperatorsHref,
-  },
   {
     key: "equipment-in-use",
     label: "Equipment in Use on Site",
@@ -32,8 +22,8 @@ export default function PlantOnSiteView({ projectId, projectName }) {
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
         <p className="max-w-2xl text-zinc-500">
-          Manage plant operators and equipment in use — register attendance and record operating
-          hours that cumulate from project start.
+          Record operating hours for equipment in use. Hours cumulate from project start. The plant
+          register is under Safety and Health → Registers.
         </p>
       </header>
 

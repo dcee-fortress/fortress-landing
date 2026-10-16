@@ -16,7 +16,7 @@ export default function GoodsAnalysisView({ projectId, projectName }) {
   const { version } = useProjectData()
   void version
   const rows = (hasHydrated ? getGoodsOverviewRows(projectId) : []).filter(
-    (row) => row.quantityVariance !== 0 || row.costVariance !== 0
+    (row) => row.hasOrdered || row.hasReceived
   )
 
   return (
@@ -37,9 +37,8 @@ export default function GoodsAnalysisView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Purchases variance uses the live goods requested and goods received dashboards. Goods
-          left is the cumulative quantity requested minus the cumulative quantity received. The
-          cost is calculated the same way.
+          Figures are cumulative from the project start through today. Goods left is cumulative
+          goods requested minus cumulative goods received. The cost is calculated the same way.
         </p>
       </header>
 
@@ -54,28 +53,45 @@ export default function GoodsAnalysisView({ projectId, projectName }) {
           <p className="px-6 py-12 text-center text-sm text-zinc-500">Loading goods analysis…</p>
         ) : rows.length === 0 ? (
           <p className="px-6 py-12 text-center text-sm text-zinc-500">
-            No named goods have a variance yet. Requested and received totals match, or nothing has
-            been entered on the daily dashboards.
+            No named goods have been entered on the goods requested or goods received dashboards yet.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-zinc-200 bg-white text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 <tr>
-                  <th className="px-6 py-3">Name of goods</th>
-                  <th className="px-6 py-3 text-right">Total goods left</th>
-                  <th className="px-6 py-3 text-right">Total cost of goods left</th>
+                  <th className="px-4 py-3">Name of goods</th>
+                  <th className="px-4 py-3 text-right">Goods requested</th>
+                  <th className="px-4 py-3 text-right">Cost of goods requested</th>
+                  <th className="px-4 py-3 text-right">Goods received</th>
+                  <th className="px-4 py-3 text-right">Cost of goods received</th>
+                  <th className="px-4 py-3 text-right">Total goods left</th>
+                  <th className="px-4 py-3 text-right">Total cost of goods left</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.description} className="border-b border-zinc-100 last:border-0">
-                    <td className="px-6 py-3 font-medium text-zinc-900">{row.description}</td>
-                    <td className="px-6 py-3 text-right text-zinc-800">
+                    <td className="px-4 py-3 font-medium text-zinc-900">{row.description}</td>
+                    <td className="px-4 py-3 text-right text-zinc-800">
+                      {formatMaterialAmount(row.orderedQuantity)}
+                      {row.unit ? ` ${row.unit}` : ""}
+                    </td>
+                    <td className="px-4 py-3 text-right text-zinc-800">
+                      {formatMaterialCurrencyAmount(row.orderedCost)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-zinc-800">
+                      {formatMaterialAmount(row.receivedQuantity)}
+                      {row.unit ? ` ${row.unit}` : ""}
+                    </td>
+                    <td className="px-4 py-3 text-right text-zinc-800">
+                      {formatMaterialCurrencyAmount(row.receivedCost)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-zinc-800">
                       {formatMaterialAmount(row.quantityVariance)}
                       {row.unit ? ` ${row.unit}` : ""}
                     </td>
-                    <td className="px-6 py-3 text-right text-zinc-800">
+                    <td className="px-4 py-3 text-right text-zinc-800">
                       {formatMaterialCurrencyAmount(row.costVariance)}
                     </td>
                   </tr>
