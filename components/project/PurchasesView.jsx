@@ -24,22 +24,25 @@ export default function PurchasesView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Open goods received, goods requested, or goods analysis for this project.
+          Material requested, material received, material on site, and material analysis are in
+          the material schedule.
         </p>
       </header>
 
-      <div className="app-choice-grid">
-        {PURCHASES_MODULES.map((item) => (
-          <ChoiceCard
-            key={item.view}
-            href={getDashboardHref(projectId, item.view)}
-            icon={item.icon}
-            title={item.label}
-            description={item.description}
-            prefetch={false}
-          />
-        ))}
-      </div>
+      {PURCHASES_MODULES.length > 0 ? (
+        <div className="app-choice-grid">
+          {PURCHASES_MODULES.map((item) => (
+            <ChoiceCard
+              key={item.view}
+              href={getDashboardHref(projectId, item.view)}
+              icon={item.icon}
+              title={item.label}
+              description={item.description}
+              prefetch={false}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }

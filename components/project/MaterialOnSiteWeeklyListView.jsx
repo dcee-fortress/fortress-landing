@@ -7,7 +7,7 @@ import { useHasHydrated } from "@/hooks/useHasHydrated"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { getMaterialOnSiteWeeklyFiles } from "@/lib/materialOnSite"
 import { isWeeklyFileInProgress } from "@/lib/periodFiles"
-import { getMaterialOnSiteWeeklyFileHref, getMaterialSchedulesHref } from "@/lib/projectRoutes"
+import { getMaterialOnSiteHref, getMaterialOnSiteWeeklyFileHref } from "@/lib/projectRoutes"
 
 export default function MaterialOnSiteWeeklyListView({ projectId, projectName }) {
   const hasHydrated = useHasHydrated()
@@ -21,11 +21,11 @@ export default function MaterialOnSiteWeeklyListView({ projectId, projectName })
     <div className="space-y-6">
       <header className="space-y-2">
         <Link
-          href={getMaterialSchedulesHref(projectId)}
+          href={getMaterialOnSiteHref(projectId)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Material schedule
+          Back to Material on site
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
           Weekly material on site

@@ -4,9 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import { useProjects } from "@/components/project/ProjectsProvider"
-import { getGoodsReceivedDashboardLinesForDay } from "@/lib/goodsReceived"
+import { useMaterialOnSiteVersion } from "@/hooks/useMaterialOnSiteVersion"
 import {
   getMaterialOnSiteDayDraft,
+  getMaterialOnSiteRows,
   saveMaterialOnSiteDay,
 } from "@/lib/materialOnSite"
 import { formatMaterialAmount, parsePlantCostAmount, roundMaterialAmount } from "@/lib/plantCostCalculations"
@@ -24,6 +25,7 @@ function descriptionKey(description) {
 
 export default function MaterialOnSiteEntryView({ projectId, projectName, dayId }) {
   const { version } = useProjects()
+  const entryVersion = useMaterialOnSiteVersion()
   const file = getDailyFile(projectId, dayId)
   const dayLabel = file?.label || dayId
   const [drafts, setDrafts] = useState({})
@@ -34,10 +36,9 @@ export default function MaterialOnSiteEntryView({ projectId, projectName, dayId 
 
   const lines = useMemo(() => {
     void version
-    return getGoodsReceivedDashboardLinesForDay(projectId, dayId).filter(
-      (line) => descriptionKey(line.description) && line.description !== "—"
-    )
-  }, [dayId, projectId, version])
+    void entryVersion
+    return getMaterialOnSiteRows(projectId, [dayId])
+  }, [dayId, entryVersion, projectId, version])
 
   useEffect(() => {
     setDrafts((current) => {
@@ -101,8 +102,10 @@ export default function MaterialOnSiteEntryView({ projectId, projectName, dayId 
           {dayLabel}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          {projectName || "Project"} · Descriptions and goods on site are copied from goods
-          received. Goods left on site is goods on site minus goods used on site.
+          {projectName || "Project"} · Descriptions come from goods received. Goods on site is
+          what was left the previous day plus goods received today. Goods left on site is goods
+          on site minus goods used on site, and that leftover becomes the next day&apos;s goods
+          on site.
         </p>
       </header>
 
@@ -122,14 +125,15 @@ export default function MaterialOnSiteEntryView({ projectId, projectName, dayId 
               {lines.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-sm text-zinc-500">
-                    No goods were received on this day, so there is nothing to enter.
+                    No goods on site this day. Goods received, and anything left from the previous
+                    day, show up here.
                   </td>
                 </tr>
               ) : (
                 lines.map((line) => {
                   const key = descriptionKey(line.description)
                   const draft = drafts[key] || { goodsUsed: "", location: "" }
-                  const goodsOnSite = roundMaterialAmount(line.quantity) ?? 0
+                  const goodsOnSite = roundMaterialAmount(line.goodsOnSite) ?? 0
                   const goodsUsed = parsePlantCostAmount(draft.goodsUsed) ?? 0
                   const goodsLeft = roundMaterialAmount(goodsOnSite - goodsUsed) ?? 0
                   return (

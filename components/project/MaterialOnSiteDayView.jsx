@@ -36,9 +36,9 @@ export default function MaterialOnSiteDayView({ projectId, projectName, dayId })
           {dayLabel}
         </h1>
         <p className="text-sm text-zinc-500 sm:text-base">
-          {projectName || "Project"} · The material schedule entry rolls into this table. The columns
-          are the same: description of good, goods on site, goods used on site, location used, and
-          goods left on site.
+          {projectName || "Project"} · Goods on site is goods left from the previous day plus goods
+          received today. Goods used comes from the material schedule entry, and goods left is what
+          stays for the next day.
         </p>
       </header>
 
@@ -55,7 +55,7 @@ export default function MaterialOnSiteDayView({ projectId, projectName, dayId })
         </div>
         <MaterialOnSiteTable
           rows={rows}
-          emptyMessage="No goods were received on this day, so there is nothing on site yet."
+          emptyMessage="No goods on site this day. New goods received, and goods left from the previous day, appear here."
         />
       </section>
     </div>

@@ -1,9 +1,6 @@
-import MaterialOnSiteDailyListPageClient from "@/components/project/MaterialOnSiteDailyListPageClient"
-import { isActiveProject } from "@/lib/projectList"
-import { notFound } from "next/navigation"
+import { redirect } from "next/navigation"
 
-export default async function DailyMaterialOnSitePage({ params }) {
-  const { projectId } = await params
-  if (!isActiveProject(projectId)) notFound()
-  return <MaterialOnSiteDailyListPageClient projectId={projectId} />
+export default async function Page({ params }) {
+  const { projectId, dayId, weekId, monthId } = await params
+  redirect(`/project/${projectId}/dashboard/material-schedule/material-on-site/daily`)
 }

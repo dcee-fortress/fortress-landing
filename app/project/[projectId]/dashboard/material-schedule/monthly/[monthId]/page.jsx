@@ -1,9 +1,6 @@
-import MaterialOnSiteMonthPageClient from "@/components/project/MaterialOnSiteMonthPageClient"
-import { isActiveProject } from "@/lib/projectList"
-import { notFound } from "next/navigation"
+import { redirect } from "next/navigation"
 
-export default async function MonthlyMaterialOnSiteFilePage({ params }) {
-  const { projectId, monthId } = await params
-  if (!isActiveProject(projectId)) notFound()
-  return <MaterialOnSiteMonthPageClient projectId={projectId} monthId={monthId} />
+export default async function Page({ params }) {
+  const { projectId, dayId, weekId, monthId } = await params
+  redirect(`/project/${projectId}/dashboard/material-schedule/material-on-site/monthly/${monthId}`)
 }

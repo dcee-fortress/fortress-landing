@@ -1,9 +1,6 @@
-import GoodsAnalysisPageClient from "@/components/project/GoodsAnalysisPageClient"
-import { isActiveProject } from "@/lib/projectList"
-import { notFound } from "next/navigation"
+import { redirect } from "next/navigation"
 
-export default async function GoodsAnalysisPage({ params }) {
+export default async function GoodsAnalysisRedirectPage({ params }) {
   const { projectId } = await params
-  if (!isActiveProject(projectId)) notFound()
-  return <GoodsAnalysisPageClient projectId={projectId} />
+  redirect(`/project/${projectId}/dashboard/material-schedule/material-analysis`)
 }

@@ -37,15 +37,15 @@ export default function DailyGoodsReceivedDayView({ projectId, projectName, dayI
           Back to daily files
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Daily goods received dashboard
+          Daily material received
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
           {dayLabel}
         </h1>
         <p className="text-sm text-zinc-500 sm:text-base">
-          {projectName || "Project"} · Description, unit, quantity, total cost, and current goods
-          balance roll up from entry. Matching descriptions are combined. Current goods balance =
-          requested − received.
+          {projectName || "Project"} · Description, unit, quantity, total cost, and current material
+          balance roll up from the material received entry. Matching descriptions are combined.
+          Current material balance = material requested − material received.
         </p>
       </header>
 
@@ -57,19 +57,19 @@ export default function DailyGoodsReceivedDayView({ projectId, projectName, dayI
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
-          <h2 className="text-base font-semibold text-zinc-900">Goods received table</h2>
+          <h2 className="text-base font-semibold text-zinc-900">Material received table</h2>
           <Link
             href={getGoodsReceivedEntryHref(projectId, dayId)}
             className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
           >
             <Icon name="package" size={16} />
-            {hasData ? "Edit entry" : "Goods received entry"}
+            {hasData ? "Edit entry" : "Material received entry"}
           </Link>
         </div>
 
         <GoodsReceivedDashboardTable
           lines={lines}
-          emptyMessage="No goods received yet. Open Goods received entry to add items."
+          emptyMessage="No material received yet. Open Material received entry to add items."
         />
       </section>
     </div>

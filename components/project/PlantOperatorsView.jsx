@@ -9,7 +9,7 @@ import {
   getPlantOperatorRegisterFiles,
   getPlantOperatorRegisterHref,
 } from "@/lib/plantOperatorRegisters"
-import { getPpeRegistersHref } from "@/lib/projectRoutes"
+import { getPlantOnSiteHref } from "@/lib/projectRoutes"
 import { isMonthlyFileInProgress } from "@/lib/periodFiles"
 
 function RegisterFileRow({ file, projectId }) {
@@ -68,11 +68,11 @@ export default function PlantOperatorsView({ projectName, projectId }) {
     <div className="space-y-6">
       <header className="space-y-2">
         <Link
-          href={getPpeRegistersHref(projectId)}
+          href={getPlantOnSiteHref(projectId)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Registers
+          Back to Plant on Site
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
           Register for Plant Operators

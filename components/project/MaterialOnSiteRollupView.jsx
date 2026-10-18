@@ -13,7 +13,7 @@ import {
   getMaterialOnSiteYearDayIds,
   getMaterialOnSiteYears,
 } from "@/lib/materialOnSite"
-import { getMaterialSchedulesHref } from "@/lib/projectRoutes"
+import { getMaterialOnSiteHref } from "@/lib/projectRoutes"
 
 export default function MaterialOnSiteRollupView({
   projectId,
@@ -72,11 +72,11 @@ export default function MaterialOnSiteRollupView({
     <div className="space-y-6">
       <header className="space-y-2">
         <Link
-          href={getMaterialSchedulesHref(projectId)}
+          href={getMaterialOnSiteHref(projectId)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Material schedule
+          Back to Material on site
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{title}</p>
         <h1

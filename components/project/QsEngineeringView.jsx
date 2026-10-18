@@ -16,7 +16,7 @@ export default function QsEngineeringView({ projectId, projectName }) {
           <Icon name="arrow-left" size={16} />
           Back to project home
         </Link>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">QS &amp; Engineering</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Quantity Survey</p>
         <h1
           suppressHydrationWarning
           className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl"
@@ -24,7 +24,7 @@ export default function QsEngineeringView({ projectId, projectName }) {
           {projectName}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Open valuations, the material schedule, plant on site, progress reports, and rate analysis for this project.
+          Open valuations, the material schedule, plant on site, and rate analysis for this project.
         </p>
       </header>
 

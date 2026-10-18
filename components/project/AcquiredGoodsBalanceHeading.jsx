@@ -16,7 +16,7 @@ export default function AcquiredGoodsBalanceHeading({
         Requested goods balance
       </p>
       <p className="mt-1 text-sm text-emerald-900/80">
-        Total goods requested for {periodLabel} from the Goods requested dashboards.
+        Total material requested for {periodLabel} from the material requested dashboards.
       </p>
       <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-sm">
         <div>

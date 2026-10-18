@@ -46,7 +46,9 @@ function isLightweightDashboardPath(pathname) {
   const parts = rest.split("/").filter(Boolean)
 
   const root = parts[0]
-  if (root === "qs-engineering" || root === "finance") return parts.length === 1
+  if (root === "qs-engineering" || root === "engineering" || root === "finance") {
+    return parts.length === 1
+  }
   if (root === "safety-health") {
     if (parts.length === 1) return true
     // PPE hubs + PPE received/issued shells are list/table UIs.
@@ -68,6 +70,14 @@ function isLightweightDashboardPath(pathname) {
     root === "cash-books" ||
     root === "petty-cash" ||
     root === "food-cash"
+  ) {
+    return true
+  }
+  if (
+    root === "material-schedule" &&
+    (parts[1] === "material-received" ||
+      parts[1] === "material-requested" ||
+      parts[1] === "material-analysis")
   ) {
     return true
   }

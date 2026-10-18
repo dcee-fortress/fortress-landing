@@ -86,7 +86,7 @@ const DailyGoodsReceivedRow = memo(function DailyGoodsReceivedRow({
       <button
         type="button"
         aria-label={`Delete ${file.label}`}
-        title="Delete daily goods received file"
+        title="Delete daily material received file"
         disabled={deleting}
         onClick={(event) => {
           event.preventDefault()
@@ -139,7 +139,7 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
 
   async function performDeleteDailyFile(file) {
     const confirmed = window.confirm(
-      `Delete "${file.label}" from daily goods received?\n\nThis removes the day's entry from weekly, monthly, and project-to-date rollups.`
+      `Delete "${file.label}" from daily material received?\n\nThis removes the day's entry from weekly, monthly, and project-to-date rollups.`
     )
     if (!confirmed) return
 
@@ -171,8 +171,8 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
 
     const confirmed = window.confirm(
       ids.length === 1
-        ? `Delete this goods received file?\n\nThis removes the day's entry from weekly, monthly, and project-to-date rollups.`
-        : `Delete ${ids.length} goods received files?\n\nThis removes those days from weekly, monthly, and project-to-date rollups.`
+        ? `Delete this material received file?\n\nThis removes the day's entry from weekly, monthly, and project-to-date rollups.`
+        : `Delete ${ids.length} material received files?\n\nThis removes those days from weekly, monthly, and project-to-date rollups.`
     )
     if (!confirmed) return
 
@@ -209,10 +209,10 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Goods received
+          Back to Material received
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Daily goods received
+          Daily material received
         </p>
         <h1
           suppressHydrationWarning
@@ -231,7 +231,7 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
           {...search}
           projectId={projectId}
           getFileHref={getGoodsReceivedDailyFileHref}
-          placeholder="Search daily goods received files"
+          placeholder="Search daily material received files"
         />
 
         {selection.selectedCount > 0 ? (

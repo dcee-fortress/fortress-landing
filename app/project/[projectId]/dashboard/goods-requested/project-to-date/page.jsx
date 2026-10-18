@@ -1,16 +1,6 @@
-import GoodsAcquiredRollupPageClient from "@/components/project/GoodsAcquiredRollupPageClient"
-import { isActiveProject } from "@/lib/projectList"
-import { notFound } from "next/navigation"
+import { redirect } from "next/navigation"
 
-export default async function GoodsAcquiredprojecttodatePage({ params }) {
-  const { projectId } = await params
-  if (!isActiveProject(projectId)) notFound()
-  return (
-    <GoodsAcquiredRollupPageClient
-      projectId={projectId}
-      title="Project to date goods requested"
-      description="Project-to-date table of description, unit, quantity, and total cost rolled up from all daily goods requested entries."
-      mode="project-to-date"
-    />
-  )
+export default async function Page({ params }) {
+  const { projectId, dayId, weekId, monthId } = await params
+  redirect(`/project/${projectId}/dashboard/material-schedule/material-requested/project-to-date`)
 }

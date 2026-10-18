@@ -250,7 +250,7 @@ export default function HomeMenu({ projectId }) {
           Select a department
         </h1>
         <p className="text-sm text-zinc-500 sm:text-base">
-          Open QS &amp; Engineering for current project tools, or Finance and Safety &amp; Health for
+          Open Quantity Survey or Engineering for current project tools, or Safety &amp; Health for
           upcoming modules.
         </p>
       </header>

@@ -9,6 +9,7 @@ import {
   getDailyFileHref,
   getDailyProgressReportFileHref,
   getWeeklyProgressReportFileHref,
+  getEngineeringHref,
   getWeeklyFileHref,
 } from "@/lib/projectRoutes"
 import { getPlantOnSitePeriodFileHref } from "@/lib/plantOnSiteModules"
@@ -131,12 +132,19 @@ function ProgressReportFileRow({ file, projectId, reportType }) {
   )
 }
 
-function ReportTypeSelector({ projectName, onSelect }) {
+function ReportTypeSelector({ projectName, projectId, onSelect }) {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
+        <Link
+          href={getEngineeringHref(projectId)}
+          className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
+        >
+          <Icon name="arrow-left" size={16} />
+          Back to Engineering
+        </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Progress Reports
+          Progress reports
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
         <p className="max-w-2xl text-zinc-500">
@@ -259,7 +267,13 @@ function ProgressReportFiles({ projectName, projectId, reportType, onSelectType 
 
 export default function ProgressReportView({ projectName, projectId, reportType = null, onSelectType }) {
   if (!reportType) {
-    return <ReportTypeSelector projectName={projectName} onSelect={onSelectType} />
+    return (
+      <ReportTypeSelector
+        projectName={projectName}
+        projectId={projectId}
+        onSelect={onSelectType}
+      />
+    )
   }
 
   return (

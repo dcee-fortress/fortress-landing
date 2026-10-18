@@ -5,15 +5,16 @@ import Link from "next/link"
 import ReportFileSearchBar, { useReportFileSearch } from "@/components/project/ReportFileSearch"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
-import { hasGoodsReceivedDataForDay } from "@/lib/goodsReceived"
+import { getMaterialOnSiteStockDayIds } from "@/lib/materialOnSite"
 import { getDailyFiles } from "@/lib/projectFiles"
-import { getMaterialOnSiteDailyFileHref, getMaterialSchedulesHref } from "@/lib/projectRoutes"
+import { getMaterialOnSiteDailyFileHref, getMaterialOnSiteHref } from "@/lib/projectRoutes"
 
 export default function MaterialOnSiteDailyListView({ projectId, projectName }) {
   const hasHydrated = useHasHydrated()
   const { version } = useProjectData()
   void version
   const files = hasHydrated ? getDailyFiles(projectId) : []
+  const stockDayIds = new Set(hasHydrated ? getMaterialOnSiteStockDayIds(projectId) : [])
   const search = useReportFileSearch(files)
   const displayFiles = search.activeQuery ? search.filteredFiles : files
 
@@ -21,11 +22,11 @@ export default function MaterialOnSiteDailyListView({ projectId, projectName }) 
     <div className="space-y-6">
       <header className="space-y-2">
         <Link
-          href={getMaterialSchedulesHref(projectId)}
+          href={getMaterialOnSiteHref(projectId)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Material schedule
+          Back to Material on site
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
           Daily material on site
@@ -37,7 +38,8 @@ export default function MaterialOnSiteDailyListView({ projectId, projectName }) 
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Open a daily report. Goods on site are copied from that day&apos;s goods received.
+          Open a daily report. Goods on site is what was left the previous day plus goods received
+          that day.
         </p>
       </header>
 
@@ -63,7 +65,7 @@ export default function MaterialOnSiteDailyListView({ projectId, projectName }) 
         ) : displayFiles.length > 0 ? (
           <ul className="divide-y divide-zinc-200">
             {displayFiles.map((file) => {
-              const hasGoods = hasGoodsReceivedDataForDay(projectId, file.id)
+              const hasGoods = stockDayIds.has(file.id)
               return (
                 <li key={`${file.id}-${version}`}>
                   <Link
@@ -78,9 +80,7 @@ export default function MaterialOnSiteDailyListView({ projectId, projectName }) 
                       <div className="min-w-0">
                         <p className="text-lg font-semibold text-zinc-900">{file.label}</p>
                         <p className="text-sm text-zinc-500">
-                          {hasGoods
-                            ? "Goods received on this day"
-                            : "No goods received on this day"}
+                          {hasGoods ? "Goods on site" : "No goods on site"}
                         </p>
                       </div>
                     </div>

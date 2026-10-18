@@ -1,13 +1,6 @@
-import DailyGoodsReceivedListPageClient from "@/components/project/DailyGoodsReceivedListPageClient"
-import { isActiveProject } from "@/lib/projectList"
-import { notFound } from "next/navigation"
+import { redirect } from "next/navigation"
 
-export default async function DailyGoodsReceivedPage({ params }) {
-  const { projectId } = await params
-
-  if (!isActiveProject(projectId)) {
-    notFound()
-  }
-
-  return <DailyGoodsReceivedListPageClient projectId={projectId} />
+export default async function Page({ params }) {
+  const { projectId, dayId, weekId, monthId } = await params
+  redirect(`/project/${projectId}/dashboard/material-schedule/material-received/daily`)
 }

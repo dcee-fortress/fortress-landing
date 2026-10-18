@@ -1,20 +1,6 @@
-import GoodsReceivedRollupPageClient from "@/components/project/GoodsReceivedRollupPageClient"
-import { isActiveProject } from "@/lib/projectList"
-import { notFound } from "next/navigation"
+import { redirect } from "next/navigation"
 
-export default async function WeeklyGoodsReceivedPage({ params }) {
-  const { projectId } = await params
-
-  if (!isActiveProject(projectId)) {
-    notFound()
-  }
-
-  return (
-    <GoodsReceivedRollupPageClient
-      projectId={projectId}
-      title="Weekly goods received"
-      description="Weekly table of description, unit, quantity, total cost, and current goods balance rolled up from daily goods received entries."
-      mode="weekly"
-    />
-  )
+export default async function Page({ params }) {
+  const { projectId, dayId, weekId, monthId } = await params
+  redirect(`/project/${projectId}/dashboard/material-schedule/material-received/weekly`)
 }

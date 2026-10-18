@@ -33,7 +33,7 @@ export default function GoodsAcquiredEntryPageClient({ projectId, dayId }) {
 
   return (
     <RestrictedAreaGate
-      title="Goods requested entry"
+      title="Material requested entry"
       description="Enter the finance username and password to open this entry form. Without saving, you will be asked again next time."
       validateCredentials={validateFinanceEntryCredentials}
       unlock={unlockFinanceEntry}
