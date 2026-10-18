@@ -39,7 +39,7 @@ function BoqRateAnalysisSection({ boq, projectId, summary, period, periodLabel }
         <RatesBoqReportTable
           rows={reportRows}
           period={period}
-          emptyMessage={`No actual rates from valuations for this ${periodLabel} yet. Enter actual cost on site material schedules in daily valuations first.`}
+          emptyMessage={`No actual rates from valuations for this ${periodLabel} yet. Enter valuations entry on the daily hourly dashboards first.`}
         />
       </div>
     </article>

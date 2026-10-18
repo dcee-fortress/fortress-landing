@@ -384,7 +384,7 @@ function MaterialScheduleEditor({
 
         <header className="space-y-1">
           <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-            Material Schedule · {schedule.label}
+            Valuations entry · {schedule.label}
           </p>
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
           <p className="text-sm text-zinc-500">
@@ -397,7 +397,7 @@ function MaterialScheduleEditor({
 
       <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
-          <h2 className="text-lg font-semibold text-zinc-900">{schedule.label} Material Schedule</h2>
+          <h2 className="text-lg font-semibold text-zinc-900">{schedule.label} Valuations entry</h2>
           <p className="mt-1 text-sm text-zinc-500">{getMaterialFormulaHelpText()}</p>
         </div>
 
@@ -661,7 +661,7 @@ function MaterialScheduleEditor({
                     colSpan={MATERIAL_SCHEDULE_COLUMNS.length + 1}
                     className="px-4 py-10 text-center text-zinc-500"
                   >
-                    No material lines yet. Add a row and start typing — entries save automatically.
+                    No lines yet. Add a row and start typing — entries save automatically.
                   </td>
                 </tr>
               )}
@@ -689,7 +689,7 @@ function MaterialScheduleEditor({
             className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 transition hover:bg-zinc-100"
           >
             <Icon name="plus" size={16} />
-            Add material line
+            Add line
           </button>
 
           <div className="flex flex-wrap items-center gap-3">

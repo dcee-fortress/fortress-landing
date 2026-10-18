@@ -48,7 +48,7 @@ export default function MaterialSchedulePageClient({
   }
 
   return (
-    <RestrictedAreaGate title="Material Schedule">
+    <RestrictedAreaGate title="Valuations entry">
       {!isReady || !project || !slot ? (
         <PageLoadingShell />
       ) : (

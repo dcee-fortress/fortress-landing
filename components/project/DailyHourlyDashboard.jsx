@@ -73,7 +73,7 @@ export default function DailyHourlyDashboard({
             </div>
             <div>
               <p className="text-lg font-semibold text-zinc-900">Hourly dashboard</p>
-              <p className="text-xs text-zinc-500">Values from the material schedule below</p>
+              <p className="text-xs text-zinc-500">Values from the valuations entry below</p>
             </div>
           </div>
         </div>

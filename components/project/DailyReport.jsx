@@ -116,8 +116,8 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
               <h2 className="mt-1 text-2xl font-bold text-zinc-900">{file.label}</h2>
               <p className="mt-1 text-sm text-zinc-500">
                 {status.key === "awaiting"
-                  ? "New daily file — add hourly dashboards and save material schedules to enter data."
-                  : "You can edit this file at any time — totals update as hourly material schedules are saved."}
+                  ? "New daily file — add hourly dashboards and save valuations entry to enter data."
+                  : "You can edit this file at any time — totals update as hourly valuations entry is saved."}
               </p>
             </div>
             <span
@@ -140,7 +140,7 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
           </h3>
           <p className="mb-4 text-sm text-zinc-500">
             {status.key === "awaiting"
-              ? "No hourly data yet. Add hourly dashboards below, then enter and save material schedules."
+              ? "No hourly data yet. Add hourly dashboards below, then enter and save valuations entry."
               : `Hourly dashboard entries roll up to daily, weekly, monthly, and project to date totals (${slots.length} active dashboard${slots.length === 1 ? "" : "s"}).`}
           </p>
           <EarnedValueReportTable summary={summary} onExportPdf={exportDailyTotal} />
@@ -153,7 +153,7 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
             <div>
               <h2 className="text-lg font-semibold text-zinc-900">Hourly Dashboards</h2>
               <p className="text-sm text-zinc-500">
-                Enter values in material schedules on each hourly dashboard. Totals roll up to daily,
+                Enter values in valuations entry on each hourly dashboard. Totals roll up to daily,
                 weekly, monthly, and project to date.
               </p>
             </div>
@@ -187,7 +187,7 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
           ) : (
             <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-6 py-12 text-center text-zinc-500">
               {ready
-                ? "No hourly dashboards yet. Use \"Add Hourly Dashboard\", then open each slot's material schedule to enter and save today's data."
+                ? "No hourly dashboards yet. Use \"Add Hourly Dashboard\", then open each slot's valuations entry to enter and save today's data."
                 : "Loading hourly dashboards…"}
             </div>
           )}
