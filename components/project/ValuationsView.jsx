@@ -1,27 +1,36 @@
 "use client"
 
 import ChoiceCard from "@/components/project/ChoiceCard"
-import { getDashboardHref } from "@/lib/projectRoutes"
+import { getDashboardHref, getValuationsProjectToDateHref } from "@/lib/projectRoutes"
 
-/** Project to date valuations are CEO EXCLUSIVE only. */
 const VALUATION_OPTIONS = [
+  {
+    view: "project-to-date",
+    label: "Project to date",
+    description: "Cumulative cost, production, and rate from the project start, with search",
+    icon: "hard-hat",
+    href: getValuationsProjectToDateHref,
+  },
   {
     view: "monthly-value",
     label: "Monthly valuations",
     description: "Completed monthly valuation reports from project start",
     icon: "calendar-days",
+    href: (projectId) => getDashboardHref(projectId, "monthly-value"),
   },
   {
     view: "weekly-value",
     label: "Weekly valuations",
     description: "Completed weekly valuation reports in 7-day periods",
     icon: "calendar-range",
+    href: (projectId) => getDashboardHref(projectId, "weekly-value"),
   },
   {
     view: "daily-value",
     label: "Daily valuations",
     description: "Completed daily valuation reports from project start",
     icon: "clock",
+    href: (projectId) => getDashboardHref(projectId, "daily-value"),
   },
 ]
 
@@ -47,7 +56,7 @@ export default function ValuationsView({ projectId, projectName }) {
         {VALUATION_OPTIONS.map((item) => (
           <ChoiceCard
             key={item.view}
-            href={getDashboardHref(projectId, item.view)}
+            href={item.href(projectId)}
             icon={item.icon}
             title={item.label}
             description={item.description}
