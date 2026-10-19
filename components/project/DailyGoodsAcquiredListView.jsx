@@ -12,11 +12,11 @@ import { useFileDeleteAuth } from "@/hooks/useFileDeleteAuth"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import { unlockFinanceEntry, validateFinanceEntryCredentials } from "@/lib/financeEntryAuth"
 import {
+  clearLegacyGoodsAcquiredDailyFiles,
   createGoodsAcquiredDailyFileForToday,
   deleteGoodsAcquiredDay,
   getGoodsAcquiredDailyFiles,
   getGoodsAcquiredEntryStatus,
-  migrateGoodsAcquiredToManualOnly,
 } from "@/lib/goodsAcquired"
 import { getGoodsAcquiredDailyFileHref, getGoodsAcquiredHref } from "@/lib/projectRoutes"
 
@@ -116,7 +116,7 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
     let cancelled = false
     setReady(false)
     void (async () => {
-      await migrateGoodsAcquiredToManualOnly(projectId)
+      await clearLegacyGoodsAcquiredDailyFiles(projectId)
       if (cancelled) return
       refresh()
       setReady(true)
@@ -145,7 +145,7 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
 
   async function performDeleteDailyFile(file) {
     const confirmed = window.confirm(
-      `Delete "${file.label}" from daily material requested?\n\nThis removes the day's entry from weekly, monthly, and project-to-date rollups.`
+      `Delete "${file.label}" from daily material requested?\n\nThis removes the day's quantities from project to date and from material left.`
     )
     if (!confirmed) return
 
@@ -177,8 +177,8 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
 
     const confirmed = window.confirm(
       ids.length === 1
-        ? `Delete this material requested file?\n\nThis removes the day's entry from weekly, monthly, and project-to-date rollups.`
-        : `Delete ${ids.length} material requested files?\n\nThis removes those days from weekly, monthly, and project-to-date rollups.`
+        ? `Delete this material requested file?\n\nThis removes the day's quantities from project to date and from material left.`
+        : `Delete ${ids.length} material requested files?\n\nThis removes those quantities from project to date and from material left.`
     )
     if (!confirmed) return
 
@@ -249,23 +249,28 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
               {projectName || "Project"}
             </h1>
             <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-              Press + to create today&apos;s file. Open it for the same material requested dashboard
-              and entry. Those quantities are subtracted from material received to find material left.
+              Press + in the file list to create today&apos;s file. Open the file to change its date
+              and enter material requested. Those quantities roll into project to date and are
+              subtracted from material received to find material left.
             </p>
           </div>
+        </div>
+      </header>
+
+      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
+          <h2 className="text-base font-semibold text-zinc-900">Daily files</h2>
           <button
             type="button"
             onClick={() => void handleCreateToday()}
             disabled={!ready || creating}
+            aria-label="Create today's material requested file"
             title="Create today's material requested file"
             className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Icon name="plus" size={22} />
           </button>
         </div>
-      </header>
-
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <ReportFileSearchBar
           {...search}
           projectId={projectId}

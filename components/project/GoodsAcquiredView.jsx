@@ -30,7 +30,7 @@ export default function GoodsAcquiredView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Choose project to date, monthly, weekly, or daily material requested. Daily files use the same entry as before.
+          Open project to date or daily material requested. Daily files are created with + and their quantities roll into project to date and material left.
         </p>
       </header>
 

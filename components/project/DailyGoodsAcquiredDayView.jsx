@@ -1,6 +1,8 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import Icon from "@/components/icon/icon"
 import GoodsAcquiredDashboardTable from "@/components/project/GoodsAcquiredDashboardTable"
 import { useProjects } from "@/components/project/ProjectsProvider"
@@ -8,19 +10,51 @@ import {
   getGoodsAcquiredDailyFile,
   getGoodsAcquiredDashboardLinesForDay,
   hasGoodsAcquiredDataForDay,
+  renameGoodsAcquiredDailyFile,
 } from "@/lib/goodsAcquired"
 import {
+  getGoodsAcquiredDailyFileHref,
   getGoodsAcquiredDailyHref,
   getGoodsAcquiredEntryHref,
 } from "@/lib/projectRoutes"
 export default function DailyGoodsAcquiredDayView({ projectId, projectName, dayId }) {
-  const { version } = useProjects()
+  const router = useRouter()
+  const { version, refresh } = useProjects()
   void version
+  const [dateValue, setDateValue] = useState(dayId)
+  const [savingDate, setSavingDate] = useState(false)
+
+  useEffect(() => {
+    setDateValue(dayId)
+  }, [dayId])
 
   const file = getGoodsAcquiredDailyFile(projectId, dayId)
   const dayLabel = file?.label || dayId
   const hasData = hasGoodsAcquiredDataForDay(projectId, dayId)
   const lines = getGoodsAcquiredDashboardLinesForDay(projectId, dayId)
+
+  async function handleDateChange(event) {
+    const nextDayId = event.target.value
+    setDateValue(nextDayId)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(nextDayId) || nextDayId === dayId || savingDate) return
+
+    setSavingDate(true)
+    try {
+      const result = await renameGoodsAcquiredDailyFile(projectId, dayId, nextDayId)
+      if (!result.ok) {
+        window.alert(result.message || "Could not change the file date.")
+        setDateValue(dayId)
+        return
+      }
+      refresh()
+      router.replace(getGoodsAcquiredDailyFileHref(projectId, nextDayId))
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not change the file date.")
+      setDateValue(dayId)
+    } finally {
+      setSavingDate(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -40,8 +74,19 @@ export default function DailyGoodsAcquiredDayView({ projectId, projectName, dayI
         </h1>
         <p className="text-sm text-zinc-500 sm:text-base">
           {projectName || "Project"} · Description, unit, quantity, and total cost roll up from the
-          material requested entry. Matching descriptions are combined.
+          material requested entry. Matching descriptions are combined. These quantities are
+          subtracted from material received to find material left.
         </p>
+        <label className="flex w-fit flex-col gap-1 pt-1 text-sm font-medium text-zinc-700">
+          File date
+          <input
+            type="date"
+            value={dateValue}
+            disabled={savingDate}
+            onChange={(event) => void handleDateChange(event)}
+            className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/15 disabled:opacity-60"
+          />
+        </label>
       </header>
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
