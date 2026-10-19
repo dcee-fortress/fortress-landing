@@ -17,14 +17,14 @@ const MATERIAL_SCHEDULE_MODULES = [
     href: getGoodsAcquiredHref,
     icon: "package",
     title: "Material requested",
-    description: "Daily, weekly, and project to date material requested, with the same entry as before",
+    description: "Project to date and daily material requested. Create a daily file with + and set its date inside the file",
   },
   {
     key: "received",
     href: getGoodsReceivedHref,
     icon: "package",
     title: "Material received",
-    description: "Daily, weekly, and project to date material received, with entry on the daily dashboard",
+    description: "Project to date and daily material received. Create a daily file with + and set its date inside the file",
   },
   {
     key: "on-site",

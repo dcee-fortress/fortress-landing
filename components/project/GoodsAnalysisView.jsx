@@ -7,7 +7,7 @@ import { useHasHydrated } from "@/hooks/useHasHydrated"
 import { getGoodsOverviewRows } from "@/lib/goodsOverview"
 import {
   formatMaterialAmount,
-  formatMaterialCurrencyAmount,
+  formatMaterialUnitPriceAmount,
 } from "@/lib/plantCostCalculations"
 import { getMaterialSchedulesHref } from "@/lib/projectRoutes"
 
@@ -78,21 +78,21 @@ export default function GoodsAnalysisView({ projectId, projectName }) {
                       {row.unit ? ` ${row.unit}` : ""}
                     </td>
                     <td className="px-4 py-3 text-right text-zinc-800">
-                      {formatMaterialCurrencyAmount(row.orderedCost)}
+                      {formatMaterialUnitPriceAmount(row.orderedCost)}
                     </td>
                     <td className="px-4 py-3 text-right text-zinc-800">
                       {formatMaterialAmount(row.receivedQuantity)}
                       {row.unit ? ` ${row.unit}` : ""}
                     </td>
                     <td className="px-4 py-3 text-right text-zinc-800">
-                      {formatMaterialCurrencyAmount(row.receivedCost)}
+                      {formatMaterialUnitPriceAmount(row.receivedCost)}
                     </td>
                     <td className="px-4 py-3 text-right text-zinc-800">
                       {formatMaterialAmount(row.quantityVariance)}
                       {row.unit ? ` ${row.unit}` : ""}
                     </td>
                     <td className="px-4 py-3 text-right text-zinc-800">
-                      {formatMaterialCurrencyAmount(row.costVariance)}
+                      {formatMaterialUnitPriceAmount(row.costVariance)}
                     </td>
                   </tr>
                 ))}

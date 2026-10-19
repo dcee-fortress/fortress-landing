@@ -19,16 +19,17 @@ import {
 } from "@/lib/goodsAcquired"
 import { getGoodsReceivedHistoryRows } from "@/lib/goodsReceived"
 import {
-  formatMaterialCurrencyAmount,
+  formatMaterialUnitPriceAmount,
   parsePlantCostAmount,
 } from "@/lib/plantCostCalculations"
 import { getGoodsAcquiredDailyFileHref } from "@/lib/projectRoutes"
 
-function formatInputAmount(value) {
+function formatUnitPriceInput(value) {
   if (value === "" || value === null || value === undefined) return ""
-  const parsed = parsePlantCostAmount(value)
-  if (parsed === null) return String(value)
-  return String(parsed)
+  const text = String(value)
+  if (/^-?\d*\.?\d*$/.test(text)) return text
+  const parsed = parsePlantCostAmount(text)
+  return parsed === null ? text : String(parsed)
 }
 
 const HOVER_LABELS = GOODS_ACQUIRED_COLUMNS.map((column) =>
@@ -192,7 +193,7 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
           <div>
             <h2 className="text-base font-semibold text-zinc-900">Material requested entry table</h2>
             <p className="text-sm text-zinc-500">
-              Day total {formatMaterialCurrencyAmount(dayTotal)}
+              Day total {formatMaterialUnitPriceAmount(dayTotal)}
             </p>
           </div>
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
@@ -292,7 +293,7 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
                   <td className="px-3 py-2">
                     <MemoryTextInput
                       inputMode="decimal"
-                      value={formatInputAmount(row.unitPrice)}
+                      value={formatUnitPriceInput(row.unitPrice)}
                       suggest={suggestFor(row, "unitPrice")}
                       onChange={(value) => updateRow(row.id, "unitPrice", value)}
                       placeholder="0"
@@ -300,7 +301,7 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
                     />
                   </td>
                   <td className="px-3 py-2 text-right font-medium text-zinc-900">
-                    {formatMaterialCurrencyAmount(row.totalCost)}
+                    {formatMaterialUnitPriceAmount(row.totalCost)}
                   </td>
                   <td className="px-3 py-2 text-right">
                     <button
@@ -321,7 +322,7 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
                   Day total cost
                 </td>
                 <td className="px-3 py-3 text-right">
-                  {formatMaterialCurrencyAmount(dayTotal)}
+                  {formatMaterialUnitPriceAmount(dayTotal)}
                 </td>
                 <td className="px-3 py-3" />
               </tr>

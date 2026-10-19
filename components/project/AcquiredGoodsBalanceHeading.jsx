@@ -2,7 +2,7 @@
 
 import {
   formatMaterialAmount,
-  formatMaterialCurrencyAmount,
+  formatMaterialUnitPriceAmount,
 } from "@/lib/plantCostCalculations"
 
 export default function AcquiredGoodsBalanceHeading({
@@ -28,7 +28,7 @@ export default function AcquiredGoodsBalanceHeading({
         <div>
           <dt className="text-emerald-800/70">Total cost requested</dt>
           <dd className="text-lg font-semibold tabular-nums text-emerald-950">
-            {formatMaterialCurrencyAmount(totalCost)}
+            {formatMaterialUnitPriceAmount(totalCost)}
           </dd>
         </div>
       </dl>

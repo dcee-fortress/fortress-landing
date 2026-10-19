@@ -2,7 +2,7 @@
 
 import {
   formatMaterialAmount,
-  formatMaterialCurrencyAmount,
+  formatMaterialUnitPriceAmount,
 } from "@/lib/plantCostCalculations"
 
 export const GOODS_RECEIVED_DASHBOARD_COLUMNS = [
@@ -56,7 +56,7 @@ export default function GoodsReceivedDashboardTable({ lines, emptyMessage }) {
                 {formatMaterialAmount(row.quantity)}
               </td>
               <td className="px-3 py-2.5 text-right tabular-nums font-medium text-zinc-900">
-                {formatMaterialCurrencyAmount(row.totalCost)}
+                {formatMaterialUnitPriceAmount(row.totalCost)}
               </td>
               <td className="px-3 py-2.5 text-right tabular-nums text-zinc-800">
                 {formatMaterialAmount(row.currentGoodsBalance)}
@@ -73,7 +73,7 @@ export default function GoodsReceivedDashboardTable({ lines, emptyMessage }) {
               {formatMaterialAmount(totalQuantity)}
             </td>
             <td className="px-3 py-3 text-right tabular-nums">
-              {formatMaterialCurrencyAmount(totalCost)}
+              {formatMaterialUnitPriceAmount(totalCost)}
             </td>
             <td className="px-3 py-3 text-right tabular-nums">
               {formatMaterialAmount(totalBalance)}
