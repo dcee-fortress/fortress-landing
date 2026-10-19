@@ -36,7 +36,9 @@ export default function GoodsAcquiredRollupView({
           id: "project-to-date",
           label: "Project to date",
           dayIds,
-          lines: getGoodsAcquiredDashboardLinesForDayIds(projectId, dayIds),
+          lines: getGoodsAcquiredDashboardLinesForDayIds(projectId, dayIds, {
+            combineSimilar: true,
+          }),
         },
       ]
     }
@@ -104,7 +106,9 @@ export default function GoodsAcquiredRollupView({
               <div className="border-b border-zinc-200 px-4 py-3 sm:px-5">
                 <h2 className="text-base font-semibold text-zinc-900">{period.label}</h2>
                 <p className="mt-0.5 text-sm text-zinc-500">
-                  Rolled up from daily material requested entry · matching descriptions combined
+                  {mode === "project-to-date"
+                    ? "Similar descriptions are written as one. Their quantities are added together."
+                    : "Rolled up from daily material requested entry · matching descriptions combined"}
                 </p>
               </div>
               <GoodsAcquiredDashboardTable lines={period.lines} />

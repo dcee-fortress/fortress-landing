@@ -14,6 +14,7 @@ import {
   getMaterialOnSiteYears,
 } from "@/lib/materialOnSite"
 import { getMaterialOnSiteHref } from "@/lib/projectRoutes"
+import { mergeSimilarSiteRows } from "@/lib/similarDescriptions"
 
 export default function MaterialOnSiteRollupView({
   projectId,
@@ -36,8 +37,11 @@ export default function MaterialOnSiteRollupView({
       const yearPeriods = years.map((year) => ({
         id: year,
         label: `${year} cumulative`,
-        detail: "Each description shows its cumulative quantity for this year.",
-        rows: getMaterialOnSiteRows(projectId, getMaterialOnSiteYearDayIds(projectId, year)),
+        detail:
+          "Each description shows its cumulative quantity for this year. Similar descriptions are written as one.",
+        rows: mergeSimilarSiteRows(
+          getMaterialOnSiteRows(projectId, getMaterialOnSiteYearDayIds(projectId, year))
+        ),
       }))
       const projectRows = getMaterialOnSiteRows(
         projectId,
@@ -49,8 +53,8 @@ export default function MaterialOnSiteRollupView({
             id: "project-to-date",
             label: years[0] ? `${years[0]} · project to date` : "Project to date",
             detail:
-              "Each description shows its cumulative quantity from the project start through today.",
-            rows: projectRows,
+              "Each description shows its cumulative quantity from the project start through today. Similar descriptions are written as one.",
+            rows: mergeSimilarSiteRows(projectRows),
           },
         ]
       }
@@ -59,8 +63,9 @@ export default function MaterialOnSiteRollupView({
         {
           id: "project-to-date",
           label: "Project to date",
-          detail: "Each description shows its cumulative quantity for the whole project.",
-          rows: projectRows,
+          detail:
+            "Each description shows its cumulative quantity for the whole project. Similar descriptions are written as one.",
+          rows: mergeSimilarSiteRows(projectRows),
         },
       ]
     }

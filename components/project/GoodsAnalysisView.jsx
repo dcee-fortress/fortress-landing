@@ -37,7 +37,8 @@ export default function GoodsAnalysisView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Figures are cumulative from the project start through today. Material left is cumulative
+          Figures are cumulative from the project start through today. Similar descriptions are
+          written as one line and their quantities are added together. Material left is cumulative
           material requested minus cumulative material received. The cost is calculated the same way.
         </p>
       </header>
