@@ -14,6 +14,7 @@ import {
   getGoodsReceivedHistoryRows,
   getGoodsReceivedRows,
   withGoodsReceivedTotals,
+  getGoodsReceivedDailyFile,
   saveGoodsReceivedRows,
 } from "@/lib/goodsReceived"
 import {
@@ -28,7 +29,6 @@ import {
   roundMaterialAmount,
 } from "@/lib/plantCostCalculations"
 import { getGoodsReceivedDailyFileHref } from "@/lib/projectRoutes"
-import { getDailyFile } from "@/lib/projectFiles"
 import { useProjects } from "@/components/project/ProjectsProvider"
 
 function formatInputAmount(value) {
@@ -54,7 +54,7 @@ const GOODS_MEMORY_KEYS = [
 
 export default function GoodsReceivedEntryView({ projectId, projectName, dayId }) {
   const { version } = useProjects()
-  const file = getDailyFile(projectId, dayId)
+  const file = getGoodsReceivedDailyFile(projectId, dayId)
   const dayLabel = file?.label || dayId
   const [rows, setRows] = useState([])
   const [saveState, setSaveState] = useState("saved")

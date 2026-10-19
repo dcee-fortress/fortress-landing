@@ -30,7 +30,7 @@ export default function GoodsReceivedView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Choose a material received period. Open a daily file for the dashboard and material received entry.
+          Open project to date or daily material received. Daily files are created with +. Entered quantities roll into project to date, material on site, and material analysis.
         </p>
       </header>
 

@@ -10,14 +10,14 @@ import { useProjects } from "@/components/project/ProjectsProvider"
 import { useDragFileSelection } from "@/hooks/useDragFileSelection"
 import { useFileDeleteAuth } from "@/hooks/useFileDeleteAuth"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
-import { ensureDailyFilesThroughToday } from "@/lib/dailyFileSync"
 import { unlockFinanceEntry, validateFinanceEntryCredentials } from "@/lib/financeEntryAuth"
 import {
+  createGoodsReceivedDailyFileForToday,
   deleteGoodsReceivedDay,
-  getGoodsReceivedDeletedDayIds,
+  getGoodsReceivedDailyFiles,
   getGoodsReceivedEntryStatus,
+  migrateGoodsReceivedToManualFiles,
 } from "@/lib/goodsReceived"
-import { getDailyFiles } from "@/lib/projectFiles"
 import { getGoodsReceivedDailyFileHref, getGoodsReceivedHref } from "@/lib/projectRoutes"
 
 const INITIAL_VISIBLE = 21
@@ -107,24 +107,30 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
   const [showAll, setShowAll] = useState(false)
   const [deletingDayId, setDeletingDayId] = useState("")
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [ready, setReady] = useState(false)
   const deleteAuth = useFileDeleteAuth()
 
   useEffect(() => {
-    if (!hasHydrated || !projectId) return
-    if (ensureDailyFilesThroughToday(projectId)) refresh()
+    if (!hasHydrated || !projectId) return undefined
+    let cancelled = false
+    setReady(false)
+    void (async () => {
+      await migrateGoodsReceivedToManualFiles(projectId)
+      if (cancelled) return
+      refresh()
+      setReady(true)
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [hasHydrated, projectId, refresh])
 
-  const deletedDayIds = useMemo(() => {
-    if (!hasHydrated) return new Set()
-    void version
-    return new Set(getGoodsReceivedDeletedDayIds(projectId))
-  }, [hasHydrated, projectId, version])
-
   const dailyFiles = useMemo(() => {
-    if (!hasHydrated) return []
+    if (!hasHydrated || !ready) return []
     void version
-    return getDailyFiles(projectId).filter((file) => !deletedDayIds.has(file.id))
-  }, [deletedDayIds, hasHydrated, projectId, version])
+    return getGoodsReceivedDailyFiles(projectId)
+  }, [hasHydrated, projectId, ready, version])
 
   const search = useReportFileSearch(dailyFiles)
 
@@ -139,7 +145,7 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
 
   async function performDeleteDailyFile(file) {
     const confirmed = window.confirm(
-      `Delete "${file.label}" from daily material received?\n\nThis removes the day's entry from weekly, monthly, and project-to-date rollups.`
+      `Delete "${file.label}" from daily material received?\n\nThis removes the day's quantities from project to date, material on site, and material analysis.`
     )
     if (!confirmed) return
 
@@ -171,8 +177,8 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
 
     const confirmed = window.confirm(
       ids.length === 1
-        ? `Delete this material received file?\n\nThis removes the day's entry from weekly, monthly, and project-to-date rollups.`
-        : `Delete ${ids.length} material received files?\n\nThis removes those days from weekly, monthly, and project-to-date rollups.`
+        ? `Delete this material received file?\n\nThis removes the day's quantities from project to date, material on site, and material analysis.`
+        : `Delete ${ids.length} material received files?\n\nThis removes those quantities from project to date, material on site, and material analysis.`
     )
     if (!confirmed) return
 
@@ -201,6 +207,26 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
     })
   }
 
+  async function handleCreateToday() {
+    if (creating) return
+    setCreating(true)
+    try {
+      const result = await createGoodsReceivedDailyFileForToday(projectId)
+      if (!result.ok) {
+        window.alert(result.message || "Could not create today's material received file.")
+        return
+      }
+      if (result.alreadyExists) {
+        window.alert(result.message || "Today's material received file already exists.")
+      }
+      refresh()
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not create today's file.")
+    } finally {
+      setCreating(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -221,12 +247,26 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Click a file to open it. Drag to select, then use Delete on the selection bar or the trash
-          icon. You will sign in and confirm before anything is removed.
+          Press + in the file list to create today&apos;s file. Open the file to change its date and
+          enter material received. Those quantities roll into project to date, material on site, and
+          material analysis.
         </p>
       </header>
 
       <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
+          <h2 className="text-base font-semibold text-zinc-900">Daily files</h2>
+          <button
+            type="button"
+            onClick={() => void handleCreateToday()}
+            disabled={!ready || creating}
+            aria-label="Create today's material received file"
+            title="Create today's material received file"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Icon name="plus" size={22} />
+          </button>
+        </div>
         <ReportFileSearchBar
           {...search}
           projectId={projectId}
@@ -260,8 +300,14 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
           </div>
         ) : null}
 
-        {!hasHydrated ? (
+        {!ready ? (
           <p className="px-6 py-8 text-sm text-zinc-500">Loading daily files…</p>
+        ) : visibleFiles.length === 0 ? (
+          <p className="px-6 py-8 text-sm text-zinc-500">
+            {search.activeQuery
+              ? "No daily material received files match your search."
+              : "No daily files yet. Press + to create today's material received file."}
+          </p>
         ) : (
           <ul className="divide-y divide-zinc-200">
             {visibleFiles.map((file) => {

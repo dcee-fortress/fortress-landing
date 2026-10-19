@@ -1,30 +1,64 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import Icon from "@/components/icon/icon"
 import AcquiredGoodsBalanceHeading from "@/components/project/AcquiredGoodsBalanceHeading"
 import GoodsReceivedDashboardTable from "@/components/project/GoodsReceivedDashboardTable"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { getGoodsAcquiredDayTotals } from "@/lib/goodsAcquired"
 import {
+  getGoodsReceivedDailyFile,
   getGoodsReceivedDashboardLinesForDay,
   hasGoodsReceivedDataForDay,
+  renameGoodsReceivedDailyFile,
 } from "@/lib/goodsReceived"
 import {
+  getGoodsReceivedDailyFileHref,
   getGoodsReceivedDailyHref,
   getGoodsReceivedEntryHref,
 } from "@/lib/projectRoutes"
-import { getDailyFile } from "@/lib/projectFiles"
 
 export default function DailyGoodsReceivedDayView({ projectId, projectName, dayId }) {
-  const { version } = useProjects()
+  const router = useRouter()
+  const { version, refresh } = useProjects()
   void version
+  const [dateValue, setDateValue] = useState(dayId)
+  const [savingDate, setSavingDate] = useState(false)
 
-  const file = getDailyFile(projectId, dayId)
+  useEffect(() => {
+    setDateValue(dayId)
+  }, [dayId])
+
+  const file = getGoodsReceivedDailyFile(projectId, dayId)
   const dayLabel = file?.label || dayId
   const hasData = hasGoodsReceivedDataForDay(projectId, dayId)
   const lines = getGoodsReceivedDashboardLinesForDay(projectId, dayId)
   const acquiredTotals = getGoodsAcquiredDayTotals(projectId, dayId)
+
+  async function handleDateChange(event) {
+    const nextDayId = event.target.value
+    setDateValue(nextDayId)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(nextDayId) || nextDayId === dayId || savingDate) return
+
+    setSavingDate(true)
+    try {
+      const result = await renameGoodsReceivedDailyFile(projectId, dayId, nextDayId)
+      if (!result.ok) {
+        window.alert(result.message || "Could not change the file date.")
+        setDateValue(dayId)
+        return
+      }
+      refresh()
+      router.replace(getGoodsReceivedDailyFileHref(projectId, nextDayId))
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not change the file date.")
+      setDateValue(dayId)
+    } finally {
+      setSavingDate(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -45,8 +79,19 @@ export default function DailyGoodsReceivedDayView({ projectId, projectName, dayI
         <p className="text-sm text-zinc-500 sm:text-base">
           {projectName || "Project"} · Description, unit, quantity, total cost, and material left
           roll up from the material received entry. Matching descriptions are combined. Material
-          left = material requested − material received.
+          left = material requested − material received. These quantities also roll into material
+          on site and material analysis.
         </p>
+        <label className="flex w-fit flex-col gap-1 pt-1 text-sm font-medium text-zinc-700">
+          File date
+          <input
+            type="date"
+            value={dateValue}
+            disabled={savingDate}
+            onChange={(event) => void handleDateChange(event)}
+            className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/15 disabled:opacity-60"
+          />
+        </label>
       </header>
 
       <AcquiredGoodsBalanceHeading
