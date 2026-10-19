@@ -10,7 +10,7 @@ export const GOODS_RECEIVED_DASHBOARD_COLUMNS = [
   { key: "unit", label: "Unit", align: "left" },
   { key: "quantity", label: "Quantity of material", align: "right" },
   { key: "totalCost", label: "Total cost of material", align: "right" },
-  { key: "currentGoodsBalance", label: "Current material balance", align: "right" },
+  { key: "currentGoodsBalance", label: "Material left", align: "right" },
 ]
 
 export default function GoodsReceivedDashboardTable({ lines, emptyMessage }) {

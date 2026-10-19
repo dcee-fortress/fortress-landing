@@ -10,14 +10,14 @@ import { useProjects } from "@/components/project/ProjectsProvider"
 import { useDragFileSelection } from "@/hooks/useDragFileSelection"
 import { useFileDeleteAuth } from "@/hooks/useFileDeleteAuth"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
-import { ensureDailyFilesThroughToday } from "@/lib/dailyFileSync"
 import { unlockFinanceEntry, validateFinanceEntryCredentials } from "@/lib/financeEntryAuth"
 import {
+  createGoodsAcquiredDailyFileForToday,
   deleteGoodsAcquiredDay,
-  getGoodsAcquiredDeletedDayIds,
+  getGoodsAcquiredDailyFiles,
   getGoodsAcquiredEntryStatus,
+  migrateGoodsAcquiredToManualOnly,
 } from "@/lib/goodsAcquired"
-import { getDailyFiles } from "@/lib/projectFiles"
 import { getGoodsAcquiredDailyFileHref, getGoodsAcquiredHref } from "@/lib/projectRoutes"
 
 const INITIAL_VISIBLE = 21
@@ -107,24 +107,30 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
   const [showAll, setShowAll] = useState(false)
   const [deletingDayId, setDeletingDayId] = useState("")
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [ready, setReady] = useState(false)
   const deleteAuth = useFileDeleteAuth()
 
   useEffect(() => {
-    if (!hasHydrated || !projectId) return
-    if (ensureDailyFilesThroughToday(projectId)) refresh()
+    if (!hasHydrated || !projectId) return undefined
+    let cancelled = false
+    setReady(false)
+    void (async () => {
+      await migrateGoodsAcquiredToManualOnly(projectId)
+      if (cancelled) return
+      refresh()
+      setReady(true)
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [hasHydrated, projectId, refresh])
 
-  const deletedDayIds = useMemo(() => {
-    if (!hasHydrated) return new Set()
-    void version
-    return new Set(getGoodsAcquiredDeletedDayIds(projectId))
-  }, [hasHydrated, projectId, version])
-
   const dailyFiles = useMemo(() => {
-    if (!hasHydrated) return []
+    if (!hasHydrated || !ready) return []
     void version
-    return getDailyFiles(projectId).filter((file) => !deletedDayIds.has(file.id))
-  }, [deletedDayIds, hasHydrated, projectId, version])
+    return getGoodsAcquiredDailyFiles(projectId)
+  }, [hasHydrated, projectId, ready, version])
 
   const search = useReportFileSearch(dailyFiles)
 
@@ -201,29 +207,62 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
     })
   }
 
+  async function handleCreateToday() {
+    if (creating) return
+    setCreating(true)
+    try {
+      const result = await createGoodsAcquiredDailyFileForToday(projectId)
+      if (!result.ok) {
+        window.alert(result.message || "Could not create today's material requested file.")
+        return
+      }
+      if (result.alreadyExists) {
+        window.alert(result.message || "Today's material requested file already exists.")
+      }
+      refresh()
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not create today's file.")
+    } finally {
+      setCreating(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <Link
-          href={getGoodsAcquiredHref(projectId)}
-          className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
-        >
-          <Icon name="arrow-left" size={16} />
-          Back to Material requested
-        </Link>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Daily material requested
-        </p>
-        <h1
-          suppressHydrationWarning
-          className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl"
-        >
-          {projectName || "Project"}
-        </h1>
-        <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Click a file to open it. Drag to select, then use Delete on the selection bar or the trash
-          icon. You will sign in and confirm before anything is removed.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 space-y-2">
+            <Link
+              href={getGoodsAcquiredHref(projectId)}
+              className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
+            >
+              <Icon name="arrow-left" size={16} />
+              Back to Material requested
+            </Link>
+            <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+              Daily material requested
+            </p>
+            <h1
+              suppressHydrationWarning
+              className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl"
+            >
+              {projectName || "Project"}
+            </h1>
+            <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
+              Press + to create today&apos;s file. Open it for the same material requested dashboard
+              and entry. Those quantities are subtracted from material received to find material left.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleCreateToday()}
+            disabled={!ready || creating}
+            title="Create today's material requested file"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Icon name="plus" size={22} />
+          </button>
+        </div>
       </header>
 
       <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
@@ -260,8 +299,14 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
           </div>
         ) : null}
 
-        {!hasHydrated ? (
+        {!ready ? (
           <p className="px-6 py-8 text-sm text-zinc-500">Loading daily files…</p>
+        ) : visibleFiles.length === 0 ? (
+          <p className="px-6 py-8 text-sm text-zinc-500">
+            {search.activeQuery
+              ? "No daily material requested files match your search."
+              : "No daily files yet. Press + to create today's material requested file."}
+          </p>
         ) : (
           <ul className="divide-y divide-zinc-200">
             {visibleFiles.map((file) => {

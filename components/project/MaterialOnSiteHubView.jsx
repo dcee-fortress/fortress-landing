@@ -30,7 +30,7 @@ export default function MaterialOnSiteHubView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Choose daily, weekly, monthly, or project to date material on site. The daily report has
+          Choose project to date, monthly, weekly, or daily material on site. The daily report has
           Material schedule entry.
         </p>
       </header>

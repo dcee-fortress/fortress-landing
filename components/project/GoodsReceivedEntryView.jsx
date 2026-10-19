@@ -220,8 +220,8 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
           {projectName || "Project"}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
-          {dayLabel} · Total cost of material = quantity × unit price. Current material balance =
-          requested quantity − received quantity for each description.
+          {dayLabel} · Total cost of material = quantity × unit price. Material left = material
+          requested quantity − material received quantity for each description.
         </p>
       </header>
 

@@ -4,12 +4,12 @@ import { notFound } from "next/navigation"
 import DailyGoodsAcquiredDayView from "@/components/project/DailyGoodsAcquiredDayView"
 import PageLoadingShell from "@/components/project/PageLoadingShell"
 import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
-import { getDailyFile } from "@/lib/projectFiles"
+import { getGoodsAcquiredDailyFile } from "@/lib/goodsAcquired"
 
 export default function DailyGoodsAcquiredDayPageClient({ projectId, dayId }) {
   const { isReady, syncReady, project, item: file } = useHydratedProjectRoute(
     projectId,
-    () => getDailyFile(projectId, dayId)
+    () => getGoodsAcquiredDailyFile(projectId, dayId)
   )
 
   if (!isReady) {

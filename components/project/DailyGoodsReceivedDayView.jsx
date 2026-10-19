@@ -43,9 +43,9 @@ export default function DailyGoodsReceivedDayView({ projectId, projectName, dayI
           {dayLabel}
         </h1>
         <p className="text-sm text-zinc-500 sm:text-base">
-          {projectName || "Project"} · Description, unit, quantity, total cost, and current material
-          balance roll up from the material received entry. Matching descriptions are combined.
-          Current material balance = material requested − material received.
+          {projectName || "Project"} · Description, unit, quantity, total cost, and material left
+          roll up from the material received entry. Matching descriptions are combined. Material
+          left = material requested − material received.
         </p>
       </header>
 

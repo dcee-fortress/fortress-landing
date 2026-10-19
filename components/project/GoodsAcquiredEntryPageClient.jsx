@@ -5,7 +5,7 @@ import GoodsAcquiredEntryView from "@/components/project/GoodsAcquiredEntryView"
 import PageLoadingShell from "@/components/project/PageLoadingShell"
 import RestrictedAreaGate from "@/components/project/RestrictedAreaGate"
 import { useHydratedProjectRoute } from "@/hooks/useHydratedProjectRoute"
-import { getDailyFile } from "@/lib/projectFiles"
+import { getGoodsAcquiredDailyFile } from "@/lib/goodsAcquired"
 import {
   FINANCE_ENTRY_REMEMBER_KEY,
   isFinanceEntryRemembered,
@@ -16,7 +16,7 @@ import {
 export default function GoodsAcquiredEntryPageClient({ projectId, dayId }) {
   const { isReady, syncReady, project, item: file } = useHydratedProjectRoute(
     projectId,
-    () => getDailyFile(projectId, dayId)
+    () => getGoodsAcquiredDailyFile(projectId, dayId)
   )
 
   if (!isReady) {

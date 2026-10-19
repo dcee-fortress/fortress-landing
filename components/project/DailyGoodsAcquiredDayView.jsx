@@ -5,6 +5,7 @@ import Icon from "@/components/icon/icon"
 import GoodsAcquiredDashboardTable from "@/components/project/GoodsAcquiredDashboardTable"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import {
+  getGoodsAcquiredDailyFile,
   getGoodsAcquiredDashboardLinesForDay,
   hasGoodsAcquiredDataForDay,
 } from "@/lib/goodsAcquired"
@@ -12,13 +13,11 @@ import {
   getGoodsAcquiredDailyHref,
   getGoodsAcquiredEntryHref,
 } from "@/lib/projectRoutes"
-import { getDailyFile } from "@/lib/projectFiles"
-
 export default function DailyGoodsAcquiredDayView({ projectId, projectName, dayId }) {
   const { version } = useProjects()
   void version
 
-  const file = getDailyFile(projectId, dayId)
+  const file = getGoodsAcquiredDailyFile(projectId, dayId)
   const dayLabel = file?.label || dayId
   const hasData = hasGoodsAcquiredDataForDay(projectId, dayId)
   const lines = getGoodsAcquiredDashboardLinesForDay(projectId, dayId)

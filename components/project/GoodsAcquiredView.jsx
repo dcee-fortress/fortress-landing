@@ -30,7 +30,7 @@ export default function GoodsAcquiredView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Choose a material requested period. Daily files, weekly files, and project to date use the same entry as before.
+          Choose project to date, monthly, weekly, or daily material requested. Daily files use the same entry as before.
         </p>
       </header>
 
