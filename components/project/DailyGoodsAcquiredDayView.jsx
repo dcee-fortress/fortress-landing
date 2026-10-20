@@ -4,7 +4,10 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Icon from "@/components/icon/icon"
-import GoodsAcquiredDashboardTable from "@/components/project/GoodsAcquiredDashboardTable"
+import GoodsAcquiredDashboardTable, {
+  GOODS_ACQUIRED_DASHBOARD_COLUMNS,
+} from "@/components/project/GoodsAcquiredDashboardTable"
+import TableExportButtons from "@/components/project/TableExportButtons"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import {
   getGoodsAcquiredDailyFile,
@@ -92,13 +95,22 @@ export default function DailyGoodsAcquiredDayView({ projectId, projectName, dayI
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
           <h2 className="text-base font-semibold text-zinc-900">Current bulk fuel table</h2>
-          <Link
-            href={getGoodsAcquiredEntryHref(projectId, dayId)}
-            className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
-          >
-            <Icon name="package" size={16} />
-            {hasData ? "Edit entry" : "Current bulk fuel entry"}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <TableExportButtons
+              columns={GOODS_ACQUIRED_DASHBOARD_COLUMNS}
+              rows={lines}
+              title={`Daily current bulk fuel · ${dayLabel}`}
+              projectName={projectName}
+              filename={`current-bulk-fuel-${dayId}`}
+            />
+            <Link
+              href={getGoodsAcquiredEntryHref(projectId, dayId)}
+              className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
+            >
+              <Icon name="package" size={16} />
+              {hasData ? "Edit entry" : "Current bulk fuel entry"}
+            </Link>
+          </div>
         </div>
 
         <GoodsAcquiredDashboardTable

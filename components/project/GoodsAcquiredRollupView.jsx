@@ -3,7 +3,10 @@
 import { useMemo } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
-import GoodsAcquiredDashboardTable from "@/components/project/GoodsAcquiredDashboardTable"
+import GoodsAcquiredDashboardTable, {
+  GOODS_ACQUIRED_DASHBOARD_COLUMNS,
+} from "@/components/project/GoodsAcquiredDashboardTable"
+import TableExportButtons from "@/components/project/TableExportButtons"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import {
@@ -88,8 +91,15 @@ export default function GoodsAcquiredRollupView({
         <p className="text-sm text-zinc-500">Loading…</p>
       ) : visiblePeriods.length === 0 ? (
         <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-          <div className="border-b border-zinc-200 px-4 py-3 sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
             <h2 className="text-base font-semibold text-zinc-900">Current bulk fuel table</h2>
+            <TableExportButtons
+              columns={GOODS_ACQUIRED_DASHBOARD_COLUMNS}
+              rows={[]}
+              title={title || "Current bulk fuel"}
+              projectName={projectName}
+              filename={title || "current-bulk-fuel"}
+            />
           </div>
           <GoodsAcquiredDashboardTable
             lines={[]}
@@ -103,13 +113,22 @@ export default function GoodsAcquiredRollupView({
               key={period.id}
               className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm"
             >
-              <div className="border-b border-zinc-200 px-4 py-3 sm:px-5">
-                <h2 className="text-base font-semibold text-zinc-900">{period.label}</h2>
-                <p className="mt-0.5 text-sm text-zinc-500">
-                  {mode === "project-to-date"
-                    ? "Each fuel name is one line. Quantities and total costs from every daily entry are added together."
-                    : "Rolled up from the daily current bulk fuel entry. The same fuel name is one line."}
-                </p>
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
+                <div>
+                  <h2 className="text-base font-semibold text-zinc-900">{period.label}</h2>
+                  <p className="mt-0.5 text-sm text-zinc-500">
+                    {mode === "project-to-date"
+                      ? "Each fuel name is one line. Quantities and total costs from every daily entry are added together."
+                      : "Rolled up from the daily current bulk fuel entry. The same fuel name is one line."}
+                  </p>
+                </div>
+                <TableExportButtons
+                  columns={GOODS_ACQUIRED_DASHBOARD_COLUMNS}
+                  rows={period.lines}
+                  title={`${title || "Current bulk fuel"} · ${period.label}`}
+                  projectName={projectName}
+                  filename={`${title || "current-bulk-fuel"}-${period.label}`}
+                />
               </div>
               <GoodsAcquiredDashboardTable lines={period.lines} />
             </section>

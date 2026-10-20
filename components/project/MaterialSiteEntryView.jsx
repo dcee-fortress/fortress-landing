@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import FormulaAmountInput from "@/components/project/FormulaAmountInput"
+import TableExportButtons from "@/components/project/TableExportButtons"
 import MemoryTextInput from "@/components/project/MemoryTextInput"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { buildCellHistory, searchCellHistory } from "@/lib/cellHistory"
@@ -158,7 +159,21 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
           <h2 className="text-base font-semibold text-zinc-900">Material on site entry table</h2>
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+          <div className="flex flex-wrap items-center gap-3">
+            <TableExportButtons
+              columns={[
+                { key: "description", label: "Description", align: "left", kind: "text" },
+                { key: "broughtOnSite", label: "Material brought on site", align: "right", kind: "number", total: false },
+                { key: "materialUsed", label: "Material used", align: "right", kind: "number", total: false },
+                { key: "materialLeft", label: "Material left", align: "right", kind: "number", total: false },
+              ]}
+              rows={rows.map((row) => ({ ...row, materialLeft: leftFor(row) }))}
+              title={`Material on site entry · ${dayLabel}`}
+              projectName={projectName}
+              filename={`material-on-site-entry-${dayId}`}
+              showTotal={false}
+            />
+            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
             {saveState === "saving"
               ? "Saving…"
               : saveState === "pending"
@@ -166,7 +181,8 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
                 : saveState === "error"
                   ? "Save failed"
                   : "Saved"}
-          </p>
+            </p>
+          </div>
         </div>
 
         <div className="overflow-x-auto">

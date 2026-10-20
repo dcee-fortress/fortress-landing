@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import FormulaAmountInput from "@/components/project/FormulaAmountInput"
+import TableExportButtons from "@/components/project/TableExportButtons"
 import MemoryTextInput from "@/components/project/MemoryTextInput"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { buildCellHistory, searchCellHistory } from "@/lib/cellHistory"
@@ -133,15 +134,26 @@ export default function MaterialRegisterEntryView({ projectId, projectName, dayI
                 : `Quantity received ${dayQuantity} · Day total ${formatMaterialUnitPriceAmount(dayTotal)}`}
             </p>
           </div>
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-            {saveState === "saving"
-              ? "Saving…"
-              : saveState === "pending"
-                ? "Editing…"
-                : saveState === "error"
-                  ? "Save failed"
-                  : "Saved"}
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <TableExportButtons
+              columns={register.entryColumns.map((column) =>
+                column.key === "quantity" ? { ...column, total: false } : column
+              )}
+              rows={rows}
+              title={`${register.entryTitle} · ${dayLabel}`}
+              projectName={projectName}
+              filename={`${register.noun}-entry-${dayId}`}
+            />
+            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              {saveState === "saving"
+                ? "Saving…"
+                : saveState === "pending"
+                  ? "Editing…"
+                  : saveState === "error"
+                    ? "Save failed"
+                    : "Saved"}
+            </p>
+          </div>
         </div>
 
         <div className="overflow-x-auto">

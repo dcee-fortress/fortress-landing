@@ -5,7 +5,10 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Icon from "@/components/icon/icon"
 import AcquiredGoodsBalanceHeading from "@/components/project/AcquiredGoodsBalanceHeading"
-import GoodsReceivedDashboardTable from "@/components/project/GoodsReceivedDashboardTable"
+import GoodsReceivedDashboardTable, {
+  GOODS_RECEIVED_DASHBOARD_COLUMNS,
+} from "@/components/project/GoodsReceivedDashboardTable"
+import TableExportButtons from "@/components/project/TableExportButtons"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { getGoodsAcquiredDayTotals } from "@/lib/goodsAcquired"
 import {
@@ -102,13 +105,22 @@ export default function DailyGoodsReceivedDayView({ projectId, projectName, dayI
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
           <h2 className="text-base font-semibold text-zinc-900">Fuel consumed table</h2>
-          <Link
-            href={getGoodsReceivedEntryHref(projectId, dayId)}
-            className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
-          >
-            <Icon name="package" size={16} />
-            {hasData ? "Edit entry" : "Fuel consumed entry"}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <TableExportButtons
+              columns={GOODS_RECEIVED_DASHBOARD_COLUMNS}
+              rows={lines}
+              title={`Daily fuel consumed · ${dayLabel}`}
+              projectName={projectName}
+              filename={`fuel-consumed-${dayId}`}
+            />
+            <Link
+              href={getGoodsReceivedEntryHref(projectId, dayId)}
+              className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
+            >
+              <Icon name="package" size={16} />
+              {hasData ? "Edit entry" : "Fuel consumed entry"}
+            </Link>
+          </div>
         </div>
 
         <GoodsReceivedDashboardTable

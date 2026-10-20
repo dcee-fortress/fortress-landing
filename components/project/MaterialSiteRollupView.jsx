@@ -3,6 +3,7 @@
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import MaterialRegisterTable from "@/components/project/MaterialRegisterTable"
+import TableExportButtons from "@/components/project/TableExportButtons"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { getMaterialSiteProjectLines } from "@/lib/materialSiteStock"
 import { getMaterialSiteHref } from "@/lib/projectRoutes"
@@ -43,8 +44,16 @@ export default function MaterialSiteRollupView({ projectId, projectName }) {
       </header>
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 px-4 py-3 sm:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
           <h2 className="text-base font-semibold text-zinc-900">Material on site</h2>
+          <TableExportButtons
+            columns={COLUMNS}
+            rows={lines}
+            title="Project to date material on site"
+            projectName={projectName}
+            filename="project-to-date-material-on-site"
+            showTotal={false}
+          />
         </div>
         <MaterialRegisterTable
           columns={COLUMNS}

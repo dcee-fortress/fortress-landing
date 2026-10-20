@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import MaterialRegisterTable from "@/components/project/MaterialRegisterTable"
+import TableExportButtons from "@/components/project/TableExportButtons"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import { useProjects } from "@/components/project/ProjectsProvider"
 import { getMaterialRegister } from "@/lib/materialRegister"
@@ -43,8 +44,17 @@ export default function MaterialRegisterRollupView({ projectId, projectName, kin
       </header>
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 px-4 py-3 sm:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
           <h2 className="text-base font-semibold text-zinc-900">{register.title} table</h2>
+          {hasHydrated ? (
+            <TableExportButtons
+              columns={register.dashboardColumns}
+              rows={lines}
+              title={`Project to date ${register.noun}`}
+              projectName={projectName}
+              filename={`project-to-date-${register.noun}`}
+            />
+          ) : null}
         </div>
         {!hasHydrated ? (
           <p className="px-6 py-8 text-sm text-zinc-500">Loading…</p>

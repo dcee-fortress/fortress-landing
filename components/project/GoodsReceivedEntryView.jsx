@@ -5,6 +5,7 @@ import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import CellHoverCard, { useCellHoverCard } from "@/components/project/CellHoverCard"
 import FormulaAmountInput from "@/components/project/FormulaAmountInput"
+import TableExportButtons from "@/components/project/TableExportButtons"
 import MemoryTextInput from "@/components/project/MemoryTextInput"
 import { buildCellHistory, searchCellHistory } from "@/lib/cellHistory"
 import {
@@ -190,15 +191,24 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
               Day total {formatMaterialUnitPriceAmount(dayTotal)}
             </p>
           </div>
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-            {saveState === "saving"
-              ? "Saving…"
-              : saveState === "pending"
-                ? "Editing…"
-                : saveState === "error"
-                  ? "Save failed"
-                  : "Saved"}
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <TableExportButtons
+              columns={GOODS_RECEIVED_COLUMNS}
+              rows={rows}
+              title={`Fuel consumed entry · ${dayLabel}`}
+              projectName={projectName}
+              filename={`fuel-consumed-entry-${dayId}`}
+            />
+            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              {saveState === "saving"
+                ? "Saving…"
+                : saveState === "pending"
+                  ? "Editing…"
+                  : saveState === "error"
+                    ? "Save failed"
+                    : "Saved"}
+            </p>
+          </div>
         </div>
 
         <div className="overflow-x-auto">

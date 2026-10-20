@@ -4,6 +4,7 @@ import Icon from "@/components/icon/icon"
 import Link from "next/link"
 import DashboardSearch, { useDashboardSearch } from "@/components/project/DashboardSearch"
 import MaterialRegisterTable from "@/components/project/MaterialRegisterTable"
+import TableExportButtons from "@/components/project/TableExportButtons"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import { getFuelAnalysisRows } from "@/lib/goodsOverview"
@@ -84,8 +85,18 @@ export default function GoodsAnalysisView({ projectId, projectName }) {
       </header>
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 px-4 py-3 sm:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
           <h2 className="text-base font-semibold text-zinc-900">Fuel left in tank</h2>
+          {hasHydrated ? (
+            <TableExportButtons
+              columns={COLUMNS}
+              rows={lines}
+              title="Fuel analysis"
+              projectName={projectName}
+              filename="fuel-analysis"
+              showTotal={false}
+            />
+          ) : null}
         </div>
         {!hasHydrated ? (
           <p className="px-6 py-12 text-center text-sm text-zinc-500">Loading fuel analysis…</p>
