@@ -119,7 +119,7 @@ export default function MaterialRegisterEntryView({ projectId, projectName, dayI
           {dayLabel}
           {kind === "request"
             ? " · Total cost = quantity of material requested × unit price."
-            : " · Delivery note and supplier stay on this entry. Date, description, and quantity received roll to the daily dashboard and project to date."}
+            : " · Total cost = quantity received × unit price. Supplier, delivery note, unit price, and total cost stay on this entry."}
         </p>
       </header>
 
@@ -130,7 +130,7 @@ export default function MaterialRegisterEntryView({ projectId, projectName, dayI
             <p className="text-sm text-zinc-500">
               {kind === "request"
                 ? `Day total ${formatMaterialUnitPriceAmount(dayTotal)}`
-                : `Quantity received ${dayQuantity}`}
+                : `Quantity received ${dayQuantity} · Day total ${formatMaterialUnitPriceAmount(dayTotal)}`}
             </p>
           </div>
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
