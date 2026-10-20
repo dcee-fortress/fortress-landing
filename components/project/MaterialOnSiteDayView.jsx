@@ -30,14 +30,14 @@ export default function MaterialOnSiteDayView({ projectId, projectName, dayId })
           Back to daily files
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Daily material on site
+          Daily fuel on site
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
           {dayLabel}
         </h1>
         <p className="text-sm text-zinc-500 sm:text-base">
           {projectName || "Project"} · Goods on site is goods left from the previous day plus goods
-          received today. Goods used comes from the material schedule entry, and goods left is what
+          received today. Goods used comes from the fuel schedule entry, and goods left is what
           stays for the next day.
         </p>
       </header>
@@ -50,7 +50,7 @@ export default function MaterialOnSiteDayView({ projectId, projectName, dayId })
             className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
           >
             <Icon name="table" size={16} />
-            Material schedule entry
+            Fuel schedule entry
           </Link>
         </div>
         <MaterialOnSiteTable

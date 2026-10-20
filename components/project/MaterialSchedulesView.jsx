@@ -8,7 +8,7 @@ import {
   getGoodsAnalysisHref,
   getGoodsReceivedHref,
   getMaterialOnSiteHref,
-  getQsEngineeringHref,
+  getQsSchedulesHref,
 } from "@/lib/projectRoutes"
 
 const MATERIAL_SCHEDULE_MODULES = [
@@ -16,29 +16,29 @@ const MATERIAL_SCHEDULE_MODULES = [
     key: "requested",
     href: getGoodsAcquiredHref,
     icon: "package",
-    title: "Material requested",
-    description: "Project to date and daily material requested. Create a daily file with + and set its date inside the file",
+    title: "Fuel requested",
+    description: "Project to date and daily fuel requested. Create a daily file with + and set its date inside the file",
   },
   {
     key: "received",
     href: getGoodsReceivedHref,
     icon: "package",
-    title: "Material received",
-    description: "Project to date and daily material received. Create a daily file with + and set its date inside the file",
+    title: "Fuel received",
+    description: "Project to date and daily fuel received. Create a daily file with + and set its date inside the file",
   },
   {
     key: "on-site",
     href: getMaterialOnSiteHref,
     icon: "table",
-    title: "Material on site",
-    description: "Daily, weekly, monthly, and project to date material on site",
+    title: "Fuel on site",
+    description: "Daily, weekly, monthly, and project to date fuel on site",
   },
   {
     key: "analysis",
     href: getGoodsAnalysisHref,
     icon: "chart-bar",
-    title: "Material analysis",
-    description: "Material left and the cost of material left from material requested and material received",
+    title: "Fuel analysis",
+    description: "Fuel left and the cost of fuel left from fuel requested and fuel received",
   },
 ]
 
@@ -47,14 +47,14 @@ export default function MaterialSchedulesView({ projectId, projectName }) {
     <div className="space-y-6">
       <header className="space-y-2">
         <Link
-          href={getQsEngineeringHref(projectId)}
+          href={getQsSchedulesHref(projectId)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Quantity Survey
+          Back to QS Schedules
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Material schedule
+          Fuel schedule
         </p>
         <h1
           suppressHydrationWarning
@@ -63,7 +63,7 @@ export default function MaterialSchedulesView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Open material requested, material received, material on site, or material analysis.
+          Open fuel requested, fuel received, fuel on site, or fuel analysis.
         </p>
       </header>
 

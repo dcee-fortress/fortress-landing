@@ -6,9 +6,9 @@ import {
 } from "@/lib/plantCostCalculations"
 
 export const GOODS_ACQUIRED_DASHBOARD_COLUMNS = [
-  { key: "description", label: "Description of material", align: "left" },
+  { key: "description", label: "Description of fuel", align: "left" },
   { key: "unit", label: "Unit", align: "left" },
-  { key: "quantity", label: "Quantity of material", align: "right" },
+  { key: "quantity", label: "Quantity of fuel", align: "right" },
   { key: "totalCost", label: "Total cost", align: "right" },
 ]
 
@@ -20,7 +20,7 @@ export default function GoodsAcquiredDashboardTable({ lines, emptyMessage }) {
   if (rows.length === 0) {
     return (
       <p className="px-4 py-8 text-center text-sm text-zinc-500 sm:px-5">
-        {emptyMessage || "No material requested entries yet."}
+        {emptyMessage || "No fuel requested entries yet."}
       </p>
     )
   }

@@ -25,10 +25,10 @@ export default function MaterialOnSiteWeeklyListView({ projectId, projectName })
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Material on site
+          Back to Fuel on site
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Weekly material on site
+          Weekly fuel on site
         </p>
         <h1
           suppressHydrationWarning
@@ -37,7 +37,7 @@ export default function MaterialOnSiteWeeklyListView({ projectId, projectName })
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          A weekly file is created for every new week from the project start. Daily material
+          A weekly file is created for every new week from the project start. Daily fuel
           entries roll up into that week until the week ends.
         </p>
       </header>
@@ -80,8 +80,8 @@ export default function MaterialOnSiteWeeklyListView({ projectId, projectName })
                         <p className="text-lg font-semibold text-zinc-900">{file.label}</p>
                         <p className="text-sm text-zinc-500">
                           {inProgress
-                            ? "In progress · daily material rolls up as each day is saved"
-                            : "Completed · rolled up from the daily material files in this week"}
+                            ? "In progress · daily fuel rolls up as each day is saved"
+                            : "Completed · rolled up from the daily fuel files in this week"}
                         </p>
                       </div>
                     </div>

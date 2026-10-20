@@ -6,11 +6,11 @@ import {
 } from "@/lib/plantCostCalculations"
 
 export const GOODS_RECEIVED_DASHBOARD_COLUMNS = [
-  { key: "description", label: "Description of material", align: "left" },
+  { key: "description", label: "Description of fuel", align: "left" },
   { key: "unit", label: "Unit", align: "left" },
-  { key: "quantity", label: "Quantity of material", align: "right" },
-  { key: "totalCost", label: "Total cost of material", align: "right" },
-  { key: "currentGoodsBalance", label: "Material left", align: "right" },
+  { key: "quantity", label: "Quantity of fuel", align: "right" },
+  { key: "totalCost", label: "Total cost of fuel", align: "right" },
+  { key: "currentGoodsBalance", label: "Fuel left", align: "right" },
 ]
 
 export default function GoodsReceivedDashboardTable({ lines, emptyMessage }) {
@@ -25,7 +25,7 @@ export default function GoodsReceivedDashboardTable({ lines, emptyMessage }) {
   if (rows.length === 0) {
     return (
       <p className="px-4 py-8 text-center text-sm text-zinc-500 sm:px-5">
-        {emptyMessage || "No material received entries yet."}
+        {emptyMessage || "No fuel received entries yet."}
       </p>
     )
   }

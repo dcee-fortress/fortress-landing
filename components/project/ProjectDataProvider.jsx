@@ -74,13 +74,14 @@ function isLightweightDashboardPath(pathname) {
     return true
   }
   if (
-    root === "material-schedule" &&
-    (parts[1] === "material-received" ||
-      parts[1] === "material-requested" ||
-      parts[1] === "material-analysis")
+    root === "fuel-schedule" &&
+    (parts[1] === "fuel-received" ||
+      parts[1] === "fuel-requested" ||
+      parts[1] === "fuel-analysis")
   ) {
     return true
   }
+  if (root === "material-schedule" || root === "qs-schedules") return true
   return false
 }
 

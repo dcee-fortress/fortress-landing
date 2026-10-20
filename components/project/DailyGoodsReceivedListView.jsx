@@ -86,7 +86,7 @@ const DailyGoodsReceivedRow = memo(function DailyGoodsReceivedRow({
       <button
         type="button"
         aria-label={`Delete ${file.label}`}
-        title="Delete daily material received file"
+        title="Delete daily fuel received file"
         disabled={deleting}
         onClick={(event) => {
           event.preventDefault()
@@ -145,7 +145,7 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
 
   async function performDeleteDailyFile(file) {
     const confirmed = window.confirm(
-      `Delete "${file.label}" from daily material received?\n\nThis removes the day's quantities from project to date, material on site, and material analysis.`
+      `Delete "${file.label}" from daily fuel received?\n\nThis removes the day's quantities from project to date, fuel on site, and fuel analysis.`
     )
     if (!confirmed) return
 
@@ -177,8 +177,8 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
 
     const confirmed = window.confirm(
       ids.length === 1
-        ? `Delete this material received file?\n\nThis removes the day's quantities from project to date, material on site, and material analysis.`
-        : `Delete ${ids.length} material received files?\n\nThis removes those quantities from project to date, material on site, and material analysis.`
+        ? `Delete this fuel received file?\n\nThis removes the day's quantities from project to date, fuel on site, and fuel analysis.`
+        : `Delete ${ids.length} fuel received files?\n\nThis removes those quantities from project to date, fuel on site, and fuel analysis.`
     )
     if (!confirmed) return
 
@@ -213,11 +213,11 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
     try {
       const result = await createGoodsReceivedDailyFileForToday(projectId)
       if (!result.ok) {
-        window.alert(result.message || "Could not create today's material received file.")
+        window.alert(result.message || "Could not create today's fuel received file.")
         return
       }
       if (result.alreadyExists) {
-        window.alert(result.message || "Today's material received file already exists.")
+        window.alert(result.message || "Today's fuel received file already exists.")
       }
       refresh()
     } catch (error) {
@@ -235,10 +235,10 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Material received
+          Back to Fuel received
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Daily material received
+          Daily fuel received
         </p>
         <h1
           suppressHydrationWarning
@@ -248,8 +248,8 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
           Press + in the file list to create today&apos;s file. Open the file to change its date and
-          enter material received. Those quantities roll into project to date, material on site, and
-          material analysis.
+          enter fuel received. Those quantities roll into project to date, fuel on site, and
+          fuel analysis.
         </p>
       </header>
 
@@ -260,8 +260,8 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
             type="button"
             onClick={() => void handleCreateToday()}
             disabled={!ready || creating}
-            aria-label="Create today's material received file"
-            title="Create today's material received file"
+            aria-label="Create today's fuel received file"
+            title="Create today's fuel received file"
             className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Icon name="plus" size={22} />
@@ -271,7 +271,7 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
           {...search}
           projectId={projectId}
           getFileHref={getGoodsReceivedDailyFileHref}
-          placeholder="Search daily material received files"
+          placeholder="Search daily fuel received files"
         />
 
         {selection.selectedCount > 0 ? (
@@ -305,8 +305,8 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
         ) : visibleFiles.length === 0 ? (
           <p className="px-6 py-8 text-sm text-zinc-500">
             {search.activeQuery
-              ? "No daily material received files match your search."
-              : "No daily files yet. Press + to create today's material received file."}
+              ? "No daily fuel received files match your search."
+              : "No daily files yet. Press + to create today's fuel received file."}
           </p>
         ) : (
           <ul className="divide-y divide-zinc-200">

@@ -32,6 +32,71 @@ const nextConfig = {
         destination: "/project/:projectId/dashboard/goods-requested/:path*",
         permanent: true,
       },
+      {
+        source: "/project/:projectId/dashboard/material-schedule/daily/:path*",
+        destination: "/project/:projectId/dashboard/fuel-schedule/fuel-on-site/daily/:path*",
+        permanent: false,
+      },
+      {
+        source: "/project/:projectId/dashboard/material-schedule/daily",
+        destination: "/project/:projectId/dashboard/fuel-schedule/fuel-on-site/daily",
+        permanent: false,
+      },
+      {
+        source: "/project/:projectId/dashboard/material-schedule/weekly/:path*",
+        destination: "/project/:projectId/dashboard/fuel-schedule/fuel-on-site/weekly/:path*",
+        permanent: false,
+      },
+      {
+        source: "/project/:projectId/dashboard/material-schedule/weekly",
+        destination: "/project/:projectId/dashboard/fuel-schedule/fuel-on-site/weekly",
+        permanent: false,
+      },
+      {
+        source: "/project/:projectId/dashboard/material-schedule/monthly/:path*",
+        destination: "/project/:projectId/dashboard/fuel-schedule/fuel-on-site/monthly/:path*",
+        permanent: false,
+      },
+      {
+        source: "/project/:projectId/dashboard/material-schedule/monthly",
+        destination: "/project/:projectId/dashboard/fuel-schedule/fuel-on-site/monthly",
+        permanent: false,
+      },
+      {
+        source: "/project/:projectId/dashboard/material-schedule/project-to-date",
+        destination: "/project/:projectId/dashboard/fuel-schedule/fuel-on-site/project-to-date",
+        permanent: false,
+      },
+      {
+        source: "/project/:projectId/dashboard/material-schedule/material-requested/:path*",
+        destination: "/project/:projectId/dashboard/fuel-schedule/fuel-requested/:path*",
+        permanent: false,
+      },
+      {
+        source: "/project/:projectId/dashboard/material-schedule/material-requested",
+        destination: "/project/:projectId/dashboard/fuel-schedule/fuel-requested",
+        permanent: false,
+      },
+      {
+        source: "/project/:projectId/dashboard/material-schedule/material-on-site/:path*",
+        destination: "/project/:projectId/dashboard/fuel-schedule/fuel-on-site/:path*",
+        permanent: false,
+      },
+      {
+        source: "/project/:projectId/dashboard/material-schedule/material-on-site",
+        destination: "/project/:projectId/dashboard/fuel-schedule/fuel-on-site",
+        permanent: false,
+      },
+      {
+        source: "/project/:projectId/dashboard/material-schedule/material-analysis/:path*",
+        destination: "/project/:projectId/dashboard/fuel-schedule/fuel-analysis/:path*",
+        permanent: false,
+      },
+      {
+        source: "/project/:projectId/dashboard/material-schedule/material-analysis",
+        destination: "/project/:projectId/dashboard/fuel-schedule/fuel-analysis",
+        permanent: false,
+      },
     ]
   },
   webpack: (config, { dev }) => {

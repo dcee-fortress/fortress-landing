@@ -35,14 +35,14 @@ export default function MaterialOnSiteWeekView({ projectId, projectName, weekId 
           Back to weekly files
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Weekly material on site
+          Weekly fuel on site
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
           {file?.label || weekId}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
           {projectName || "Project"} · Each description shows its cumulative quantity for this week.
-          Daily material entries roll up here{inProgress ? " until the week ends." : "."}{" "}
+          Daily fuel entries roll up here{inProgress ? " until the week ends." : "."}{" "}
           {dayIds.length} daily {dayIds.length === 1 ? "file" : "files"} included.
         </p>
       </header>
@@ -62,7 +62,7 @@ export default function MaterialOnSiteWeekView({ projectId, projectName, weekId 
         </div>
         <MaterialOnSiteTable
           rows={rows}
-          emptyMessage="No goods received on the daily material files in this week yet."
+          emptyMessage="No goods received on the daily fuel files in this week yet."
         />
       </section>
     </div>

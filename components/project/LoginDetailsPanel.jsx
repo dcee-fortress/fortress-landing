@@ -73,7 +73,7 @@ const LOGIN_GROUPS = [
     department: "QS and Engineering",
     pages: [
       {
-        name: "Material schedule",
+        name: "Fuel schedule",
         username: RESTRICTED_AREA_USERNAME,
         password: RESTRICTED_AREA_PASSWORD,
       },
@@ -81,7 +81,7 @@ const LOGIN_GROUPS = [
   },
   {
     department: "Finance",
-    pages: ["Petty cash", "Food cash", "Material requested", "Material received"].map((name) => ({
+    pages: ["Petty cash", "Food cash", "Fuel requested", "Fuel received", "Bulk material request", "Material received", "Material on site"].map((name) => ({
       name,
       username: FINANCE_ENTRY_USERNAME,
       password: FINANCE_ENTRY_PASSWORD,

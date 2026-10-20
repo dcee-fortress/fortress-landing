@@ -35,7 +35,7 @@ export default function MaterialOnSiteMonthView({ projectId, projectName, monthI
           Back to monthly files
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Monthly material on site
+          Monthly fuel on site
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
           {file?.label || monthId}
@@ -61,7 +61,7 @@ export default function MaterialOnSiteMonthView({ projectId, projectName, monthI
         </div>
         <MaterialOnSiteTable
           rows={rows}
-          emptyMessage="No goods received on the daily material files in this month yet."
+          emptyMessage="No goods received on the daily fuel files in this month yet."
         />
       </section>
     </div>

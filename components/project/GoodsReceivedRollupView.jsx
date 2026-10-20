@@ -76,7 +76,7 @@ export default function GoodsReceivedRollupView({
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Material received
+          Back to Fuel received
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{title}</p>
         <h1
@@ -93,11 +93,11 @@ export default function GoodsReceivedRollupView({
       ) : visiblePeriods.length === 0 ? (
         <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div className="border-b border-zinc-200 px-4 py-3 sm:px-5">
-            <h2 className="text-base font-semibold text-zinc-900">Material received table</h2>
+            <h2 className="text-base font-semibold text-zinc-900">Fuel received table</h2>
           </div>
           <GoodsReceivedDashboardTable
             lines={[]}
-            emptyMessage="No material received in this period yet. Add entries on daily material received."
+            emptyMessage="No fuel received in this period yet. Add entries on daily fuel received."
           />
         </section>
       ) : (
@@ -114,8 +114,8 @@ export default function GoodsReceivedRollupView({
                   <h2 className="text-base font-semibold text-zinc-900">{period.label}</h2>
                   <p className="mt-0.5 text-sm text-zinc-500">
                     {mode === "project-to-date"
-                      ? "Similar descriptions are written as one. Their quantities are added together. Material left = requested − received."
-                      : "Rolled up from daily material received entry · matching descriptions combined · current goods balance = requested − received"}
+                      ? "Similar descriptions are written as one. Their quantities are added together. Fuel left = requested − received."
+                      : "Rolled up from daily fuel received entry · matching descriptions combined · current goods balance = requested − received"}
                   </p>
                 </div>
                 <GoodsReceivedDashboardTable lines={period.lines} />

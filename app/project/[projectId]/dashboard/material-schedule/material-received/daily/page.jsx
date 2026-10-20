@@ -1,13 +1,9 @@
-import DailyGoodsReceivedListPageClient from "@/components/project/DailyGoodsReceivedListPageClient"
+import { MaterialRegisterDailyPageClient } from "@/components/project/MaterialRegisterPageClients"
 import { isActiveProject } from "@/lib/projectList"
 import { notFound } from "next/navigation"
 
-export default async function DailyGoodsReceivedPage({ params }) {
+export default async function MaterialReceivedDailyPage({ params }) {
   const { projectId } = await params
-
-  if (!isActiveProject(projectId)) {
-    notFound()
-  }
-
-  return <DailyGoodsReceivedListPageClient projectId={projectId} />
+  if (!isActiveProject(projectId)) notFound()
+  return <MaterialRegisterDailyPageClient projectId={projectId} kind="received" />
 }

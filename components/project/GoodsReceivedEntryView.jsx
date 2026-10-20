@@ -212,7 +212,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
           Back to daily dashboard
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Material received entry
+          Fuel received entry
         </p>
         <h1
           suppressHydrationWarning
@@ -221,8 +221,8 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
           {projectName || "Project"}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
-          {dayLabel} · Total cost of material = quantity × unit price. Material left = material
-          requested quantity − material received quantity for each description.
+          {dayLabel} · Total cost of fuel = quantity × unit price. Fuel left = fuel
+          requested quantity − fuel received quantity for each description.
         </p>
       </header>
 
@@ -235,7 +235,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
           <div>
-            <h2 className="text-base font-semibold text-zinc-900">Material received entry table</h2>
+            <h2 className="text-base font-semibold text-zinc-900">Fuel received entry table</h2>
             <p className="text-sm text-zinc-500">
               Day total {formatMaterialUnitPriceAmount(dayTotal)}
             </p>
@@ -282,7 +282,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
                       value={row.description}
                       suggest={suggestFor(row, "description")}
                       onChange={(value) => updateRow(row.id, "description", value)}
-                      placeholder="Description of material"
+                      placeholder="Description of fuel"
                       className="w-full min-w-[14rem] rounded-md border border-zinc-200 px-2 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
                     />
                   </td>

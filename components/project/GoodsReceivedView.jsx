@@ -18,10 +18,10 @@ export default function GoodsReceivedView({ projectId, projectName }) {
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Material schedule
+          Back to Fuel schedule
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Material received
+          Fuel received
         </p>
         <h1
           suppressHydrationWarning
@@ -30,7 +30,7 @@ export default function GoodsReceivedView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Open project to date or daily material received. Daily files are created with +. Entered quantities roll into project to date, material on site, and material analysis.
+          Open project to date or daily fuel received. Daily files are created with +. Entered quantities roll into project to date, fuel on site, and fuel analysis.
         </p>
       </header>
 

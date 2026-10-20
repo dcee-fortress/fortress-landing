@@ -26,10 +26,10 @@ export default function MaterialOnSiteDailyListView({ projectId, projectName }) 
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Material on site
+          Back to Fuel on site
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Daily material on site
+          Daily fuel on site
         </p>
         <h1
           suppressHydrationWarning

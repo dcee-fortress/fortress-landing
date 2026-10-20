@@ -24,8 +24,8 @@ export default function PurchasesView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Material requested, material received, material on site, and material analysis are in
-          the material schedule.
+          Fuel requested, fuel received, fuel on site, and fuel analysis are in
+          the fuel schedule.
         </p>
       </header>
 

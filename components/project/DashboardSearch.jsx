@@ -3,11 +3,12 @@
 import { useState } from "react"
 import Icon from "@/components/icon/icon"
 
-function findMatchingIndexes(rows, query, getSearchText) {
+function findMatchingIndexes(rows, query, getSearchText, matchesRow) {
   const words = String(query ?? "").toLowerCase().split(/\s+/).filter(Boolean)
   if (words.length === 0) return []
 
   return rows.flatMap((row, index) => {
+    if (matchesRow) return matchesRow(row, words) ? [index] : []
     const text = getSearchText(row).toLowerCase()
     return words.every((word) => text.includes(word)) ? [index] : []
   })
@@ -30,9 +31,9 @@ function scrollRowBelowPanel(rowDomId, panelId) {
  * Search state for a dashboard table. Rows must render with
  * `id={`${rowIdPrefix}-${index}`}` so a match can be scrolled into view.
  */
-export function useDashboardSearch({ rows, getSearchText, rowIdPrefix, panelId }) {
+export function useDashboardSearch({ rows, getSearchText, matchesRow, rowIdPrefix, panelId }) {
   const [state, setState] = useState({ query: "", position: 0 })
-  const matchIndexes = findMatchingIndexes(rows, state.query, getSearchText)
+  const matchIndexes = findMatchingIndexes(rows, state.query, getSearchText, matchesRow)
   const position = Math.min(state.position, Math.max(matchIndexes.length - 1, 0))
 
   function scrollToRow(rowIndex) {
@@ -48,7 +49,7 @@ export function useDashboardSearch({ rows, getSearchText, rowIdPrefix, panelId }
     highlightedIndex: matchIndexes[position] ?? null,
     search(query) {
       setState({ query, position: 0 })
-      scrollToRow(findMatchingIndexes(rows, query, getSearchText)[0])
+      scrollToRow(findMatchingIndexes(rows, query, getSearchText, matchesRow)[0])
     },
     step(delta) {
       if (matchIndexes.length === 0) return

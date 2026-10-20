@@ -96,7 +96,7 @@ export default function MaterialOnSiteEntryView({ projectId, projectName, dayId 
           Back to daily report
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Material schedule entry
+          Fuel schedule entry
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
           {dayLabel}

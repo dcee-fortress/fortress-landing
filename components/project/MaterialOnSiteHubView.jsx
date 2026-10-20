@@ -18,10 +18,10 @@ export default function MaterialOnSiteHubView({ projectId, projectName }) {
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Material schedule
+          Back to Fuel schedule
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Material on site
+          Fuel on site
         </p>
         <h1
           suppressHydrationWarning
@@ -30,8 +30,8 @@ export default function MaterialOnSiteHubView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Choose project to date, monthly, weekly, or daily material on site. The daily report has
-          Material schedule entry.
+          Choose project to date, monthly, weekly, or daily fuel on site. The daily report has
+          Fuel schedule entry.
         </p>
       </header>
 

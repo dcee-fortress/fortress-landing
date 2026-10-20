@@ -72,7 +72,7 @@ export default function GoodsAcquiredRollupView({
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Material requested
+          Back to Fuel requested
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{title}</p>
         <h1
@@ -89,11 +89,11 @@ export default function GoodsAcquiredRollupView({
       ) : visiblePeriods.length === 0 ? (
         <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div className="border-b border-zinc-200 px-4 py-3 sm:px-5">
-            <h2 className="text-base font-semibold text-zinc-900">Material requested table</h2>
+            <h2 className="text-base font-semibold text-zinc-900">Fuel requested table</h2>
           </div>
           <GoodsAcquiredDashboardTable
             lines={[]}
-            emptyMessage="No material requested in this period yet. Add entries on daily material requested."
+            emptyMessage="No fuel requested in this period yet. Add entries on daily fuel requested."
           />
         </section>
       ) : (
@@ -108,7 +108,7 @@ export default function GoodsAcquiredRollupView({
                 <p className="mt-0.5 text-sm text-zinc-500">
                   {mode === "project-to-date"
                     ? "Similar descriptions are written as one. Their quantities are added together."
-                    : "Rolled up from daily material requested entry · matching descriptions combined"}
+                    : "Rolled up from daily fuel requested entry · matching descriptions combined"}
                 </p>
               </div>
               <GoodsAcquiredDashboardTable lines={period.lines} />
