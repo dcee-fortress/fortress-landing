@@ -15,21 +15,21 @@ const MATERIAL_SCHEDULE_MODULES = [
   {
     key: "requested",
     href: getGoodsAcquiredHref,
-    icon: "package",
-    title: "Fuel requested",
-    description: "Project to date and daily fuel requested. Create a daily file with + and set its date inside the file",
+    icon: "fuel",
+    title: "Fuel consumed",
+    description: "Project to date and daily fuel consumed. Create a daily file with + and set its date inside the file",
   },
   {
     key: "received",
     href: getGoodsReceivedHref,
-    icon: "package",
-    title: "Fuel received",
-    description: "Project to date and daily fuel received. Create a daily file with + and set its date inside the file",
+    icon: "truck",
+    title: "Bulk fuel in tank",
+    description: "Project to date and daily bulk fuel in tank. Create a daily file with + and set its date inside the file",
   },
   {
     key: "on-site",
     href: getMaterialOnSiteHref,
-    icon: "table",
+    icon: "droplet",
     title: "Fuel on site",
     description: "Daily, weekly, monthly, and project to date fuel on site",
   },
@@ -38,7 +38,7 @@ const MATERIAL_SCHEDULE_MODULES = [
     href: getGoodsAnalysisHref,
     icon: "chart-bar",
     title: "Fuel analysis",
-    description: "Fuel left and the cost of fuel left from fuel requested and fuel received",
+    description: "Fuel left and the cost of fuel left from fuel consumed and bulk fuel in tank",
   },
 ]
 
@@ -63,7 +63,7 @@ export default function MaterialSchedulesView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Open fuel requested, fuel received, fuel on site, or fuel analysis.
+          Open fuel consumed, bulk fuel in tank, fuel on site, or fuel analysis.
         </p>
       </header>
 

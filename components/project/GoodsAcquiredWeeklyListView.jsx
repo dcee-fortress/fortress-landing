@@ -25,10 +25,10 @@ export default function GoodsAcquiredWeeklyListView({ projectId, projectName }) 
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Fuel requested
+          Back to Fuel consumed
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Weekly fuel requested
+          Weekly fuel consumed
         </p>
         <h1
           suppressHydrationWarning
@@ -38,7 +38,7 @@ export default function GoodsAcquiredWeeklyListView({ projectId, projectName }) 
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
           A weekly file is created for every new week from the project start. Open a file to see
-          that week&apos;s fuel requested dashboard.
+          that week&apos;s fuel consumed dashboard.
         </p>
       </header>
 
@@ -80,8 +80,8 @@ export default function GoodsAcquiredWeeklyListView({ projectId, projectName }) 
                         <p className="text-lg font-semibold text-zinc-900">{file.label}</p>
                         <p className="text-sm text-zinc-500">
                           {inProgress
-                            ? "In progress · daily fuel requested rolls into this week"
-                            : "Completed · weekly fuel requested dashboard"}
+                            ? "In progress · daily fuel consumed rolls into this week"
+                            : "Completed · weekly fuel consumed dashboard"}
                         </p>
                       </div>
                     </div>

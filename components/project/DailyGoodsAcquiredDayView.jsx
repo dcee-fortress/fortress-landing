@@ -67,15 +67,15 @@ export default function DailyGoodsAcquiredDayView({ projectId, projectName, dayI
           Back to daily files
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Daily fuel requested
+          Daily fuel consumed
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
           {dayLabel}
         </h1>
         <p className="text-sm text-zinc-500 sm:text-base">
-          {projectName || "Project"} · Description, unit, quantity, and total cost roll up from the
-          fuel requested entry. Matching descriptions are combined. These quantities are
-          subtracted from fuel received to find fuel left.
+          {projectName || "Project"} · The description is the fuel name from the entry: petrol,
+          diesel, oil, or blend. Quantities and total costs of the same fuel name are added
+          together.
         </p>
         <label className="flex w-fit flex-col gap-1 pt-1 text-sm font-medium text-zinc-700">
           File date
@@ -91,19 +91,19 @@ export default function DailyGoodsAcquiredDayView({ projectId, projectName, dayI
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
-          <h2 className="text-base font-semibold text-zinc-900">Fuel requested table</h2>
+          <h2 className="text-base font-semibold text-zinc-900">Fuel consumed table</h2>
           <Link
             href={getGoodsAcquiredEntryHref(projectId, dayId)}
             className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
           >
             <Icon name="package" size={16} />
-            {hasData ? "Edit entry" : "Fuel requested entry"}
+            {hasData ? "Edit entry" : "Fuel consumed entry"}
           </Link>
         </div>
 
         <GoodsAcquiredDashboardTable
           lines={lines}
-          emptyMessage="No fuel requested yet. Open Fuel requested entry to add items."
+          emptyMessage="No fuel consumed yet. Open Fuel consumed entry to add items."
         />
       </section>
     </div>

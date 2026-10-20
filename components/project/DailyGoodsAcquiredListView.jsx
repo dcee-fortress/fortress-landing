@@ -86,7 +86,7 @@ const DailyGoodsAcquiredRow = memo(function DailyGoodsAcquiredRow({
       <button
         type="button"
         aria-label={`Delete ${file.label}`}
-        title="Delete daily fuel requested file"
+        title="Delete daily fuel consumed file"
         disabled={deleting}
         onClick={(event) => {
           event.preventDefault()
@@ -145,7 +145,7 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
 
   async function performDeleteDailyFile(file) {
     const confirmed = window.confirm(
-      `Delete "${file.label}" from daily fuel requested?\n\nThis removes the day's quantities from project to date and from fuel left.`
+      `Delete "${file.label}" from daily fuel consumed?\n\nThis removes the day's quantities from project to date and from fuel left.`
     )
     if (!confirmed) return
 
@@ -177,8 +177,8 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
 
     const confirmed = window.confirm(
       ids.length === 1
-        ? `Delete this fuel requested file?\n\nThis removes the day's quantities from project to date and from fuel left.`
-        : `Delete ${ids.length} fuel requested files?\n\nThis removes those quantities from project to date and from fuel left.`
+        ? `Delete this fuel consumed file?\n\nThis removes the day's quantities from project to date and from fuel left.`
+        : `Delete ${ids.length} fuel consumed files?\n\nThis removes those quantities from project to date and from fuel left.`
     )
     if (!confirmed) return
 
@@ -213,11 +213,11 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
     try {
       const result = await createGoodsAcquiredDailyFileForToday(projectId)
       if (!result.ok) {
-        window.alert(result.message || "Could not create today's fuel requested file.")
+        window.alert(result.message || "Could not create today's fuel consumed file.")
         return
       }
       if (result.alreadyExists) {
-        window.alert(result.message || "Today's fuel requested file already exists.")
+        window.alert(result.message || "Today's fuel consumed file already exists.")
       }
       refresh()
     } catch (error) {
@@ -237,10 +237,10 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
               className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
             >
               <Icon name="arrow-left" size={16} />
-              Back to Fuel requested
+              Back to Fuel consumed
             </Link>
             <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-              Daily fuel requested
+              Daily fuel consumed
             </p>
             <h1
               suppressHydrationWarning
@@ -250,8 +250,8 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
             </h1>
             <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
               Press + in the file list to create today&apos;s file. Open the file to change its date
-              and enter fuel requested. Those quantities roll into project to date and are
-              subtracted from fuel received to find fuel left.
+              and enter fuel consumed. Those quantities roll into project to date and are
+              subtracted from bulk fuel in tank to find fuel left.
             </p>
           </div>
         </div>
@@ -264,8 +264,8 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
             type="button"
             onClick={() => void handleCreateToday()}
             disabled={!ready || creating}
-            aria-label="Create today's fuel requested file"
-            title="Create today's fuel requested file"
+            aria-label="Create today's fuel consumed file"
+            title="Create today's fuel consumed file"
             className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Icon name="plus" size={22} />
@@ -275,7 +275,7 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
           {...search}
           projectId={projectId}
           getFileHref={getGoodsAcquiredDailyFileHref}
-          placeholder="Search daily fuel requested files"
+          placeholder="Search daily fuel consumed files"
         />
 
         {selection.selectedCount > 0 ? (
@@ -309,8 +309,8 @@ export default function DailyGoodsAcquiredListView({ projectId, projectName }) {
         ) : visibleFiles.length === 0 ? (
           <p className="px-6 py-8 text-sm text-zinc-500">
             {search.activeQuery
-              ? "No daily fuel requested files match your search."
-              : "No daily files yet. Press + to create today's fuel requested file."}
+              ? "No daily fuel consumed files match your search."
+              : "No daily files yet. Press + to create today's fuel consumed file."}
           </p>
         ) : (
           <ul className="divide-y divide-zinc-200">

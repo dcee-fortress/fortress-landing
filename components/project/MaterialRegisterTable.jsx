@@ -18,9 +18,21 @@ function displayCell(column, row) {
   return value || "—"
 }
 
-export default function MaterialRegisterTable({ columns, lines, emptyMessage }) {
+export default function MaterialRegisterTable({
+  columns,
+  lines,
+  emptyMessage,
+  showTotal = true,
+  rowIdPrefix = "",
+  highlightedIndex = null,
+}) {
   const rows = Array.isArray(lines) ? lines : []
-  const numericColumns = columns.filter((column) => column.kind === "number" || column.kind === "computed" || column.kind === "money")
+  const showsTotal =
+    showTotal &&
+    columns.some((column) => {
+      if (column.kind === "number" || column.kind === "computed") return column.total !== false
+      return false
+    })
 
   if (rows.length === 0) {
     return (
@@ -48,8 +60,14 @@ export default function MaterialRegisterTable({ columns, lines, emptyMessage }) 
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.id} className="border-b border-zinc-100">
+          {rows.map((row, index) => (
+            <tr
+              key={row.id}
+              id={rowIdPrefix ? `${rowIdPrefix}-${index}` : undefined}
+              className={`border-b border-zinc-100 ${
+                index === highlightedIndex ? "bg-amber-100 outline outline-2 outline-amber-400" : ""
+              }`}
+            >
               {columns.map((column) => (
                 <td
                   key={column.key}
@@ -63,7 +81,7 @@ export default function MaterialRegisterTable({ columns, lines, emptyMessage }) 
             </tr>
           ))}
         </tbody>
-        {numericColumns.length > 0 ? (
+        {showsTotal ? (
           <tfoot>
             <tr className="bg-zinc-50 font-semibold text-zinc-900">
               {columns.map((column) => {

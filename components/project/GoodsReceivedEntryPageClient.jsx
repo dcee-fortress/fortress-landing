@@ -33,7 +33,7 @@ export default function GoodsReceivedEntryPageClient({ projectId, dayId }) {
 
   return (
     <RestrictedAreaGate
-      title="Fuel received entry"
+      title="Bulk fuel in tank entry"
       description="Enter the finance username and password to open this entry form. Without saving, you will be asked again next time."
       validateCredentials={validateFinanceEntryCredentials}
       unlock={unlockFinanceEntry}

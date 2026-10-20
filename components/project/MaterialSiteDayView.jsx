@@ -19,9 +19,9 @@ import {
 
 const COLUMNS = [
   { key: "description", label: "Description", align: "left", kind: "text" },
-  { key: "storeroom", label: "Quantity in storeroom", align: "right", kind: "number" },
-  { key: "materialUsed", label: "Material used", align: "right", kind: "number" },
-  { key: "materialLeft", label: "Material left", align: "right", kind: "number" },
+  { key: "broughtOnSite", label: "Material brought on site", align: "right", kind: "number", total: false },
+  { key: "materialUsed", label: "Material used", align: "right", kind: "number", total: false },
+  { key: "materialLeft", label: "Material left in storeroom", align: "right", kind: "number", total: false },
 ]
 
 export default function MaterialSiteDayView({ projectId, projectName, dayId }) {
@@ -77,9 +77,8 @@ export default function MaterialSiteDayView({ projectId, projectName, dayId }) {
           {dayLabel}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
-          {projectName || "Project"} · Quantity in the storeroom is material left from the previous
-          day, plus material received today, plus stock added in the entry. Material left is the
-          storeroom minus material used. Similar descriptions are one line.
+          {projectName || "Project"} · Material brought on site can be edited in the entry. Material
+          left is material brought on site minus material used. Similar descriptions are one line.
         </p>
         <label className="flex w-fit flex-col gap-1 pt-1 text-sm font-medium text-zinc-700">
           File date
@@ -107,7 +106,7 @@ export default function MaterialSiteDayView({ projectId, projectName, dayId }) {
         <MaterialRegisterTable
           columns={COLUMNS}
           lines={lines}
-          emptyMessage="Nothing in the storeroom this day. Material received, stock added in the entry, and material left from the previous day appear here."
+          emptyMessage="Nothing brought on site this day. Material received for this date, or a quantity entered in the entry, appears here."
         />
       </section>
     </div>

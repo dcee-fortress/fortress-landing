@@ -9,9 +9,9 @@ import { getMaterialSiteHref } from "@/lib/projectRoutes"
 
 const COLUMNS = [
   { key: "description", label: "Description", align: "left", kind: "text" },
-  { key: "storeroom", label: "Quantity in storeroom", align: "right", kind: "number" },
-  { key: "materialUsed", label: "Material used", align: "right", kind: "number" },
-  { key: "materialLeft", label: "Material left", align: "right", kind: "number" },
+  { key: "broughtOnSite", label: "Material brought on site", align: "right", kind: "number", total: false },
+  { key: "materialUsed", label: "Material used", align: "right", kind: "number", total: false },
+  { key: "materialLeft", label: "Material left in storeroom", align: "right", kind: "number", total: false },
 ]
 
 export default function MaterialSiteRollupView({ projectId, projectName }) {
@@ -37,8 +37,8 @@ export default function MaterialSiteRollupView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
-          Cumulative storeroom from material received and stock added in the entry. Material left
-          is that storeroom minus material used. Similar descriptions share one cumulated line.
+          Cumulative material brought on site minus material used. Similar descriptions share one
+          cumulated line.
         </p>
       </header>
 
@@ -49,7 +49,7 @@ export default function MaterialSiteRollupView({ projectId, projectName }) {
         <MaterialRegisterTable
           columns={COLUMNS}
           lines={lines}
-          emptyMessage="No material is in the storeroom yet."
+          emptyMessage="No material brought on site yet."
         />
       </section>
     </div>

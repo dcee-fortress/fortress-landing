@@ -28,8 +28,8 @@ export default function MaterialSiteHubView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Material received goes into the storeroom. Open a daily file to add or edit stock and
-          enter material used. Material left stays on the dashboard and rolls to project to date.
+          Open a daily file to edit material brought on site and enter material used. Material left
+          is material brought on site minus material used, and it rolls to project to date.
         </p>
       </header>
 

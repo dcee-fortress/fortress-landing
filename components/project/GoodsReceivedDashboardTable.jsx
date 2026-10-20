@@ -6,26 +6,20 @@ import {
 } from "@/lib/plantCostCalculations"
 
 export const GOODS_RECEIVED_DASHBOARD_COLUMNS = [
-  { key: "description", label: "Description of fuel", align: "left" },
+  { key: "description", label: "Fuel name", align: "left" },
   { key: "unit", label: "Unit", align: "left" },
-  { key: "quantity", label: "Quantity of fuel", align: "right" },
-  { key: "totalCost", label: "Total cost of fuel", align: "right" },
-  { key: "currentGoodsBalance", label: "Fuel left", align: "right" },
+  { key: "quantity", label: "Bulk fuel quantity", align: "right" },
+  { key: "totalCost", label: "Total cost", align: "right" },
 ]
 
 export default function GoodsReceivedDashboardTable({ lines, emptyMessage }) {
   const rows = Array.isArray(lines) ? lines : []
   const totalCost = rows.reduce((sum, row) => sum + (Number(row.totalCost) || 0), 0)
   const totalQuantity = rows.reduce((sum, row) => sum + (Number(row.quantity) || 0), 0)
-  const totalBalance = rows.reduce(
-    (sum, row) => sum + (Number(row.currentGoodsBalance) || 0),
-    0
-  )
-
   if (rows.length === 0) {
     return (
       <p className="px-4 py-8 text-center text-sm text-zinc-500 sm:px-5">
-        {emptyMessage || "No fuel received entries yet."}
+        {emptyMessage || "No bulk fuel in tank yet."}
       </p>
     )
   }
@@ -58,9 +52,6 @@ export default function GoodsReceivedDashboardTable({ lines, emptyMessage }) {
               <td className="px-3 py-2.5 text-right tabular-nums font-medium text-zinc-900">
                 {formatMaterialUnitPriceAmount(row.totalCost)}
               </td>
-              <td className="px-3 py-2.5 text-right tabular-nums text-zinc-800">
-                {formatMaterialAmount(row.currentGoodsBalance)}
-              </td>
             </tr>
           ))}
         </tbody>
@@ -74,9 +65,6 @@ export default function GoodsReceivedDashboardTable({ lines, emptyMessage }) {
             </td>
             <td className="px-3 py-3 text-right tabular-nums">
               {formatMaterialUnitPriceAmount(totalCost)}
-            </td>
-            <td className="px-3 py-3 text-right tabular-nums">
-              {formatMaterialAmount(totalBalance)}
             </td>
           </tr>
         </tfoot>

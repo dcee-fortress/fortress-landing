@@ -3,21 +3,21 @@
 import Icon from "@/components/icon/icon"
 import Link from "next/link"
 import DashboardSearch, { useDashboardSearch } from "@/components/project/DashboardSearch"
+import MaterialRegisterTable from "@/components/project/MaterialRegisterTable"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
-import { getGoodsOverviewRows } from "@/lib/goodsOverview"
-import {
-  formatMaterialAmount,
-  formatMaterialUnitPriceAmount,
-} from "@/lib/plantCostCalculations"
-import { getMaterialSchedulesHref } from "@/lib/projectRoutes"
+import { getFuelAnalysisRows } from "@/lib/goodsOverview"
+import { formatMaterialAmount, formatMaterialUnitPriceAmount } from "@/lib/plantCostCalculations"
+import { getGoodsAnalysisDetailsHref, getMaterialSchedulesHref } from "@/lib/projectRoutes"
 
-const ROW_ID_PREFIX = "material-analysis-row"
+const COLUMNS = [
+  { key: "description", label: "Description", align: "left", kind: "text" },
+  { key: "bulkQuantity", label: "Bulk fuel in tank", align: "right", kind: "number" },
+  { key: "consumedQuantity", label: "Cumulative fuel consumed", align: "right", kind: "number" },
+  { key: "fuelLeft", label: "Fuel left in tank", align: "right", kind: "number" },
+]
 
-function withUnit(amount, unit) {
-  const text = formatMaterialAmount(amount)
-  return unit ? `${text} ${unit}` : text
-}
+const ROW_ID_PREFIX = "fuel-analysis-row"
 
 function sameQuantity(word, value) {
   const query = Number(word)
@@ -27,26 +27,24 @@ function sameQuantity(word, value) {
 
 function analysisRowMatches(row, words) {
   const description = String(row.description || "").toLowerCase()
-  const tokens = description.split(/[^a-z0-9.]+/).filter(Boolean)
-  const quantities = [row.orderedQuantity, row.receivedQuantity, row.quantityVariance]
-
+  const quantities = [row.bulkQuantity, row.consumedQuantity, row.fuelLeft]
   return words.every((word) => {
     const numeric = word.replace(/,/g, "")
     if (/^-?\d+(\.\d+)?$/.test(numeric)) {
-      return quantities.some((value) => sameQuantity(numeric, value)) || tokens.includes(numeric)
+      return quantities.some((value) => sameQuantity(numeric, value)) || description.includes(numeric)
     }
-    return description.includes(word) || String(row.unit || "").toLowerCase().includes(word)
+    return description.includes(word)
   })
 }
 
 function getAnalysisDetails(row) {
   return [
-    { label: "Fuel requested", value: withUnit(row.orderedQuantity, row.unit) },
-    { label: "Cost of fuel requested", value: formatMaterialUnitPriceAmount(row.orderedCost) },
-    { label: "Fuel received", value: withUnit(row.receivedQuantity, row.unit) },
-    { label: "Cost of fuel received", value: formatMaterialUnitPriceAmount(row.receivedCost) },
-    { label: "Total fuel left", value: withUnit(row.quantityVariance, row.unit) },
-    { label: "Total cost of fuel left", value: formatMaterialUnitPriceAmount(row.costVariance) },
+    { label: "Bulk fuel in tank", value: formatMaterialAmount(row.bulkQuantity) },
+    { label: "Bulk fuel cost", value: formatMaterialUnitPriceAmount(row.bulkCost) },
+    { label: "Cumulative fuel consumed", value: formatMaterialAmount(row.consumedQuantity) },
+    { label: "Fuel consumed cost", value: formatMaterialUnitPriceAmount(row.consumedCost) },
+    { label: "Fuel left in tank", value: formatMaterialAmount(row.fuelLeft) },
+    { label: "Fuel left in tank cost", value: formatMaterialUnitPriceAmount(row.leftCost) },
   ]
 }
 
@@ -54,14 +52,12 @@ export default function GoodsAnalysisView({ projectId, projectName }) {
   const hasHydrated = useHasHydrated()
   const { version } = useProjectData()
   void version
-  const rows = (hasHydrated ? getGoodsOverviewRows(projectId) : []).filter(
-    (row) => row.hasOrdered || row.hasReceived
-  )
+  const lines = hasHydrated ? getFuelAnalysisRows(projectId) : []
   const search = useDashboardSearch({
-    rows,
+    rows: lines,
     matchesRow: analysisRowMatches,
     rowIdPrefix: ROW_ID_PREFIX,
-    panelId: "material-analysis-search",
+    panelId: "fuel-analysis-search",
   })
 
   return (
@@ -81,89 +77,49 @@ export default function GoodsAnalysisView({ projectId, projectName }) {
         >
           {projectName || "Project"}
         </h1>
-        <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Figures are cumulative from the project start through today. Similar descriptions are
-          written as one line and their quantities are added together. Fuel left is cumulative
-          fuel requested minus cumulative fuel received. The cost is calculated the same way.
+        <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
+          Read-only project to date. Each fuel name is one line. Fuel left in tank is bulk fuel in
+          tank minus cumulative fuel consumed.
         </p>
       </header>
 
-      <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-            Fuel variance
-          </h2>
+      <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className="border-b border-zinc-200 px-4 py-3 sm:px-5">
+          <h2 className="text-base font-semibold text-zinc-900">Fuel left in tank</h2>
         </div>
-
         {!hasHydrated ? (
           <p className="px-6 py-12 text-center text-sm text-zinc-500">Loading fuel analysis…</p>
-        ) : rows.length === 0 ? (
+        ) : lines.length === 0 ? (
           <p className="px-6 py-12 text-center text-sm text-zinc-500">
-            No named fuel has been entered on the fuel requested or fuel received dashboards yet.
+            No petrol, diesel, oil, or blend has been entered yet.
           </p>
         ) : (
-          <div className="px-4 pb-4 pt-4 sm:px-6">
+          <div className="px-4 pb-2 pt-4 sm:px-5">
             <DashboardSearch
               search={search}
-              rows={rows}
-              placeholder="Search a description or quantity…"
-              ariaLabel="Search fuel analysis by description or quantity"
+              rows={lines}
+              placeholder="Search a fuel name or quantity…"
+              ariaLabel="Search fuel analysis by fuel name or quantity"
               noMatchLabel="No fuel matches"
               getDetails={getAnalysisDetails}
             />
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-zinc-200 bg-white text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                <tr>
-                  <th className="px-4 py-3">Name of fuel</th>
-                  <th className="px-4 py-3 text-right">Fuel requested</th>
-                  <th className="px-4 py-3 text-right">Cost of fuel requested</th>
-                  <th className="px-4 py-3 text-right">Fuel received</th>
-                  <th className="px-4 py-3 text-right">Cost of fuel received</th>
-                  <th className="px-4 py-3 text-right">Total fuel left</th>
-                  <th className="px-4 py-3 text-right">Total cost of fuel left</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, index) => (
-                  <tr
-                    key={row.description}
-                    id={`${ROW_ID_PREFIX}-${index}`}
-                    className={`border-b border-zinc-100 last:border-0 ${
-                      index === search.highlightedIndex
-                        ? "bg-amber-100 outline outline-2 outline-amber-400"
-                        : ""
-                    }`}
-                  >
-                    <td className="px-4 py-3 font-medium text-zinc-900">{row.description}</td>
-                    <td className="px-4 py-3 text-right text-zinc-800">
-                      {formatMaterialAmount(row.orderedQuantity)}
-                      {row.unit ? ` ${row.unit}` : ""}
-                    </td>
-                    <td className="px-4 py-3 text-right text-zinc-800">
-                      {formatMaterialUnitPriceAmount(row.orderedCost)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-zinc-800">
-                      {formatMaterialAmount(row.receivedQuantity)}
-                      {row.unit ? ` ${row.unit}` : ""}
-                    </td>
-                    <td className="px-4 py-3 text-right text-zinc-800">
-                      {formatMaterialUnitPriceAmount(row.receivedCost)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-zinc-800">
-                      {formatMaterialAmount(row.quantityVariance)}
-                      {row.unit ? ` ${row.unit}` : ""}
-                    </td>
-                    <td className="px-4 py-3 text-right text-zinc-800">
-                      {formatMaterialUnitPriceAmount(row.costVariance)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              </table>
-            </div>
+            <MaterialRegisterTable
+              columns={COLUMNS}
+              lines={lines}
+              showTotal={false}
+              rowIdPrefix={ROW_ID_PREFIX}
+              highlightedIndex={search.highlightedIndex}
+            />
           </div>
         )}
+        <div className="border-t border-zinc-200 px-4 py-4 sm:px-5">
+          <Link
+            href={getGoodsAnalysisDetailsHref(projectId)}
+            className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800"
+          >
+            Details
+          </Link>
+        </div>
       </section>
     </div>
   )

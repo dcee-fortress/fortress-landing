@@ -38,8 +38,7 @@ export default function MaterialAnalysisView({ projectId, projectName }) {
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
           Read-only project to date. Similar descriptions are one line. Balance of material left
-          is what remains in the storeroom after material used is taken off material received and
-          stock added on site.
+          is bulk material requested minus cumulative material received.
         </p>
       </header>
 
@@ -50,7 +49,8 @@ export default function MaterialAnalysisView({ projectId, projectName }) {
         <MaterialRegisterTable
           columns={COLUMNS}
           lines={lines}
-          emptyMessage="No bulk material request, material received, or storeroom balance yet."
+          showTotal={false}
+          emptyMessage="No bulk material request or material received yet."
         />
         <div className="border-t border-zinc-200 px-4 py-4 sm:px-5">
           <Link

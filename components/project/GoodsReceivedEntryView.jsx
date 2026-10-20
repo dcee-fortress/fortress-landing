@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
-import AcquiredGoodsBalanceHeading from "@/components/project/AcquiredGoodsBalanceHeading"
 import CellHoverCard, { useCellHoverCard } from "@/components/project/CellHoverCard"
 import FormulaAmountInput from "@/components/project/FormulaAmountInput"
 import MemoryTextInput from "@/components/project/MemoryTextInput"
@@ -17,16 +16,10 @@ import {
   getGoodsReceivedDailyFile,
   saveGoodsReceivedRows,
 } from "@/lib/goodsReceived"
+import { getGoodsAcquiredHistoryRows } from "@/lib/goodsAcquired"
 import {
-  getGoodsAcquiredDayTotals,
-  getGoodsAcquiredHistoryRows,
-  getGoodsAcquiredQuantityByDescription,
-} from "@/lib/goodsAcquired"
-import {
-  formatMaterialAmount,
   formatMaterialUnitPriceAmount,
   parsePlantCostAmount,
-  roundMaterialAmount,
 } from "@/lib/plantCostCalculations"
 import { getGoodsReceivedDailyFileHref } from "@/lib/projectRoutes"
 import { useProjects } from "@/components/project/ProjectsProvider"
@@ -43,15 +36,7 @@ const HOVER_LABELS = GOODS_RECEIVED_COLUMNS.map((column) =>
   column.key === "description" ? null : column.label
 )
 
-const GOODS_MEMORY_KEYS = [
-  "description",
-  "supplier",
-  "unit",
-  "quantity",
-  "invoiceNumber",
-  "orderNumber",
-  "unitPrice",
-]
+const GOODS_MEMORY_KEYS = ["description", "unit", "quantity", "unitPrice"]
 
 export default function GoodsReceivedEntryView({ projectId, projectName, dayId }) {
   const { version } = useProjects()
@@ -62,16 +47,6 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
   const saveTimerRef = useRef(0)
   const rowsRef = useRef([])
   const hover = useCellHoverCard()
-
-  const acquiredTotals = useMemo(() => {
-    void version
-    return getGoodsAcquiredDayTotals(projectId, dayId)
-  }, [dayId, projectId, version])
-
-  const acquiredByDescription = useMemo(() => {
-    void version
-    return getGoodsAcquiredQuantityByDescription(projectId, [dayId])
-  }, [dayId, projectId, version])
 
   const savedHistoryRows = useMemo(() => {
     void version
@@ -91,25 +66,6 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
       query,
       description: key === "description" ? "" : row.description,
     })
-
-  const receivedQtyByDescription = useMemo(() => {
-    const map = new Map()
-    for (const row of rows) {
-      const key = String(row.description || "").trim().toLowerCase()
-      if (!key) continue
-      const qty = Number(parsePlantCostAmount(row.quantity)) || 0
-      map.set(key, (map.get(key) || 0) + qty)
-    }
-    return map
-  }, [rows])
-
-  function balanceForRow(row) {
-    const key = String(row.description || "").trim().toLowerCase()
-    if (!key) return 0
-    const acquired = acquiredByDescription.get(key) || 0
-    const received = receivedQtyByDescription.get(key) || 0
-    return roundMaterialAmount(acquired - received) ?? 0
-  }
 
   const loadRows = useCallback(() => {
     setRows(getGoodsReceivedRows(projectId, dayId))
@@ -212,7 +168,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
           Back to daily dashboard
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Fuel received entry
+          Bulk fuel in tank entry
         </p>
         <h1
           suppressHydrationWarning
@@ -221,21 +177,15 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
           {projectName || "Project"}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
-          {dayLabel} · Total cost of fuel = quantity × unit price. Fuel left = fuel
-          requested quantity − fuel received quantity for each description.
+          {dayLabel} · Write the fuel name as petrol, diesel, oil, or blend. Total cost = bulk
+          fuel quantity × unit price.
         </p>
       </header>
-
-      <AcquiredGoodsBalanceHeading
-        totalQuantity={acquiredTotals.totalQuantity}
-        totalCost={acquiredTotals.totalCost}
-        periodLabel={dayLabel}
-      />
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
           <div>
-            <h2 className="text-base font-semibold text-zinc-900">Fuel received entry table</h2>
+            <h2 className="text-base font-semibold text-zinc-900">Bulk fuel in tank entry table</h2>
             <p className="text-sm text-zinc-500">
               Day total {formatMaterialUnitPriceAmount(dayTotal)}
             </p>
@@ -282,17 +232,8 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
                       value={row.description}
                       suggest={suggestFor(row, "description")}
                       onChange={(value) => updateRow(row.id, "description", value)}
-                      placeholder="Description of fuel"
+                      placeholder="Petrol, diesel, oil, or blend"
                       className="w-full min-w-[14rem] rounded-md border border-zinc-200 px-2 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <MemoryTextInput
-                      value={row.supplier}
-                      suggest={suggestFor(row, "supplier")}
-                      onChange={(value) => updateRow(row.id, "supplier", value)}
-                      placeholder="Supplier"
-                      className="w-full min-w-[10rem] rounded-md border border-zinc-200 px-2 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -306,7 +247,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
                   </td>
                   <td className="px-3 py-2">
                     <FormulaAmountInput
-                      ariaLabel="Quantity"
+                      ariaLabel="Bulk fuel quantity"
                       value={row.quantity}
                       formula={row.quantityFormula}
                       minWidthClass="min-w-[6rem]"
@@ -314,24 +255,6 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
                       onChange={(value, formula) =>
                         updateRowFields(row.id, { quantity: value, quantityFormula: formula })
                       }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <MemoryTextInput
-                      value={row.invoiceNumber}
-                      suggest={suggestFor(row, "invoiceNumber")}
-                      onChange={(value) => updateRow(row.id, "invoiceNumber", value)}
-                      placeholder="Invoice #"
-                      className="w-full min-w-[8rem] rounded-md border border-zinc-200 px-2 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <MemoryTextInput
-                      value={row.orderNumber}
-                      suggest={suggestFor(row, "orderNumber")}
-                      onChange={(value) => updateRow(row.id, "orderNumber", value)}
-                      placeholder="Order #"
-                      className="w-full min-w-[8rem] rounded-md border border-zinc-200 px-2 py-1.5 text-sm outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-500/15"
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -346,9 +269,6 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
                   </td>
                   <td className="px-3 py-2 text-right font-medium text-zinc-900">
                     {formatMaterialUnitPriceAmount(row.totalCost)}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-zinc-800">
-                    {formatMaterialAmount(balanceForRow(row))}
                   </td>
                   <td className="px-3 py-2 text-right">
                     <button
@@ -365,13 +285,12 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
             </tbody>
             <tfoot>
               <tr className="bg-zinc-50 font-semibold text-zinc-900">
-                <td className="px-3 py-3" colSpan={7}>
+                <td className="px-3 py-3" colSpan={4}>
                   Day total cost
                 </td>
                 <td className="px-3 py-3 text-right">
                   {formatMaterialUnitPriceAmount(dayTotal)}
                 </td>
-                <td className="px-3 py-3" />
                 <td className="px-3 py-3" />
               </tr>
             </tfoot>
@@ -390,7 +309,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
           </button>
           <p className="text-xs text-zinc-500">
             Entries save as you type. Quantity accepts formulas like =12*4 or =(5+3)/2. Total cost
-            and current goods balance update automatically.
+            updates automatically.
           </p>
         </div>
       </section>

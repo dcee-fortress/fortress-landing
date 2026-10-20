@@ -72,7 +72,7 @@ export default function GoodsAcquiredRollupView({
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Fuel requested
+          Back to Fuel consumed
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{title}</p>
         <h1
@@ -89,11 +89,11 @@ export default function GoodsAcquiredRollupView({
       ) : visiblePeriods.length === 0 ? (
         <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div className="border-b border-zinc-200 px-4 py-3 sm:px-5">
-            <h2 className="text-base font-semibold text-zinc-900">Fuel requested table</h2>
+            <h2 className="text-base font-semibold text-zinc-900">Fuel consumed table</h2>
           </div>
           <GoodsAcquiredDashboardTable
             lines={[]}
-            emptyMessage="No fuel requested in this period yet. Add entries on daily fuel requested."
+            emptyMessage="No fuel consumed in this period yet. Add entries on daily fuel consumed."
           />
         </section>
       ) : (
@@ -107,8 +107,8 @@ export default function GoodsAcquiredRollupView({
                 <h2 className="text-base font-semibold text-zinc-900">{period.label}</h2>
                 <p className="mt-0.5 text-sm text-zinc-500">
                   {mode === "project-to-date"
-                    ? "Similar descriptions are written as one. Their quantities are added together."
-                    : "Rolled up from daily fuel requested entry · matching descriptions combined"}
+                    ? "Each fuel name is one line. Quantities and total costs from every daily entry are added together."
+                    : "Rolled up from the daily fuel consumed entry. The same fuel name is one line."}
                 </p>
               </div>
               <GoodsAcquiredDashboardTable lines={period.lines} />

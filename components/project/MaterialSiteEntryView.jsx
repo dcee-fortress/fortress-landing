@@ -20,24 +20,18 @@ function blankRow() {
   return {
     id: `site-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     description: "",
-    stock: "",
-    stockFormula: "",
+    broughtOnSite: "",
+    broughtOnSiteFormula: "",
     materialUsed: "",
     materialUsedFormula: "",
-    receivedQuantity: 0,
-    openingQuantity: 0,
     fromReceived: false,
   }
 }
 
 function leftFor(row) {
-  const stock = parsePlantCostAmount(row.stock) ?? 0
+  const brought = parsePlantCostAmount(row.broughtOnSite) ?? 0
   const used = parsePlantCostAmount(row.materialUsed) ?? 0
-  return (
-    roundMaterialAmount(
-      (Number(row.openingQuantity) || 0) + (Number(row.receivedQuantity) || 0) + stock - used
-    ) ?? 0
-  )
+  return roundMaterialAmount(brought - used) ?? 0
 }
 
 export default function MaterialSiteEntryView({ projectId, projectName, dayId }) {
@@ -60,7 +54,10 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
       const blank =
         current.length === 0 ||
         current.every(
-          (row) => !String(row.description || "").trim() && !String(row.stock || "").trim() && !String(row.materialUsed || "").trim()
+          (row) =>
+            !String(row.description || "").trim() &&
+            !String(row.broughtOnSite || "").trim() &&
+            !String(row.materialUsed || "").trim()
         )
       if (loadedDayRef.current !== dayId || blank) {
         loadedDayRef.current = dayId
@@ -82,7 +79,7 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
   }, [rows])
 
   const history = useMemo(
-    () => buildCellHistory(rows, ["description", "stock", "materialUsed"]),
+    () => buildCellHistory(rows, ["description", "broughtOnSite", "materialUsed"]),
     [rows]
   )
 
@@ -153,9 +150,8 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
           {projectName || "Project"}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
-          {dayLabel} · Descriptions and quantities from material received are already in the
-          storeroom. Add a row to put extra stock in, or edit the stock column. Enter material
-          used when a worker takes material from site. Material left updates on the dashboard.
+          {dayLabel} · Material brought on site starts from material received for this date and can
+          be edited. Material left is material brought on site minus material used.
         </p>
       </header>
 
@@ -178,9 +174,7 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
             <thead>
               <tr className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 <th className="border-b border-zinc-200 px-3 py-3">Description</th>
-                <th className="border-b border-zinc-200 px-3 py-3 text-right">Brought forward</th>
-                <th className="border-b border-zinc-200 px-3 py-3 text-right">Quantity received</th>
-                <th className="border-b border-zinc-200 px-3 py-3 text-right">Stock</th>
+                <th className="border-b border-zinc-200 px-3 py-3 text-right">Material brought on site</th>
                 <th className="border-b border-zinc-200 px-3 py-3 text-right">Material used</th>
                 <th className="border-b border-zinc-200 px-3 py-3 text-right">Material left</th>
                 <th className="border-b border-zinc-200 px-3 py-3" />
@@ -201,19 +195,17 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
                       className="w-full min-w-40 rounded-lg border border-zinc-200 px-2 py-2 text-sm outline-none focus:border-zinc-500"
                     />
                   </td>
-                  <td className="px-3 py-2 text-right align-top tabular-nums text-zinc-800">
-                    <p className="px-2 py-2">{formatMaterialAmount(row.openingQuantity || 0)}</p>
-                  </td>
-                  <td className="px-3 py-2 text-right align-top tabular-nums text-zinc-800">
-                    <p className="px-2 py-2">{formatMaterialAmount(row.receivedQuantity || 0)}</p>
-                  </td>
                   <td className="px-3 py-2 align-top">
                     <FormulaAmountInput
-                      value={row.stock}
-                      formula={row.stockFormula || ""}
-                      ariaLabel="Stock"
+                      value={row.broughtOnSite}
+                      formula={row.broughtOnSiteFormula || ""}
+                      ariaLabel="Material brought on site"
                       onChange={(value, formula) =>
-                        updateRow(row.id, { stock: value, stockFormula: formula || "" })
+                        updateRow(row.id, {
+                          broughtOnSite: value,
+                          broughtOnSiteFormula: formula || "",
+                          broughtTouched: true,
+                        })
                       }
                     />
                   </td>

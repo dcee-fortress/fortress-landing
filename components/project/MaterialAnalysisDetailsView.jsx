@@ -54,6 +54,7 @@ export default function MaterialAnalysisDetailsView({ projectId, projectName }) 
         <MaterialRegisterTable
           columns={COLUMNS}
           lines={lines}
+          showTotal={false}
           emptyMessage="No costs yet. Enter a bulk material request with a unit price first."
         />
       </section>

@@ -81,7 +81,7 @@ export default function MaterialSiteDailyListView({ projectId, projectName }) {
 
   async function performDelete(file) {
     const confirmed = window.confirm(
-      `Delete "${file.label}" from daily material on site?\n\nThis removes that day's stock and material used from the dashboards.`
+      `Delete "${file.label}" from daily material on site?\n\nThis removes that day's material brought on site and material used from the dashboards.`
     )
     if (!confirmed) return
     setDeletingDayId(file.id)
@@ -135,8 +135,8 @@ export default function MaterialSiteDailyListView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Press + to create today&apos;s file. Open the file to change its date, add or edit stock,
-          and enter material used. Material received for that date is already in the storeroom.
+          Press + to create today&apos;s file. Open the file to change its date, edit material brought
+          on site, and enter material used. Material left is brought on site minus material used.
         </p>
       </header>
 

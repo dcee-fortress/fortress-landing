@@ -41,7 +41,7 @@ export default function MaterialScheduleHubView({ projectId, projectName }) {
           <ChoiceCard
             key={item.id}
             href={getMaterialRegisterHref(projectId, item.id)}
-            icon="package"
+            icon={item.id === "received" ? "package-check" : "clipboard-list"}
             title={item.title}
             description={item.hubDescription}
             prefetch={false}
@@ -49,9 +49,9 @@ export default function MaterialScheduleHubView({ projectId, projectName }) {
         ))}
         <ChoiceCard
           href={getMaterialSiteHref(projectId)}
-          icon="package"
+          icon="warehouse"
           title="Material on site"
-          description="Storeroom from material received. Add or edit stock, enter material used, and see what is left."
+          description="Edit material brought on site and material used. Material left is brought on site minus material used."
           prefetch={false}
         />
         <ChoiceCard
