@@ -67,7 +67,7 @@ export default function DailyGoodsAcquiredDayView({ projectId, projectName, dayI
           Back to daily files
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Daily fuel consumed
+          Daily current bulk fuel
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
           {dayLabel}
@@ -91,19 +91,19 @@ export default function DailyGoodsAcquiredDayView({ projectId, projectName, dayI
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
-          <h2 className="text-base font-semibold text-zinc-900">Fuel consumed table</h2>
+          <h2 className="text-base font-semibold text-zinc-900">Current bulk fuel table</h2>
           <Link
             href={getGoodsAcquiredEntryHref(projectId, dayId)}
             className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
           >
             <Icon name="package" size={16} />
-            {hasData ? "Edit entry" : "Fuel consumed entry"}
+            {hasData ? "Edit entry" : "Current bulk fuel entry"}
           </Link>
         </div>
 
         <GoodsAcquiredDashboardTable
           lines={lines}
-          emptyMessage="No fuel consumed yet. Open Fuel consumed entry to add items."
+          emptyMessage="No current bulk fuel yet. Open Current bulk fuel entry to add items."
         />
       </section>
     </div>

@@ -21,7 +21,7 @@ export default function GoodsReceivedView({ projectId, projectName }) {
           Back to Fuel schedule
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Bulk fuel in tank
+          Fuel consumed
         </p>
         <h1
           suppressHydrationWarning
@@ -30,7 +30,7 @@ export default function GoodsReceivedView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Open project to date or daily bulk fuel in tank. Daily files are created with +. Entered quantities roll into project to date, fuel on site, and fuel analysis.
+          Open project to date or daily fuel consumed. Daily files are created with +. Entered quantities roll into project to date, fuel on site, and fuel analysis.
         </p>
       </header>
 

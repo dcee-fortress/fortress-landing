@@ -10,8 +10,8 @@ import { getGoodsAnalysisHref } from "@/lib/projectRoutes"
 
 const COLUMNS = [
   { key: "description", label: "Description", align: "left", kind: "text" },
-  { key: "bulkCost", label: "Bulk fuel cost", align: "right", kind: "computed" },
-  { key: "consumedCost", label: "Fuel consumed cost", align: "right", kind: "computed" },
+  { key: "bulkCost", label: "Fuel consumed cost", align: "right", kind: "computed" },
+  { key: "consumedCost", label: "Current bulk fuel cost", align: "right", kind: "computed" },
   { key: "leftCost", label: "Fuel left in tank cost", align: "right", kind: "computed" },
 ]
 
@@ -39,8 +39,8 @@ export default function GoodsAnalysisDetailsView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
-          Read-only project to date costs. Fuel left in tank cost is bulk fuel cost minus fuel
-          consumed cost.
+          Read-only project to date costs. Fuel left in tank cost is fuel consumed cost minus current
+          bulk fuel cost.
         </p>
       </header>
 

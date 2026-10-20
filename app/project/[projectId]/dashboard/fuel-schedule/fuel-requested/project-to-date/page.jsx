@@ -8,8 +8,8 @@ export default async function GoodsAcquiredprojecttodatePage({ params }) {
   return (
     <GoodsAcquiredRollupPageClient
       projectId={projectId}
-      title="Project to date fuel consumed"
-      description="Project-to-date table of description, unit, quantity, and total cost. Similar descriptions are written as one line and their quantities are added together."
+      title="Project to date current bulk fuel"
+      description="Each fuel name is one line. Current bulk fuel quantities and total costs from every daily entry are added together."
       mode="project-to-date"
     />
   )

@@ -81,7 +81,7 @@ const LOGIN_GROUPS = [
   },
   {
     department: "Finance",
-    pages: ["Petty cash", "Food cash", "Fuel consumed", "Bulk fuel in tank", "Bulk material request", "Material received", "Material on site"].map((name) => ({
+    pages: ["Petty cash", "Food cash", "Fuel consumed", "Current bulk fuel in tank", "Bulk material request", "Material received", "Material on site"].map((name) => ({
       name,
       username: FINANCE_ENTRY_USERNAME,
       password: FINANCE_ENTRY_PASSWORD,

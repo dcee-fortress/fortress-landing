@@ -12,8 +12,8 @@ import { getGoodsAnalysisDetailsHref, getMaterialSchedulesHref } from "@/lib/pro
 
 const COLUMNS = [
   { key: "description", label: "Description", align: "left", kind: "text" },
-  { key: "bulkQuantity", label: "Bulk fuel in tank", align: "right", kind: "number" },
-  { key: "consumedQuantity", label: "Cumulative fuel consumed", align: "right", kind: "number" },
+  { key: "bulkQuantity", label: "Fuel consumed", align: "right", kind: "number" },
+  { key: "consumedQuantity", label: "Current bulk fuel", align: "right", kind: "number" },
   { key: "fuelLeft", label: "Fuel left in tank", align: "right", kind: "number" },
 ]
 
@@ -39,10 +39,10 @@ function analysisRowMatches(row, words) {
 
 function getAnalysisDetails(row) {
   return [
-    { label: "Bulk fuel in tank", value: formatMaterialAmount(row.bulkQuantity) },
-    { label: "Bulk fuel cost", value: formatMaterialUnitPriceAmount(row.bulkCost) },
-    { label: "Cumulative fuel consumed", value: formatMaterialAmount(row.consumedQuantity) },
-    { label: "Fuel consumed cost", value: formatMaterialUnitPriceAmount(row.consumedCost) },
+    { label: "Fuel consumed", value: formatMaterialAmount(row.bulkQuantity) },
+    { label: "Fuel consumed cost", value: formatMaterialUnitPriceAmount(row.bulkCost) },
+    { label: "Current bulk fuel", value: formatMaterialAmount(row.consumedQuantity) },
+    { label: "Current bulk fuel cost", value: formatMaterialUnitPriceAmount(row.consumedCost) },
     { label: "Fuel left in tank", value: formatMaterialAmount(row.fuelLeft) },
     { label: "Fuel left in tank cost", value: formatMaterialUnitPriceAmount(row.leftCost) },
   ]
@@ -78,8 +78,8 @@ export default function GoodsAnalysisView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
-          Read-only project to date. Each fuel name is one line. Fuel left in tank is bulk fuel in
-          tank minus cumulative fuel consumed.
+          Read-only project to date. Each fuel name is one line. Fuel left in tank is fuel consumed
+          minus current bulk fuel.
         </p>
       </header>
 

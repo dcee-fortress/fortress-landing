@@ -72,7 +72,7 @@ export default function GoodsAcquiredRollupView({
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Fuel consumed
+          Back to Current bulk fuel
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{title}</p>
         <h1
@@ -89,11 +89,11 @@ export default function GoodsAcquiredRollupView({
       ) : visiblePeriods.length === 0 ? (
         <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div className="border-b border-zinc-200 px-4 py-3 sm:px-5">
-            <h2 className="text-base font-semibold text-zinc-900">Fuel consumed table</h2>
+            <h2 className="text-base font-semibold text-zinc-900">Current bulk fuel table</h2>
           </div>
           <GoodsAcquiredDashboardTable
             lines={[]}
-            emptyMessage="No fuel consumed in this period yet. Add entries on daily fuel consumed."
+            emptyMessage="No current bulk fuel in this period yet. Add entries on daily current bulk fuel."
           />
         </section>
       ) : (
@@ -108,7 +108,7 @@ export default function GoodsAcquiredRollupView({
                 <p className="mt-0.5 text-sm text-zinc-500">
                   {mode === "project-to-date"
                     ? "Each fuel name is one line. Quantities and total costs from every daily entry are added together."
-                    : "Rolled up from the daily fuel consumed entry. The same fuel name is one line."}
+                    : "Rolled up from the daily current bulk fuel entry. The same fuel name is one line."}
                 </p>
               </div>
               <GoodsAcquiredDashboardTable lines={period.lines} />

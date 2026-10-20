@@ -168,7 +168,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
           Back to daily dashboard
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Bulk fuel in tank entry
+          Fuel consumed entry
         </p>
         <h1
           suppressHydrationWarning
@@ -177,15 +177,15 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
           {projectName || "Project"}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
-          {dayLabel} · Write the fuel name as petrol, diesel, oil, or blend. Total cost = bulk
-          fuel quantity × unit price.
+          {dayLabel} · Write the fuel name as petrol, diesel, oil, or blend. Total cost = quantity
+          of fuel consumed × unit price.
         </p>
       </header>
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
           <div>
-            <h2 className="text-base font-semibold text-zinc-900">Bulk fuel in tank entry table</h2>
+            <h2 className="text-base font-semibold text-zinc-900">Fuel consumed entry table</h2>
             <p className="text-sm text-zinc-500">
               Day total {formatMaterialUnitPriceAmount(dayTotal)}
             </p>
@@ -247,7 +247,7 @@ export default function GoodsReceivedEntryView({ projectId, projectName, dayId }
                   </td>
                   <td className="px-3 py-2">
                     <FormulaAmountInput
-                      ariaLabel="Bulk fuel quantity"
+                      ariaLabel="Quantity of fuel consumed"
                       value={row.quantity}
                       formula={row.quantityFormula}
                       minWidthClass="min-w-[6rem]"

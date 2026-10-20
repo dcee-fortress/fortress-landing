@@ -34,13 +34,13 @@ export default function GoodsAcquiredWeekView({ projectId, projectName, weekId }
           Back to weekly files
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Weekly fuel consumed
+          Weekly current bulk fuel
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
           {file?.label || weekId}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          {projectName || "Project"} · This week&apos;s dashboard rolls up daily fuel consumed.
+          {projectName || "Project"} · This week&apos;s dashboard rolls up daily current bulk fuel.
           Matching descriptions are combined
           {inProgress ? " until the week ends." : "."}
         </p>
@@ -61,7 +61,7 @@ export default function GoodsAcquiredWeekView({ projectId, projectName, weekId }
         </div>
         <GoodsAcquiredDashboardTable
           lines={lines}
-          emptyMessage="No fuel consumed in this week yet. Add it on the daily fuel consumed files."
+          emptyMessage="No current bulk fuel in this week yet. Add it on the daily current bulk fuel files."
         />
       </section>
     </div>

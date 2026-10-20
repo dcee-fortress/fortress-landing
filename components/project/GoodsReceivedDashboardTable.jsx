@@ -8,7 +8,7 @@ import {
 export const GOODS_RECEIVED_DASHBOARD_COLUMNS = [
   { key: "description", label: "Fuel name", align: "left" },
   { key: "unit", label: "Unit", align: "left" },
-  { key: "quantity", label: "Bulk fuel quantity", align: "right" },
+  { key: "quantity", label: "Quantity of fuel consumed", align: "right" },
   { key: "totalCost", label: "Total cost", align: "right" },
 ]
 
@@ -19,7 +19,7 @@ export default function GoodsReceivedDashboardTable({ lines, emptyMessage }) {
   if (rows.length === 0) {
     return (
       <p className="px-4 py-8 text-center text-sm text-zinc-500 sm:px-5">
-        {emptyMessage || "No bulk fuel in tank yet."}
+        {emptyMessage || "No fuel consumed yet."}
       </p>
     )
   }
