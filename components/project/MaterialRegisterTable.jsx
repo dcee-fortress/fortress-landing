@@ -74,7 +74,7 @@ export default function MaterialRegisterTable({ columns, lines, emptyMessage }) 
                     </td>
                   )
                 }
-                if (column.kind === "number") {
+                if (column.kind === "number" && column.total !== false) {
                   const total = rows.reduce((sum, row) => sum + (Number(row[column.key]) || 0), 0)
                   return (
                     <td key={column.key} className="px-3 py-3 text-right tabular-nums">
