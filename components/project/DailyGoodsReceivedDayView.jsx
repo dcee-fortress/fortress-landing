@@ -81,7 +81,7 @@ export default function DailyGoodsReceivedDayView({ projectId, projectName, dayI
         </h1>
         <p className="text-sm text-zinc-500 sm:text-base">
           {projectName || "Project"} · Fuel name, unit, quantity of fuel consumed, and total cost roll up
-          from the entry. The same fuel name is one line. Fuel analysis subtracts current bulk fuel
+          from the entry. The same fuel name is one line. Fuel analysis subtracts bulk fuel inserted in tank
           from this fuel consumed to find fuel left in the tank.
         </p>
         <label className="flex w-fit flex-col gap-1 pt-1 text-sm font-medium text-zinc-700">

@@ -46,7 +46,15 @@ function isLightweightDashboardPath(pathname) {
   const parts = rest.split("/").filter(Boolean)
 
   const root = parts[0]
-  if (root === "qs-engineering" || root === "engineering" || root === "finance") {
+  if (
+    root === "qs-engineering" ||
+    root === "engineering" ||
+    root === "finance" ||
+    root === "valuations" ||
+    root === "rate-analysis" ||
+    root === "ceo-dashboards" ||
+    root === "plant-on-site"
+  ) {
     return parts.length === 1
   }
   if (root === "safety-health") {
@@ -73,15 +81,10 @@ function isLightweightDashboardPath(pathname) {
   ) {
     return true
   }
-  if (
-    root === "fuel-schedule" &&
-    (parts[1] === "fuel-received" ||
-      parts[1] === "fuel-requested" ||
-      parts[1] === "fuel-analysis")
-  ) {
+  // Fuel and material schedule shells are list/table UIs — skip valuation bootstrap.
+  if (root === "fuel-schedule" || root === "material-schedule" || root === "qs-schedules") {
     return true
   }
-  if (root === "material-schedule" || root === "qs-schedules") return true
   return false
 }
 

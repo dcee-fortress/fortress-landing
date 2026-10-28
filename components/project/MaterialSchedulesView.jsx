@@ -16,21 +16,21 @@ const MATERIAL_SCHEDULE_MODULES = [
     href: getGoodsReceivedHref,
     icon: "fuel",
     title: "Fuel consumed",
-    description: "Project to date and daily fuel consumed. Create a daily file with + and set its date inside the file",
+    description: "Project to date and daily fuel consumed. Daily files are created automatically from 26 Oct 2026",
   },
   {
     key: "requested",
     href: getGoodsAcquiredHref,
     icon: "truck",
-    title: "Current bulk fuel in tank",
-    description: "Project to date and daily current bulk fuel. Create a daily file with + and set its date inside the file",
+    title: "Bulk fuel inserted in tank",
+    description: "Project to date and daily bulk fuel inserted in tank. Create a daily file with + and set its date inside the file",
   },
   {
     key: "analysis",
     href: getGoodsAnalysisHref,
     icon: "chart-bar",
     title: "Fuel analysis",
-    description: "Fuel left and the cost of fuel left from fuel consumed and current bulk fuel",
+    description: "Fuel left and the cost of fuel left from fuel consumed and bulk fuel inserted in tank",
   },
 ]
 
@@ -55,7 +55,7 @@ export default function MaterialSchedulesView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Open fuel consumed, current bulk fuel in tank, or fuel analysis.
+          Open fuel consumed, bulk fuel inserted in tank, or fuel analysis.
         </p>
       </header>
 

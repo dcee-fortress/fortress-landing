@@ -24,7 +24,7 @@ export default function PurchasesView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Fuel consumed, current bulk fuel in tank, and fuel analysis are in
+          Fuel consumed, bulk fuel inserted in tank, and fuel analysis are in
           the fuel schedule.
         </p>
       </header>

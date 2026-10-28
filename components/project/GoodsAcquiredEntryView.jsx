@@ -176,7 +176,7 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
           Back to daily dashboard
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Current bulk fuel entry
+          Bulk fuel inserted in tank entry
         </p>
         <h1
           suppressHydrationWarning
@@ -186,14 +186,14 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
           {dayLabel} · Write petrol, diesel, oil, or blend in the description. Total cost = quantity
-          of current bulk fuel × unit price. The dashboard adds every quantity of the same fuel name.
+          of bulk fuel inserted in tank × unit price. The dashboard adds every quantity of the same fuel name.
         </p>
       </header>
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
           <div>
-            <h2 className="text-base font-semibold text-zinc-900">Current bulk fuel entry table</h2>
+            <h2 className="text-base font-semibold text-zinc-900">Bulk fuel inserted in tank entry table</h2>
             <p className="text-sm text-zinc-500">
               Day total {formatMaterialUnitPriceAmount(dayTotal)}
             </p>
@@ -202,7 +202,7 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
             <TableExportButtons
               columns={GOODS_ACQUIRED_COLUMNS}
               rows={rows}
-              title={`Current bulk fuel entry · ${dayLabel}`}
+              title={`Bulk fuel inserted in tank entry · ${dayLabel}`}
               projectName={projectName}
               filename={`current-bulk-fuel-entry-${dayId}`}
             />
@@ -273,7 +273,7 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
                   </td>
                   <td className="px-3 py-2">
                     <FormulaAmountInput
-                      ariaLabel="Quantity of current bulk fuel"
+                      ariaLabel="Quantity of bulk fuel inserted in tank"
                       value={row.quantity}
                       formula={row.quantityFormula}
                       minWidthClass="min-w-[6rem]"

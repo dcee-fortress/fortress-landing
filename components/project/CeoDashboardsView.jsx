@@ -4,29 +4,15 @@ import ChoiceCard from "@/components/project/ChoiceCard"
 import Icon from "@/components/icon/icon"
 import Link from "next/link"
 import {
-  getCeoCashBookHref,
-  getCeoGoodsOverviewHref,
+  getCeoMaterialsOverviewHref,
   getCeoWorkValuedHref,
   getCeoWorkersHref,
+  getGoodsAnalysisHref,
   getProjectHomeHref,
 } from "@/lib/projectRoutes"
 
 function getCeoDashboardItems(projectId) {
   return [
-    {
-      key: "petty-cash",
-      label: "Total petty cash spent",
-      description: "Petty cash paid out for the project to date",
-      icon: "banknote",
-      href: getCeoCashBookHref(projectId, "petty-cash"),
-    },
-    {
-      key: "food-cash",
-      label: "Total food and catering cost",
-      description: "Food cash paid out for the project to date",
-      icon: "utensils",
-      href: getCeoCashBookHref(projectId, "food-cash"),
-    },
     {
       key: "work-valued",
       label: "Total work valued",
@@ -42,11 +28,18 @@ function getCeoDashboardItems(projectId) {
       href: getCeoWorkersHref(projectId),
     },
     {
-      key: "goods-overview",
-      label: "Goods overview",
-      description: "Ordered, received and pending goods for the project to date",
+      key: "materials-overview",
+      label: "Materials overview",
+      description: "Material analysis and project to date material on site",
       icon: "package",
-      href: getCeoGoodsOverviewHref(projectId),
+      href: getCeoMaterialsOverviewHref(projectId),
+    },
+    {
+      key: "fuel-analysis",
+      label: "Fuel analysis",
+      description: "Fuel consumed, bulk fuel inserted in tank, and fuel left in tank",
+      icon: "chart-bar",
+      href: getGoodsAnalysisHref(projectId),
     },
   ]
 }

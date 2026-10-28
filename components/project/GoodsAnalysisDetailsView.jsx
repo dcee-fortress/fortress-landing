@@ -12,7 +12,7 @@ import { getGoodsAnalysisHref } from "@/lib/projectRoutes"
 const COLUMNS = [
   { key: "description", label: "Description", align: "left", kind: "text" },
   { key: "bulkCost", label: "Fuel consumed cost", align: "right", kind: "computed" },
-  { key: "consumedCost", label: "Current bulk fuel cost", align: "right", kind: "computed" },
+  { key: "consumedCost", label: "Bulk fuel inserted in tank cost", align: "right", kind: "computed" },
   { key: "leftCost", label: "Fuel left in tank cost", align: "right", kind: "computed" },
 ]
 

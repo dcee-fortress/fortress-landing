@@ -13,10 +13,10 @@ export default function AcquiredGoodsBalanceHeading({
   return (
     <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-4 sm:px-5">
       <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
-        Current bulk fuel
+        Bulk fuel inserted in tank
       </p>
       <p className="mt-1 text-sm text-emerald-900/80">
-        Total current bulk fuel for {periodLabel} from the current bulk fuel dashboards.
+        Total bulk fuel inserted in tank for {periodLabel} from the bulk fuel inserted in tank dashboards.
       </p>
       <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-sm">
         <div>

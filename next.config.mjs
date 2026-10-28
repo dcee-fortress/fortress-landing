@@ -17,8 +17,8 @@ const nextConfig = {
   },
   onDemandEntries: {
     // Keep compiled pages warm longer so dashboard hops don't recompile.
-    maxInactiveAge: 60 * 1000,
-    pagesBufferLength: 8,
+    maxInactiveAge: 15 * 60 * 1000,
+    pagesBufferLength: 32,
   },
   async redirects() {
     return [

@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import MaterialRegisterTable from "@/components/project/MaterialRegisterTable"
@@ -17,8 +18,13 @@ const COLUMNS = [
 
 export default function MaterialAnalysisView({ projectId, projectName }) {
   const { version } = useProjects()
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    setReady(true)
+  }, [])
+  // Read grove after mount so SSR and the first client paint match (avoids hydration overlay).
+  const lines = ready ? getMaterialAnalysisRows(projectId) : []
   void version
-  const lines = getMaterialAnalysisRows(projectId)
 
   return (
     <div className="space-y-6">

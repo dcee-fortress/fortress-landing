@@ -14,7 +14,7 @@ import { getGoodsAnalysisDetailsHref, getMaterialSchedulesHref } from "@/lib/pro
 const COLUMNS = [
   { key: "description", label: "Description", align: "left", kind: "text" },
   { key: "bulkQuantity", label: "Fuel consumed", align: "right", kind: "number" },
-  { key: "consumedQuantity", label: "Current bulk fuel", align: "right", kind: "number" },
+  { key: "consumedQuantity", label: "Bulk fuel inserted in tank", align: "right", kind: "number" },
   { key: "fuelLeft", label: "Fuel left in tank", align: "right", kind: "number" },
 ]
 
@@ -42,8 +42,8 @@ function getAnalysisDetails(row) {
   return [
     { label: "Fuel consumed", value: formatMaterialAmount(row.bulkQuantity) },
     { label: "Fuel consumed cost", value: formatMaterialUnitPriceAmount(row.bulkCost) },
-    { label: "Current bulk fuel", value: formatMaterialAmount(row.consumedQuantity) },
-    { label: "Current bulk fuel cost", value: formatMaterialUnitPriceAmount(row.consumedCost) },
+    { label: "Bulk fuel inserted in tank", value: formatMaterialAmount(row.consumedQuantity) },
+    { label: "Bulk fuel inserted in tank cost", value: formatMaterialUnitPriceAmount(row.consumedCost) },
     { label: "Fuel left in tank", value: formatMaterialAmount(row.fuelLeft) },
     { label: "Fuel left in tank cost", value: formatMaterialUnitPriceAmount(row.leftCost) },
   ]
@@ -80,7 +80,7 @@ export default function GoodsAnalysisView({ projectId, projectName }) {
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
           Read-only project to date. Each fuel name is one line. Fuel left in tank is fuel consumed
-          minus current bulk fuel.
+          minus bulk fuel inserted in tank.
         </p>
       </header>
 

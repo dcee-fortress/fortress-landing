@@ -14,9 +14,9 @@ import { unlockFinanceEntry, validateFinanceEntryCredentials } from "@/lib/finan
 import {
   createGoodsReceivedDailyFileForToday,
   deleteGoodsReceivedDay,
+  ensureGoodsReceivedAutoDailyFiles,
   getGoodsReceivedDailyFiles,
   getGoodsReceivedEntryStatus,
-  migrateGoodsReceivedToManualFiles,
 } from "@/lib/goodsReceived"
 import { getGoodsReceivedDailyFileHref, getGoodsReceivedHref } from "@/lib/projectRoutes"
 
@@ -116,7 +116,7 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
     let cancelled = false
     setReady(false)
     void (async () => {
-      await migrateGoodsReceivedToManualFiles(projectId)
+      await ensureGoodsReceivedAutoDailyFiles(projectId)
       if (cancelled) return
       refresh()
       setReady(true)
@@ -247,7 +247,7 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Press + in the file list to create today&apos;s file. Open the file to change its date and
+          Daily files are created automatically from 26 Oct 2026. Open a file to change its date and
           enter fuel consumed. Those quantities roll into project to date, fuel on site, and
           fuel analysis.
         </p>
@@ -306,7 +306,7 @@ export default function DailyGoodsReceivedListView({ projectId, projectName }) {
           <p className="px-6 py-8 text-sm text-zinc-500">
             {search.activeQuery
               ? "No daily fuel consumed files match your search."
-              : "No daily files yet. Press + to create today's fuel consumed file."}
+              : "No daily files yet. They are created automatically from 26 Oct 2026."}
           </p>
         ) : (
           <ul className="divide-y divide-zinc-200">

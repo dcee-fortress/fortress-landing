@@ -75,7 +75,7 @@ export default function GoodsAcquiredRollupView({
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Current bulk fuel
+          Back to Bulk fuel inserted in tank
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{title}</p>
         <h1
@@ -92,18 +92,18 @@ export default function GoodsAcquiredRollupView({
       ) : visiblePeriods.length === 0 ? (
         <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
-            <h2 className="text-base font-semibold text-zinc-900">Current bulk fuel table</h2>
+            <h2 className="text-base font-semibold text-zinc-900">Bulk fuel inserted in tank table</h2>
             <TableExportButtons
               columns={GOODS_ACQUIRED_DASHBOARD_COLUMNS}
               rows={[]}
-              title={title || "Current bulk fuel"}
+              title={title || "Bulk fuel inserted in tank"}
               projectName={projectName}
               filename={title || "current-bulk-fuel"}
             />
           </div>
           <GoodsAcquiredDashboardTable
             lines={[]}
-            emptyMessage="No current bulk fuel in this period yet. Add entries on daily current bulk fuel."
+            emptyMessage="No bulk fuel inserted in tank in this period yet. Add entries on daily bulk fuel inserted in tank."
           />
         </section>
       ) : (
@@ -119,13 +119,13 @@ export default function GoodsAcquiredRollupView({
                   <p className="mt-0.5 text-sm text-zinc-500">
                     {mode === "project-to-date"
                       ? "Each fuel name is one line. Quantities and total costs from every daily entry are added together."
-                      : "Rolled up from the daily current bulk fuel entry. The same fuel name is one line."}
+                      : "Rolled up from the daily bulk fuel inserted in tank entry. The same fuel name is one line."}
                   </p>
                 </div>
                 <TableExportButtons
                   columns={GOODS_ACQUIRED_DASHBOARD_COLUMNS}
                   rows={period.lines}
-                  title={`${title || "Current bulk fuel"} · ${period.label}`}
+                  title={`${title || "Bulk fuel inserted in tank"} · ${period.label}`}
                   projectName={projectName}
                   filename={`${title || "current-bulk-fuel"}-${period.label}`}
                 />
