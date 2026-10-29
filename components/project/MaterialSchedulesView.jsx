@@ -3,12 +3,7 @@
 import ChoiceCard from "@/components/project/ChoiceCard"
 import Icon from "@/components/icon/icon"
 import Link from "next/link"
-import {
-  getGoodsAcquiredHref,
-  getGoodsAnalysisHref,
-  getGoodsReceivedHref,
-  getQsSchedulesHref,
-} from "@/lib/projectRoutes"
+import { getGoodsReceivedHref, getQsSchedulesHref } from "@/lib/projectRoutes"
 
 const MATERIAL_SCHEDULE_MODULES = [
   {
@@ -16,21 +11,8 @@ const MATERIAL_SCHEDULE_MODULES = [
     href: getGoodsReceivedHref,
     icon: "fuel",
     title: "Fuel consumed",
-    description: "Project to date and daily fuel consumed. Daily files are created automatically from 26 Oct 2026",
-  },
-  {
-    key: "requested",
-    href: getGoodsAcquiredHref,
-    icon: "truck",
-    title: "Bulk fuel inserted in tank",
-    description: "Project to date and daily bulk fuel inserted in tank. Create a daily file with + and set its date inside the file",
-  },
-  {
-    key: "analysis",
-    href: getGoodsAnalysisHref,
-    icon: "chart-bar",
-    title: "Fuel analysis",
-    description: "Fuel left and the cost of fuel left from fuel consumed and bulk fuel inserted in tank",
+    description:
+      "Project to date and daily fuel consumed. Daily files are created automatically from 26 Oct 2026",
   },
 ]
 
@@ -55,7 +37,7 @@ export default function MaterialSchedulesView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Open fuel consumed, bulk fuel inserted in tank, or fuel analysis.
+          Open fuel consumed for project to date and daily files.
         </p>
       </header>
 

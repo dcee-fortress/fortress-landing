@@ -33,6 +33,16 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: "/project/:projectId/dashboard/plant-on-site/plant-operators",
+        destination: "/project/:projectId/dashboard/safety-health/plant-register",
+        permanent: false,
+      },
+      {
+        source: "/project/:projectId/dashboard/plant-on-site/plant-operators/:monthId",
+        destination: "/project/:projectId/dashboard/safety-health/plant-register/:monthId",
+        permanent: false,
+      },
+      {
         source: "/project/:projectId/dashboard/material-schedule/daily/:path*",
         destination: "/project/:projectId/dashboard/fuel-schedule/fuel-on-site/daily/:path*",
         permanent: false,

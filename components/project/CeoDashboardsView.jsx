@@ -7,7 +7,7 @@ import {
   getCeoMaterialsOverviewHref,
   getCeoWorkValuedHref,
   getCeoWorkersHref,
-  getGoodsAnalysisHref,
+  getGoodsReceivedPeriodHref,
   getProjectHomeHref,
 } from "@/lib/projectRoutes"
 
@@ -35,11 +35,11 @@ function getCeoDashboardItems(projectId) {
       href: getCeoMaterialsOverviewHref(projectId),
     },
     {
-      key: "fuel-analysis",
-      label: "Fuel analysis",
-      description: "Fuel consumed, bulk fuel inserted in tank, and fuel left in tank",
-      icon: "chart-bar",
-      href: getGoodsAnalysisHref(projectId),
+      key: "fuel-consumed-to-date",
+      label: "Fuel consumed to date",
+      description: "Project to date fuel consumed quantities and costs from every daily entry",
+      icon: "fuel",
+      href: getGoodsReceivedPeriodHref(projectId, "project-to-date"),
     },
   ]
 }

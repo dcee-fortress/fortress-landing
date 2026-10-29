@@ -24,7 +24,7 @@ export default function PpeRegistersView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Open Site Staff attendance, Induction, or the Labor register.
+          Open Site Staff attendance, Induction, Labor, or the Plant register.
         </p>
       </header>
 

@@ -11,7 +11,7 @@ const SAFETY_HEALTH_OPTIONS = [
   {
     key: "ppe-registers",
     label: "Registers",
-    description: "Site staff attendance and induction register files",
+    description: "Site staff, induction, labor, and plant register files",
     icon: "list",
     href: getPpeRegistersHref,
   },
