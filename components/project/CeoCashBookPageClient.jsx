@@ -29,7 +29,7 @@ export default function CeoCashBookPageClient({ projectId, bookId, title }) {
               description={`${book.label} totals for the whole project, rolled up from daily entries.`}
               mode="project-to-date"
               backHref={getCeoDashboardsHref(projectId)}
-              backLabel="Back to CEO EXCLUSIVE"
+              backLabel="Back to Engineering"
               exportable
             >
               <CeoFilesToggle

@@ -148,7 +148,7 @@ function CeoCredentialEditor() {
     try {
       await saveCeoDashboardCredentials(nextUsername, password)
       setUsername(nextUsername)
-      setSavedMessage("CEO EXCLUSIVE login updated. Settings uses this username and password too.")
+      setSavedMessage("Engineering login updated. Settings uses this username and password too.")
     } catch (saveError) {
       setSavedMessage("")
       setError(saveError instanceof Error ? saveError.message : "Could not save the new login.")
@@ -161,9 +161,9 @@ function CeoCredentialEditor() {
     return (
       <form onSubmit={handleVerify} className="space-y-4 rounded-xl border border-zinc-200 bg-white px-6 py-6 shadow-sm">
         <header className="space-y-1">
-          <h2 className="text-lg font-semibold text-zinc-900">CEO Exclusive</h2>
+          <h2 className="text-lg font-semibold text-zinc-900">Engineering</h2>
           <p className="text-sm text-zinc-500">
-            Enter the current CEO EXCLUSIVE username and password before changing them.
+            Enter the current Engineering username and password before changing them.
           </p>
         </header>
         <div>
@@ -206,9 +206,9 @@ function CeoCredentialEditor() {
   return (
     <form onSubmit={handleSave} className="space-y-4 rounded-xl border border-zinc-200 bg-white px-6 py-6 shadow-sm">
       <header className="space-y-1">
-        <h2 className="text-lg font-semibold text-zinc-900">CEO Exclusive</h2>
+        <h2 className="text-lg font-semibold text-zinc-900">Engineering</h2>
         <p className="text-sm text-zinc-500">
-          Edit the username and password. The new pair opens CEO EXCLUSIVE and Settings.
+          Edit the username and password. The new pair opens Engineering and Settings.
         </p>
       </header>
       <div>
@@ -307,7 +307,7 @@ export default function LoginDetailsPanel({ onBack }) {
         className="flex w-full items-center justify-between rounded-xl border border-zinc-200 bg-white px-6 py-4 text-left shadow-sm transition hover:bg-zinc-50"
       >
         <span>
-          <span className="block text-lg font-semibold text-zinc-900">CEO Exclusive</span>
+          <span className="block text-lg font-semibold text-zinc-900">Engineering</span>
           <span className="mt-1 block text-sm text-zinc-500">
             Enter the current username and password, then set a new one.
           </span>

@@ -41,7 +41,7 @@ export default function CeoMaterialsOverviewPageClient({ projectId }) {
                 className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
               >
                 <Icon name="arrow-left" size={16} />
-                Back to CEO EXCLUSIVE
+                Back to Engineering
               </Link>
               <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
                 Materials overview
@@ -65,8 +65,6 @@ export default function CeoMaterialsOverviewPageClient({ projectId }) {
                   icon={item.icon}
                   title={item.label}
                   description={item.description}
-                  iconClassName="app-icon-tile--ceo"
-                  className="app-choice-card--ceo-simple"
                   prefetch={false}
                 />
               ))}

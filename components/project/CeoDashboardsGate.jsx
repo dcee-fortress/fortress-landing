@@ -11,8 +11,8 @@ import {
 export default function CeoDashboardsGate({ children }) {
   return (
     <RestrictedAreaGate
-      title="CEO EXCLUSIVE"
-      description="Enter the CEO EXCLUSIVE username and password. Without saving, you will be asked again next time."
+      title="Engineering"
+      description="Enter the Engineering username and password. Without saving, you will be asked again next time."
       validateCredentials={validateCeoDashboardCredentials}
       unlock={unlockCeoDashboard}
       isRemembered={isCeoDashboardRemembered}

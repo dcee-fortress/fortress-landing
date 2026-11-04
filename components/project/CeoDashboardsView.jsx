@@ -55,7 +55,7 @@ export default function CeoDashboardsView({ projectId, projectName }) {
           <Icon name="arrow-left" size={16} />
           Back to project home
         </Link>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">CEO EXCLUSIVE</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Engineering</p>
         <h1
           suppressHydrationWarning
           className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl"
@@ -75,8 +75,6 @@ export default function CeoDashboardsView({ projectId, projectName }) {
             icon={item.icon}
             title={item.label}
             description={item.description}
-            iconClassName="app-icon-tile--ceo"
-            className="app-choice-card--ceo-simple"
             prefetch={false}
           />
         ))}

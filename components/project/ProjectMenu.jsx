@@ -190,7 +190,7 @@ export default function ProjectMenu() {
         title={loginIntent === "settings" ? "Settings" : "Create new project"}
         description={
           loginIntent === "settings"
-            ? "Enter the CEO EXCLUSIVE username and password to open Settings."
+            ? "Enter the Engineering username and password to open Settings."
             : "Enter the username and password to continue."
         }
         validateCredentials={

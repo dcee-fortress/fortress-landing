@@ -10,7 +10,7 @@ export default async function DashboardPage({ params }) {
     notFound()
   }
 
-  // Project to date valuations are CEO EXCLUSIVE only.
+  // Project to date valuations are Engineering only.
   if (view === "project-to-date") {
     redirect(getCeoWorkValuedHref(projectId))
   }

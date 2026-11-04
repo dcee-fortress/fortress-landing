@@ -13,7 +13,7 @@ export default function SettingsPage() {
   return (
     <RestrictedAreaGate
       title="Settings"
-      description="Enter the CEO EXCLUSIVE username and password to open Settings."
+      description="Enter the Engineering username and password to open Settings."
       validateCredentials={validateCeoDashboardCredentials}
       unlock={unlockCeoDashboard}
       isRemembered={isCeoDashboardRemembered}
