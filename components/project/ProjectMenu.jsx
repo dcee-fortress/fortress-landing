@@ -35,6 +35,9 @@ function getActiveProjectId(pathname) {
   return null
 }
 
+const headerButtonClass =
+  "inline-flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 active:bg-zinc-100 lg:h-11 lg:w-auto lg:gap-2 lg:px-3"
+
 export default function ProjectMenu() {
   const [open, setOpen] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
@@ -47,7 +50,13 @@ export default function ProjectMenu() {
   const activeProjects = menuProjects
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    setOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (!open) return undefined
+
+    const handlePointerDown = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setOpen(false)
       }
@@ -61,14 +70,15 @@ export default function ProjectMenu() {
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside)
+    // pointerdown covers mouse + touch without swallowing the opening tap.
+    document.addEventListener("pointerdown", handlePointerDown)
     document.addEventListener("keydown", handleEscape)
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("pointerdown", handlePointerDown)
       document.removeEventListener("keydown", handleEscape)
     }
-  }, [])
+  }, [open])
 
   function requestRestrictedAction(intent) {
     setOpen(false)
@@ -95,10 +105,10 @@ export default function ProjectMenu() {
   return (
     <>
       <header
-        className="fixed left-0 right-0 top-0 z-50 w-full border-b border-zinc-200 bg-white pt-[env(safe-area-inset-top)] shadow-sm"
+        className="app-site-header fixed inset-x-0 top-0 z-[100] w-full border-b border-zinc-200 bg-white shadow-sm"
         suppressHydrationWarning
       >
-        <div className="mx-auto flex h-14 w-full max-w-[90rem] items-center gap-2 px-3 sm:gap-3 sm:px-4 lg:h-16 lg:px-6">
+        <div className="mx-auto flex min-h-14 w-full max-w-[90rem] items-center gap-2 px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] sm:gap-3 sm:px-4 lg:min-h-16 lg:px-6 lg:pb-2.5">
           <div ref={menuRef} className="relative flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <button
               type="button"
@@ -106,20 +116,26 @@ export default function ProjectMenu() {
               aria-haspopup="true"
               aria-label="Open projects menu"
               onClick={() => setOpen((current) => !current)}
-              className="inline-flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 lg:h-11 lg:w-11"
+              className={headerButtonClass}
             >
-              <Icon name="align-justify" size={20} />
+              <Icon name="align-justify" size={22} />
             </button>
 
-            <Link href="/" prefetch={false} className="flex min-w-0 items-center gap-2 transition hover:opacity-80">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-sm font-bold tracking-wide text-white sm:h-9 sm:w-9 lg:h-10 lg:w-10 lg:text-base">
+            <Link
+              href="/"
+              prefetch={false}
+              className="flex min-w-0 items-center gap-2 transition hover:opacity-80"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-sm font-bold tracking-wide text-white sm:h-9 sm:w-9 lg:h-10 lg:w-10 lg:text-base">
                 F
               </span>
-              <span className="app-brand-name truncate">{APP_BRAND}</span>
+              <span className="app-brand-name hidden truncate min-[380px]:inline">
+                {APP_BRAND}
+              </span>
             </Link>
 
             {open ? (
-              <div className="absolute left-0 top-full z-50 mt-2 max-h-[min(24rem,70dvh)] w-[min(20rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-xl border border-zinc-200 bg-white shadow-lg">
+              <div className="absolute left-0 top-[calc(100%+0.5rem)] z-[110] max-h-[min(24rem,calc(100dvh-6rem))] w-[min(20rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain rounded-xl border border-zinc-200 bg-white shadow-lg">
                 <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                     Projects
@@ -167,9 +183,9 @@ export default function ProjectMenu() {
             type="button"
             aria-label="Create new project"
             onClick={() => requestRestrictedAction("create")}
-            className="inline-flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 lg:h-11 lg:w-auto lg:gap-2 lg:px-3"
+            className={headerButtonClass}
           >
-            <Icon name="plus" size={20} />
+            <Icon name="plus" size={22} />
             <span className="hidden text-sm font-medium lg:inline">New project</span>
           </button>
 
@@ -177,9 +193,9 @@ export default function ProjectMenu() {
             type="button"
             aria-label="Open settings"
             onClick={() => requestRestrictedAction("settings")}
-            className="inline-flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-zinc-300 bg-zinc-100 text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-200 lg:h-11 lg:w-auto lg:gap-2 lg:px-3"
+            className={`${headerButtonClass} bg-zinc-100 hover:bg-zinc-200`}
           >
-            <Icon name="settings-2" size={20} />
+            <Icon name="settings-2" size={22} />
             <span className="hidden text-sm font-medium lg:inline">Settings</span>
           </button>
         </div>
