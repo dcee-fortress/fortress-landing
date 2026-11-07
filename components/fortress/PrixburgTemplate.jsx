@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  computeSiteProjectsOverview,
+  computePrixburgCeoAnalysis,
   getSiteCeoMetadata,
   saveSiteCeoMetadata,
   subdomainLabelFor,
@@ -14,7 +14,6 @@ const money = (value) =>
 
 export default function PrixburgTemplate({
   site,
-  initialProjectId = '',
   initialView = 'home',
   onBack,
   onMetadataUpdated,
@@ -74,31 +73,22 @@ export default function PrixburgTemplate({
     quantity: '1',
     price: '',
   })
-  const [newLineDraft, setNewLineDraft] = useState({
-    name: '',
-    code: '',
-    location: '',
-    productFocus: '',
-    summary: '',
-  })
 
   useEffect(() => {
     const loaded = getSiteCeoMetadata(site)
     setMeta(loaded)
-    if (initialView && initialView !== 'home') {
-      setView(initialView)
-    } else if (initialProjectId) {
-      setView('manufacturing-factory')
-    }
-  }, [site?.id, site?.slug, initialProjectId, initialView])
+    if (initialView) setView(initialView)
+  }, [site?.id, site?.slug, initialView])
+
+  const brandName = meta.brandName || meta.companyName || site?.name || 'Prixburg'
+  const subdomain = subdomainLabelFor(meta)
 
   useEffect(() => {
-    const title = meta.brandName || meta.companyName || site?.name || 'Prixburg'
-    document.title = `${title} · Manufacturing Platform`
+    document.title = `${brandName} · Fortress Tenant`
     return () => {
       document.title = 'Fortress'
     }
-  }, [meta.brandName, meta.companyName, site?.name])
+  }, [brandName])
 
   const persistMeta = (nextMeta) => {
     const saved = saveSiteCeoMetadata(site || nextMeta.slug, nextMeta)
@@ -107,10 +97,6 @@ export default function PrixburgTemplate({
     return saved
   }
 
-  const brandName = meta.brandName || meta.companyName || site?.name || 'Prixburg'
-  const subdomain = subdomainLabelFor(meta)
-  const overviews = useMemo(() => computeSiteProjectsOverview(meta), [meta])
-
   const rawMaterials = meta.rawMaterials || []
   const formulas = meta.detergentFormulas || []
   const pricing = meta.pricing || []
@@ -118,7 +104,8 @@ export default function PrixburgTemplate({
   const productions = meta.productions || []
   const salesRows = meta.salesRows || []
   const expenses = meta.expenses || []
-  const projects = meta.projects || []
+
+  const ceoAnalysis = useMemo(() => computePrixburgCeoAnalysis(meta), [meta])
 
   const storeroomTotal = rawMaterials.reduce(
     (sum, r) => sum + (Number(r.quantity) || 0) * (Number(r.unitCost) || 0),
@@ -129,7 +116,7 @@ export default function PrixburgTemplate({
     const row = pricing.find(
       (p) => String(p.name || '').trim().toLowerCase() === String(productName || '').trim().toLowerCase(),
     )
-    if (!row) return 1.9
+    if (!row) return 0
     const q = Number(row.quantity) || 1
     return q > 0 ? (Number(row.price) || 0) / q : 0
   }
@@ -163,42 +150,23 @@ export default function PrixburgTemplate({
     })
   }, [productions, salesRows, pricing])
 
-  // Financial summaries
-  const totalSalesRevenue = salesRows.reduce(
-    (sum, r) => sum + (Number(r.quantity) || 0) * (Number(r.unitPrice) || 0),
-    0,
-  )
-  const cashSalesRevenue = salesRows
-    .filter((r) => r.saleType !== 'credit')
-    .reduce((sum, r) => sum + (Number(r.quantity) || 0) * (Number(r.unitPrice) || 0), 0)
-  const creditRows = salesRows.filter((r) => r.saleType === 'credit')
-  const creditTotal = creditRows.reduce(
-    (sum, r) => sum + (Number(r.quantity) || 0) * (Number(r.unitPrice) || 0),
-    0,
-  )
-  const creditPaid = creditRows.reduce((sum, r) => sum + (Number(r.paidSoFar) || 0), 0)
-  const creditOutstanding = Math.max(0, creditTotal - creditPaid)
-
-  const totalRawMaterialProductionCost = productions.reduce((sum, p) => sum + (Number(p.cost) || 0), 0)
-  const totalEnteredExpenses = expenses.reduce(
-    (sum, e) =>
-      sum +
-      (Number(e.wages) || 0) +
-      (Number(e.rent) || 0) +
-      (Number(e.fuel) || 0) +
-      (Number(e.transport) || 0) +
-      (Number(e.lunch) || 0) +
-      (Number(e.other) || 0),
-    0,
-  )
-  const totalCombinedExpenses = totalRawMaterialProductionCost + totalEnteredExpenses
-  const totalNetProfit = totalSalesRevenue - totalCombinedExpenses
-
-  const totalExpectedSales = productions.reduce(
-    (sum, p) => sum + (Number(p.quantity) || 0) * sellingPriceFor(p.product),
-    0,
-  )
-  const totalExpectedGrossProfit = totalExpectedSales - totalRawMaterialProductionCost
+  const creditCustomerRows = useMemo(() => {
+    return salesRows
+      .filter((s) => s.saleType === 'credit')
+      .map((s) => {
+        const credit = (Number(s.quantity) || 0) * (Number(s.unitPrice) || 0)
+        const paid = Number(s.paidSoFar) || 0
+        return {
+          id: s.id,
+          date: s.date,
+          customer: s.customer || 'Customer',
+          item: s.item || '',
+          credit,
+          paid,
+          balance: Math.max(0, credit - paid),
+        }
+      })
+  }, [salesRows])
 
   // Handlers
   const handleAddRawMaterial = (event) => {
@@ -279,9 +247,6 @@ export default function PrixburgTemplate({
       unit: formula.unit || 'L',
       quantity: batchQty,
       cost: Number(batchCost.toFixed(2)),
-      lineProject:
-        projects.find((p) => p.formulaId === formula.id || p.productFocus === formula.name)?.name ||
-        `${formula.name} Line`,
     }
 
     const movRecord = {
@@ -305,7 +270,7 @@ export default function PrixburgTemplate({
       productions: [prodRecord, ...productions],
       stockMovements: [movRecord, ...movements],
     })
-    setStatusNote(`Produced ${batchQty} ${formula.unit || 'L'} of ${formula.name}. Storeroom stock automatically deducted.`)
+    setStatusNote(`Produced ${batchQty} ${formula.unit || 'L'} of ${formula.name}.`)
   }
 
   const handleAddSale = (event) => {
@@ -430,321 +395,438 @@ export default function PrixburgTemplate({
     setPricingDraft({ name: '', unit: 'L', quantity: '1', price: '' })
   }
 
-  const handleAddLineProject = (event) => {
-    event.preventDefault()
-    const name = newLineDraft.name.trim()
-    if (!name) return
-    const nextProjects = [
-      ...projects,
-      {
-        id: `pb-proj-${Date.now()}`,
-        name,
-        code: newLineDraft.code.trim() || `PB-LINE-0${projects.length + 1}`,
-        location: newLineDraft.location.trim() || meta.location || 'Harare',
-        manager: meta.ceo || 'Plant Manager',
-        status: 'active',
-        startDate: new Date().toISOString().slice(0, 10),
-        productFocus: newLineDraft.productFocus.trim() || formulas[0]?.name || '',
-        summary: newLineDraft.summary.trim() || `${name} manufacturing production line.`,
-      },
-    ]
-    persistMeta({ ...meta, projects: nextProjects })
-    setNewLineDraft({ name: '', code: '', location: '', productFocus: '', summary: '' })
-  }
-
   const activeFormula = formulas.find((f) => f.id === (selectedFormulaId || formulas[0]?.id)) || null
 
   return (
-    <div className="tpl-shell tpl-prixburg">
-      <header className="tpl-header">
-        <div className="tpl-header-inner">
-          <div className="tpl-header-left">
-            <div className="tpl-menu-wrap">
+    <div className="pb-app">
+      <main className="pb-main">
+        {/* Exact Prixburg Topbar */}
+        <div className="pb-topbar">
+          <div className="pb-topbar-left">
+            <div className="pb-menu-wrap">
               <button
                 type="button"
-                className="tpl-icon-btn"
-                aria-label="Menu"
+                className="pb-dropdown-btn"
                 onClick={() => setMenuOpen((o) => !o)}
+                title="Menu"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 7h16M4 12h16M4 17h16" />
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 7h16" />
+                  <path d="M4 12h16" />
+                  <path d="M4 17h16" />
                 </svg>
               </button>
+              <button
+                type="button"
+                className="pb-fortress-brand"
+                onClick={() => {
+                  setView('home')
+                  setMenuOpen(false)
+                }}
+                title={`${brandName} under Fortress (${subdomain})`}
+              >
+                <span className="pb-fortress-f">F</span>
+                <span className="pb-fortress-name">{brandName}</span>
+              </button>
+              <span className="tpl-subdomain-pill">{subdomain}</span>
+
               {menuOpen && (
-                <div className="tpl-dropdown">
-                  <div className="tpl-dropdown-list">
-                    <button
-                      type="button"
-                      className={view === 'home' ? 'tpl-dropdown-item active' : 'tpl-dropdown-item'}
-                      onClick={() => {
-                        setView('home')
-                        setMenuOpen(false)
-                      }}
-                    >
-                      <span>Home</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={view === 'manufacturing-factory' ? 'tpl-dropdown-item active' : 'tpl-dropdown-item'}
-                      onClick={() => {
-                        setView('manufacturing-factory')
-                        setMenuOpen(false)
-                      }}
-                    >
-                      <span>Manufacturing factory</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={view === 'sales-finance' ? 'tpl-dropdown-item active' : 'tpl-dropdown-item'}
-                      onClick={() => {
-                        setView('sales-finance')
-                        setMenuOpen(false)
-                      }}
-                    >
-                      <span>Sales and finance</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={view === 'ceo-analysis' ? 'tpl-dropdown-item active' : 'tpl-dropdown-item'}
-                      onClick={() => {
-                        setView('ceo-analysis')
-                        setMenuOpen(false)
-                      }}
-                    >
-                      <span>CEO Analysis</span>
-                    </button>
-                  </div>
+                <div className="pb-dropdown-content show">
+                  <button
+                    type="button"
+                    className="pb-menu-btn"
+                    onClick={() => {
+                      setView('home')
+                      setMenuOpen(false)
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M3 11l9-8 9 8" />
+                      <path d="M5 10v11h14V10" />
+                      <path d="M10 21v-6h4v6" />
+                    </svg>
+                    Home
+                  </button>
+                  <button
+                    type="button"
+                    className="pb-menu-btn"
+                    onClick={() => {
+                      setView('manufacturing-factory')
+                      setMenuOpen(false)
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M3 21h18" />
+                      <path d="M5 21V10l5 3V10l5 3V5h4v16" />
+                    </svg>
+                    Manufacturing factory
+                  </button>
+                  <button
+                    type="button"
+                    className="pb-menu-btn"
+                    onClick={() => {
+                      setView('sales-finance')
+                      setMenuOpen(false)
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="2" y="5" width="20" height="14" rx="2" />
+                      <path d="M2 10h20" />
+                      <path d="M6 15h2" />
+                    </svg>
+                    Sales and finance
+                  </button>
+                  <button
+                    type="button"
+                    className="pb-menu-btn"
+                    onClick={() => {
+                      setView('ceo-analysis')
+                      setMenuOpen(false)
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M3 3v18h18" />
+                      <path d="M7 14v4" />
+                      <path d="M12 9v9" />
+                      <path d="M17 5v13" />
+                    </svg>
+                    CEO Analysis
+                  </button>
                 </div>
               )}
             </div>
 
-            <button
-              type="button"
-              className="tpl-brand-btn"
-              onClick={() => {
-                setView('home')
-                setMenuOpen(false)
-              }}
-            >
-              <span className="tpl-brand-f">F</span>
-              <span className="tpl-brand-title">{brandName}</span>
-            </button>
-            <span className="tpl-subdomain-pill">{subdomain}</span>
+            {view !== 'home' && (
+              <h2 className="pb-page-heading">
+                <button
+                  type="button"
+                  className="pb-page-back"
+                  onClick={() => {
+                    if (view === 'ceo-net-profit' || view === 'ceo-gross-profit') {
+                      setView('ceo-analysis')
+                    } else if (
+                      view === 'raw-materials' ||
+                      view === 'production-reports' ||
+                      view === 'finished-products'
+                    ) {
+                      setView('manufacturing-factory')
+                    } else if (
+                      view === 'raw-materials-storeroom' ||
+                      view === 'raw-material-movements'
+                    ) {
+                      setView('raw-materials')
+                    } else if (
+                      view === 'sales-analysis-reports' ||
+                      view === 'profit-expense-reports' ||
+                      view === 'outstanding-credit'
+                    ) {
+                      setView('sales-finance')
+                    } else {
+                      setView('home')
+                    }
+                  }}
+                >
+                  ←{' '}
+                  {view === 'ceo-net-profit' || view === 'ceo-gross-profit'
+                    ? 'CEO Analysis'
+                    : view === 'raw-materials' ||
+                        view === 'production-reports' ||
+                        view === 'finished-products'
+                      ? 'Manufacturing factory'
+                      : view === 'raw-materials-storeroom' || view === 'raw-material-movements'
+                        ? 'Raw materials'
+                        : view === 'sales-analysis-reports' ||
+                            view === 'profit-expense-reports' ||
+                            view === 'outstanding-credit'
+                          ? 'Sales and finance'
+                          : 'Home'}
+                </button>
+              </h2>
+            )}
           </div>
 
-          <div className="tpl-header-actions">
+          <div className="pb-topbar-actions">
             <button
               type="button"
-              className="tpl-action-btn"
-              onClick={() => {
-                setMenuOpen(false)
-                setView('ceo-analysis')
-              }}
+              className="pb-icon-btn"
+              onClick={() => setView('settings')}
+              title="Settings"
             >
-              CEO Analysis
-            </button>
-            <button
-              type="button"
-              className="tpl-action-btn tpl-action-muted"
-              onClick={() => {
-                setMenuOpen(false)
-                setView('settings')
-              }}
-            >
-              Settings
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+              </svg>
             </button>
             {onBack && (
-              <button type="button" className="tpl-action-btn tpl-back-fortress" onClick={onBack}>
+              <button
+                type="button"
+                className="tpl-action-btn tpl-back-fortress"
+                onClick={onBack}
+              >
                 ← Fortress
               </button>
             )}
           </div>
         </div>
-      </header>
 
-      <main className="tpl-main">
         {statusNote ? (
-          <div className="tpl-container">
-            <div className="tpl-notice-ok">
-              <span>{statusNote}</span>
-              <button type="button" className="tpl-close-x" onClick={() => setStatusNote('')}>×</button>
-            </div>
+          <div className="tpl-notice-ok" style={{ marginBottom: 16 }}>
+            <span>{statusNote}</span>
+            <button type="button" className="tpl-close-x" onClick={() => setStatusNote('')}>
+              ×
+            </button>
           </div>
         ) : null}
 
+        {/* Exact Prixburg Home Stage */}
         {view === 'home' && (
-          <div className="tpl-container">
-            <div className="tpl-hero-banner tpl-prixburg-banner">
-              <div>
-                <p className="tpl-eyebrow">Manufacturing Website Template · Prixburg Engine</p>
-                <h1 className="tpl-prixburg-logo">
-                  {brandName}
-                  <sup className="tpl-tm">™</sup>
-                </h1>
-                <p className="tpl-hero-sub">
-                  {meta.about ||
-                    'Chemical & industrial manufacturing system: storeroom materials, batch formulas, finished stock, and CEO profit analysis.'}
-                </p>
-                <div className="tpl-meta-tags">
-                  <span>Subdomain: <strong>{subdomain}</strong></span>
-                  {meta.ceo ? <span>CEO: <strong>{meta.ceo}</strong></span> : null}
-                  {meta.location ? <span>Location: <strong>{meta.location}</strong></span> : null}
-                </div>
-              </div>
-              <div className="tpl-hero-btns">
-                <button type="button" className="tpl-primary-btn" onClick={() => setView('manufacturing-factory')}>
-                  Manufacturing Factory
-                </button>
-                <button type="button" className="tpl-secondary-btn" onClick={() => setView('sales-finance')}>
-                  Sales & Finance
-                </button>
-                <button type="button" className="tpl-secondary-btn" onClick={() => setView('ceo-analysis')}>
-                  CEO Analysis
-                </button>
-              </div>
-            </div>
-
-            <div className="tpl-hub-grid">
-              <button type="button" className="tpl-hub-card" onClick={() => setView('manufacturing-factory')}>
-                <span className="tpl-hub-icon">🏭</span>
-                <div>
-                  <h3>Manufacturing factory</h3>
-                  <p>Raw materials storeroom, movement history, batch production report, and finished products.</p>
-                </div>
-              </button>
-
-              <button type="button" className="tpl-hub-card" onClick={() => setView('sales-finance')}>
-                <span className="tpl-hub-icon">💳</span>
-                <div>
-                  <h3>Sales and finance</h3>
-                  <p>Sales analysis report, daily/monthly sales entry, profit & expense reports, and credit report.</p>
-                </div>
-              </button>
-
-              <button type="button" className="tpl-hub-card" onClick={() => setView('ceo-analysis')}>
-                <span className="tpl-hub-icon">📈</span>
-                <div>
-                  <h3>CEO Analysis</h3>
-                  <p>CEO Net Profit (sales minus expenses) and CEO Gross Profit (expected sales minus raw material cost).</p>
-                </div>
-              </button>
-            </div>
-
-            <section className="tpl-section">
-              <div className="tpl-section-head">
-                <h2>Active Manufacturing Lines & Projects ({overviews.length})</h2>
-                <p>Overview of every manufacturing project/line configured from CEO metadata.</p>
-              </div>
-              <div className="tpl-project-grid">
-                {overviews.map((line) => (
-                  <article key={line.id} className="tpl-project-card">
-                    <div className="tpl-project-card-top">
-                      <div>
-                        <span className="tpl-code-badge">{line.code}</span>
-                        <h3>{line.name}</h3>
-                        <p className="tpl-muted-line">{line.location} · Product: {line.productFocus || 'All Products'}</p>
-                      </div>
-                      <span className="tpl-status-active">Running</span>
-                    </div>
-                    <p className="tpl-project-desc">{line.summary}</p>
-                    <div className="tpl-kpi-strip">
-                      <div>
-                        <span>Produced Output</span>
-                        <strong>{line.metrics.producedQty} L</strong>
-                      </div>
-                      <div>
-                        <span>Finished In Stock</span>
-                        <strong>{line.metrics.inStockQty} L ({money(line.metrics.inStockValue)})</strong>
-                      </div>
-                      <div>
-                        <span>Expected Gross Profit</span>
-                        <strong>{money(line.metrics.grossProfit)}</strong>
-                      </div>
-                      <div>
-                        <span>Actual Sales</span>
-                        <strong>{money(line.metrics.actualSales)}</strong>
-                      </div>
-                    </div>
-                    <div className="tpl-card-footer">
-                      <button type="button" className="tpl-primary-btn" onClick={() => setView('production-reports')}>
-                        Production & Batch Entry
-                      </button>
-                      <button type="button" className="tpl-secondary-btn" onClick={() => setView('ceo-analysis')}>
-                        CEO Profit Tables
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
+          <div className="pb-home-stage">
+            <h1 className="pb-home-logo">
+              {brandName}
+              <sup className="pb-tm">&trade;</sup>
+            </h1>
           </div>
         )}
 
+        {/* Exact Prixburg CEO Analysis Page (`ceo-analysis.html`) */}
+        {view === 'ceo-analysis' && (
+          <div className="pb-panel">
+            <h3>CEO Analysis</h3>
+            <div className="pb-choice-grid">
+              <button
+                type="button"
+                className="pb-choice-btn"
+                onClick={() => setView('ceo-net-profit')}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 17l6-6 4 4 8-8" />
+                  <path d="M14 7h7v7" />
+                </svg>
+                CEO Net Profit
+              </button>
+              <button
+                type="button"
+                className="pb-choice-btn"
+                onClick={() => setView('ceo-gross-profit')}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 3h6" />
+                  <path d="M10 3v7.5L5.2 18.2A2 2 0 0 0 6.9 21h10.2a2 2 0 0 0 1.7-2.8L14 10.5V3" />
+                  <path d="M8.5 14h7" />
+                </svg>
+                CEO Gross Profit
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Exact Prixburg CEO Net Profit Page (`ceo-net-profit.html`) */}
+        {view === 'ceo-net-profit' && (
+          <>
+            <div className="pb-sales-cards">
+              <div className="pb-sales-card">
+                <span>Today total sales $</span>
+                <strong>{money(ceoAnalysis.netProfitRows[0]?.sales || 0)}</strong>
+              </div>
+              <div className="pb-sales-card">
+                <span>Today total expenses $</span>
+                <strong>{money(ceoAnalysis.netProfitRows[0]?.expenses || 0)}</strong>
+              </div>
+              <div className="pb-sales-card">
+                <span>Today net profit $</span>
+                <strong>{money(ceoAnalysis.netProfitRows[0]?.profit || 0)}</strong>
+              </div>
+              <div className="pb-sales-card">
+                <span>Outstanding credit $</span>
+                <strong>{money(ceoAnalysis.outstandingCredit || 0)}</strong>
+              </div>
+            </div>
+
+            <div className="pb-panel">
+              <div className="pb-table-toolbar">
+                <div>
+                  <h3>CEO Net Profit</h3>
+                  <p className="pb-dashboard-range">
+                    Total sales come from sales entry. Net profit is total sales minus expenses.
+                  </p>
+                </div>
+              </div>
+              <div className="tpl-table-wrap">
+                <table className="tpl-table">
+                  <thead>
+                    <tr>
+                      <th>Period</th>
+                      <th>Total sales</th>
+                      <th>Total expenses</th>
+                      <th>Net profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ceoAnalysis.netProfitRows.map((row) => (
+                      <tr key={row.key}>
+                        <td>{row.label}</td>
+                        <td>{money(row.sales)}</td>
+                        <td>{money(row.expenses)}</td>
+                        <td>
+                          <strong>{money(row.profit)}</strong>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Exact Prixburg CEO Gross Profit Page (`ceo-gross-profit.html`) */}
+        {view === 'ceo-gross-profit' && (
+          <>
+            <div className="pb-sales-cards">
+              <div className="pb-sales-card">
+                <span>Today expected sales $</span>
+                <strong>{money(ceoAnalysis.grossProfitRows[0]?.expectedSales || 0)}</strong>
+              </div>
+              <div className="pb-sales-card">
+                <span>Today cost of raw materials $</span>
+                <strong>{money(ceoAnalysis.grossProfitRows[0]?.cost || 0)}</strong>
+              </div>
+              <div className="pb-sales-card">
+                <span>Today expected gross profit $</span>
+                <strong>{money(ceoAnalysis.grossProfitRows[0]?.gross || 0)}</strong>
+              </div>
+            </div>
+
+            <div className="pb-panel">
+              <div className="pb-table-toolbar">
+                <div>
+                  <h3>CEO Gross Profit</h3>
+                  <p className="pb-dashboard-range">
+                    Expected sales come from production and pricing. Expected gross profit is expected sales minus the cost of raw materials.
+                  </p>
+                </div>
+              </div>
+              <div className="tpl-table-wrap">
+                <table className="tpl-table">
+                  <thead>
+                    <tr>
+                      <th>Period</th>
+                      <th>Expected sales</th>
+                      <th>Cost of raw materials</th>
+                      <th>Expected gross profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ceoAnalysis.grossProfitRows.map((row) => (
+                      <tr key={row.key}>
+                        <td>{row.label}</td>
+                        <td>{money(row.expectedSales)}</td>
+                        <td>{money(row.cost)}</td>
+                        <td>
+                          <strong>{money(row.gross)}</strong>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Exact Prixburg Manufacturing Factory Page (`manufacturing-factory.html`) */}
         {view === 'manufacturing-factory' && (
-          <div className="tpl-container">
-            <button type="button" className="tpl-link-back" onClick={() => setView('home')}>
-              ← Home
-            </button>
-            <header className="tpl-page-head">
-              <div>
-                <p className="tpl-eyebrow">{brandName} Factory Floor</p>
-                <h1>Manufacturing factory</h1>
-              </div>
-            </header>
-
-            <div className="tpl-hub-grid">
-              <button type="button" className="tpl-hub-card" onClick={() => setView('raw-materials')}>
-                <span className="tpl-hub-icon">🧪</span>
-                <div>
-                  <h3>Raw materials</h3>
-                  <p>Store room inventory ({rawMaterials.length} items · {money(storeroomTotal)}) and movement history.</p>
-                </div>
+          <div className="pb-panel">
+            <h3>Manufacturing factory</h3>
+            <div className="pb-choice-grid">
+              <button
+                type="button"
+                className="pb-choice-btn"
+                onClick={() => setView('raw-materials')}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                  <path d="M3.3 7L12 12l8.7-5" />
+                  <path d="M12 22V12" />
+                </svg>
+                Raw materials
               </button>
-
-              <button type="button" className="tpl-hub-card" onClick={() => setView('production-reports')}>
-                <span className="tpl-hub-icon">⚗️</span>
-                <div>
-                  <h3>Production report</h3>
-                  <p>Run detergent formula batches, scale raw materials automatically, and view daily/monthly production.</p>
-                </div>
+              <button
+                type="button"
+                className="pb-choice-btn"
+                onClick={() => setView('production-reports')}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 3h6" />
+                  <path d="M10 3v7.5L5.2 18.2A2 2 0 0 0 6.9 21h10.2a2 2 0 0 0 1.7-2.8L14 10.5V3" />
+                  <path d="M8.5 14h7" />
+                </svg>
+                Production report
               </button>
-
-              <button type="button" className="tpl-hub-card" onClick={() => setView('finished-products')}>
-                <span className="tpl-hub-icon">🧴</span>
-                <div>
-                  <h3>Finished products</h3>
-                  <p>Stock comes from production entry; matching sales entry quantities are subtracted automatically.</p>
-                </div>
+              <button
+                type="button"
+                className="pb-choice-btn"
+                onClick={() => setView('finished-products')}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                  <path d="M12 8v8" />
+                  <path d="M8.5 12h7" />
+                </svg>
+                Finished products
               </button>
             </div>
           </div>
         )}
 
+        {/* Exact Prixburg Raw Materials Page (`raw-materials.html`) */}
         {view === 'raw-materials' && (
-          <div className="tpl-container">
-            <button type="button" className="tpl-link-back" onClick={() => setView('manufacturing-factory')}>
-              ← Manufacturing factory
-            </button>
-            <header className="tpl-page-head">
-              <div>
-                <p className="tpl-eyebrow">Raw Materials & Storeroom</p>
-                <h1>Store Room & Movement History</h1>
-              </div>
-              <div className="tpl-head-pills">
-                <span className="tpl-code-badge">Total Storeroom Value: {money(storeroomTotal)}</span>
-              </div>
-            </header>
+          <div className="pb-panel">
+            <div className="pb-choice-grid">
+              <button
+                type="button"
+                className="pb-choice-btn"
+                onClick={() => setView('raw-materials-storeroom')}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 9l9-6 9 6" />
+                  <path d="M4 10v10h16V10" />
+                  <path d="M9 20v-6h6v6" />
+                </svg>
+                Store room
+              </button>
+              <button
+                type="button"
+                className="pb-choice-btn"
+                onClick={() => setView('raw-material-movements')}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 7h11l-3-3" />
+                  <path d="M18 7l-3 3" />
+                  <path d="M17 17H6l3 3" />
+                  <path d="M6 17l3-3" />
+                </svg>
+                Movement history
+              </button>
+            </div>
+          </div>
+        )}
 
-            <div className="tpl-panel">
-              <h3>Raw Materials Storeroom</h3>
+        {/* Raw Materials Storeroom (`raw-materials-storeroom.html`) */}
+        {view === 'raw-materials-storeroom' && (
+          <div className="pb-panel">
+            <h3>Raw materials storeroom</h3>
+            {rawMaterials.length === 0 ? (
+              <p className="tpl-muted-line">No raw materials in the storeroom yet. Add materials below.</p>
+            ) : (
               <div className="tpl-table-wrap">
                 <table className="tpl-table">
                   <thead>
                     <tr>
                       <th>Date</th>
-                      <th>Material Name</th>
+                      <th>Material</th>
                       <th>Unit</th>
-                      <th>Quantity in Store</th>
+                      <th>Quantity</th>
                       <th>Unit Cost</th>
                       <th>Total Cost</th>
                     </tr>
@@ -779,113 +861,116 @@ export default function PrixburgTemplate({
                   </tbody>
                   <tfoot>
                     <tr>
-                      <th colSpan="5">Grand Total Storeroom Inventory</th>
+                      <th colSpan="5">Storeroom Total</th>
                       <th>{money(storeroomTotal)}</th>
                     </tr>
                   </tfoot>
                 </table>
               </div>
+            )}
 
-              <form className="tpl-inline-form" onSubmit={handleAddRawMaterial}>
-                <h4>Add / Purchase Raw Material into Storeroom</h4>
-                <div className="tpl-form-row">
-                  <input
-                    type="date"
-                    value={rawDraft.date}
-                    onChange={(e) => setRawDraft({ ...rawDraft, date: e.target.value })}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Material name"
-                    value={rawDraft.name}
-                    onChange={(e) => setRawDraft({ ...rawDraft, name: e.target.value })}
-                    required
-                  />
-                  <select
-                    value={rawDraft.unit}
-                    onChange={(e) => setRawDraft({ ...rawDraft, unit: e.target.value })}
-                  >
-                    <option value="kg">kg</option>
-                    <option value="L">L</option>
-                    <option value="pcs">pcs</option>
-                  </select>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Quantity"
-                    value={rawDraft.quantity}
-                    onChange={(e) => setRawDraft({ ...rawDraft, quantity: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Unit cost ($)"
-                    value={rawDraft.unitCost}
-                    onChange={(e) => setRawDraft({ ...rawDraft, unitCost: e.target.value })}
-                    required
-                  />
-                  <button type="submit" className="tpl-primary-btn">Add Material</button>
-                </div>
-              </form>
-            </div>
+            <form className="tpl-inline-form" onSubmit={handleAddRawMaterial}>
+              <h4>Add material to storeroom</h4>
+              <div className="tpl-form-row">
+                <input
+                  type="date"
+                  value={rawDraft.date}
+                  onChange={(e) => setRawDraft({ ...rawDraft, date: e.target.value })}
+                />
+                <input
+                  type="text"
+                  placeholder="Material name"
+                  value={rawDraft.name}
+                  onChange={(e) => setRawDraft({ ...rawDraft, name: e.target.value })}
+                  required
+                />
+                <select
+                  value={rawDraft.unit}
+                  onChange={(e) => setRawDraft({ ...rawDraft, unit: e.target.value })}
+                >
+                  <option value="kg">kg</option>
+                  <option value="L">L</option>
+                  <option value="pcs">pcs</option>
+                </select>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Quantity"
+                  value={rawDraft.quantity}
+                  onChange={(e) => setRawDraft({ ...rawDraft, quantity: e.target.value })}
+                  required
+                />
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Unit cost ($)"
+                  value={rawDraft.unitCost}
+                  onChange={(e) => setRawDraft({ ...rawDraft, unitCost: e.target.value })}
+                  required
+                />
+                <button type="submit" className="tpl-primary-btn">Add Material</button>
+              </div>
+            </form>
+          </div>
+        )}
 
-            <div className="tpl-panel">
-              <h3>Raw Material Movement History ({movements.length})</h3>
+        {/* Raw Material Movements (`raw-material-movements.html`) */}
+        {view === 'raw-material-movements' && (
+          <div className="pb-panel">
+            <h3>Movement history</h3>
+            {movements.length === 0 ? (
+              <p className="tpl-muted-line">
+                No movements yet. Purchases in the storeroom and Produce on a daily file will appear here.
+              </p>
+            ) : (
               <div className="tpl-batch-list">
                 {movements.map((batch) => (
                   <article key={batch.id} className="tpl-batch-card">
                     <div className="tpl-batch-top">
                       <span className="tpl-code-badge">
-                        {batch.type === 'purchase' ? 'Purchase' : 'Production Batch'}
+                        {batch.type === 'purchase' ? 'Purchase' : 'Production'}
                       </span>
                       <small>{new Date(batch.at).toLocaleString()}</small>
                     </div>
                     {batch.type === 'purchase' ? (
                       <p>
-                        <strong>Purchased:</strong> +{batch.quantity} {batch.unit} {batch.material} ·{' '}
-                        <strong>Available:</strong> {batch.remainingMaterial} {batch.unit}
+                        <strong>Amount added/purchased:</strong> +{batch.quantity} {batch.unit} {batch.material} ·{' '}
+                        <strong>Current available:</strong> {batch.remainingMaterial} {batch.unit}
                       </p>
                     ) : (
                       <>
                         <p>
-                          <strong>Produced:</strong> {batch.productQty} {batch.productUnit} {batch.product} ·{' '}
-                          <strong>Raw Material Cost:</strong> {money(batch.cost)}
+                          <strong>Quantity of raw material used:</strong>{' '}
+                          {(batch.used || []).map((u) => `${u.name} ${u.amount} ${u.unit}`).join(' | ')}
                         </p>
-                        <p className="tpl-muted-line">
-                          <strong>Used:</strong>{' '}
-                          {(batch.used || []).map((u) => `${u.name} (${u.amount} ${u.unit})`).join(' | ')}
+                        <p>
+                          <strong>Quantity of detergent produced:</strong> {batch.productQty} {batch.productUnit}{' '}
+                          {batch.product}
                         </p>
                       </>
                     )}
                     {batch.remainingStock ? (
-                      <p className="tpl-muted-line"><strong>Remaining stock:</strong> {batch.remainingStock}</p>
+                      <p className="tpl-muted-line">
+                        <strong>Remaining stock:</strong> {batch.remainingStock}
+                      </p>
                     ) : null}
                   </article>
                 ))}
               </div>
-            </div>
+            )}
           </div>
         )}
 
+        {/* Production Reports (`production-reports.html` & `production.html`) */}
         {view === 'production-reports' && (
-          <div className="tpl-container">
-            <button type="button" className="tpl-link-back" onClick={() => setView('manufacturing-factory')}>
-              ← Manufacturing factory
-            </button>
-            <header className="tpl-page-head">
-              <div>
-                <p className="tpl-eyebrow">Production Entry & Reports</p>
-                <h1>Production Report & Batch Scaling</h1>
-                <p className="tpl-muted-line">
-                  Produce a batch from a saved detergent formula. Ingredients scale automatically and deduct from the storeroom.
-                </p>
-              </div>
-            </header>
-
-            <div className="tpl-panel">
-              <h3>Produce New Batch (Scales Formula & Deducts Storeroom Stock)</h3>
-              <form className="tpl-inline-form" onSubmit={handleProduceBatch}>
+          <div className="pb-panel">
+            <h3>Production report</h3>
+            <p className="pb-dashboard-range">
+              Produce a batch from a detergent formula to automatically deduct raw materials from the storeroom.
+            </p>
+            {formulas.length > 0 ? (
+              <form className="tpl-inline-form" onSubmit={handleProduceBatch} style={{ marginBottom: 16 }}>
+                <h4>Production entry</h4>
                 <div className="tpl-form-row">
                   <input
                     type="date"
@@ -898,7 +983,7 @@ export default function PrixburgTemplate({
                   >
                     {formulas.map((f) => (
                       <option key={f.id} value={f.id}>
-                        {f.name} (Base formula: {f.production} {f.unit || 'L'})
+                        {f.name} (Formula base: {f.production} {f.unit || 'L'})
                       </option>
                     ))}
                   </select>
@@ -906,82 +991,77 @@ export default function PrixburgTemplate({
                     type="number"
                     min="1"
                     step="1"
-                    placeholder="Batch quantity (L)"
+                    placeholder="Quantity produced"
                     value={produceDraft.quantity}
                     onChange={(e) => setProduceDraft({ ...produceDraft, quantity: e.target.value })}
                     required
                   />
-                  <button type="submit" className="tpl-primary-btn">Produce Batch</button>
+                  <button type="submit" className="tpl-primary-btn">Produce</button>
                 </div>
               </form>
-            </div>
+            ) : (
+              <p className="tpl-muted-line">
+                No detergent formulas yet. Add a formula under Settings → Detergent formulas first.
+              </p>
+            )}
 
-            <div className="tpl-panel">
-              <h3>Completed Production Runs</h3>
+            {productions.length === 0 ? (
+              <p className="tpl-muted-line">No production in this period yet.</p>
+            ) : (
               <div className="tpl-table-wrap">
                 <table className="tpl-table">
                   <thead>
                     <tr>
                       <th>Date</th>
-                      <th>Detergent / Product</th>
-                      <th>Production Line</th>
+                      <th>Detergent</th>
                       <th>Quantity Produced</th>
-                      <th>Raw Material Cost</th>
-                      <th>Expected Sales Value</th>
+                      <th>Cost of Raw Materials</th>
+                      <th>Expected Sales</th>
+                      <th>Expected Gross Profit</th>
                     </tr>
                   </thead>
                   <tbody>
                     {productions.map((prod) => {
                       const expected = (Number(prod.quantity) || 0) * sellingPriceFor(prod.product)
+                      const gross = expected - (Number(prod.cost) || 0)
                       return (
                         <tr key={prod.id}>
                           <td>{prod.date}</td>
                           <td><strong>{prod.product}</strong></td>
-                          <td>{prod.lineProject || 'Main Plant'}</td>
                           <td>{prod.quantity} {prod.unit}</td>
                           <td>{money(prod.cost)}</td>
                           <td>{money(expected)}</td>
+                          <td>{money(gross)}</td>
                         </tr>
                       )
                     })}
                   </tbody>
-                  <tfoot>
-                    <tr>
-                      <th colSpan="4">Totals</th>
-                      <th>{money(totalRawMaterialProductionCost)}</th>
-                      <th>{money(totalExpectedSales)}</th>
-                    </tr>
-                  </tfoot>
                 </table>
               </div>
-            </div>
+            )}
           </div>
         )}
 
+        {/* Exact Prixburg Finished Products (`finished-products.html`) */}
         {view === 'finished-products' && (
-          <div className="tpl-container">
-            <button type="button" className="tpl-link-back" onClick={() => setView('manufacturing-factory')}>
-              ← Manufacturing factory
-            </button>
-            <header className="tpl-page-head">
+          <div className="pb-panel">
+            <div className="pb-table-toolbar">
               <div>
-                <p className="tpl-eyebrow">Warehouse Stock</p>
-                <h1>Finished products</h1>
-                <p className="tpl-muted-line">
+                <h3>Finished products</h3>
+                <p className="pb-dashboard-range">
                   Stock comes from production entry. Matching sales entry quantities are subtracted automatically.
                 </p>
               </div>
-            </header>
-
-            <div className="tpl-panel">
+            </div>
+            {finishedProducts.length === 0 ? (
+              <p className="tpl-muted-line">No finished detergent in stock yet.</p>
+            ) : (
               <div className="tpl-table-wrap">
                 <table className="tpl-table">
                   <thead>
                     <tr>
                       <th>Detergent name</th>
                       <th>Unit</th>
-                      <th>Produced Total</th>
-                      <th>Sold Total</th>
                       <th>Total detergent quantity in stock</th>
                       <th>Total detergent in stock $</th>
                     </tr>
@@ -991,66 +1071,81 @@ export default function PrixburgTemplate({
                       <tr key={item.name}>
                         <td><strong>{item.name}</strong></td>
                         <td>{item.unit}</td>
-                        <td>{item.produced} {item.unit}</td>
-                        <td>{item.sold} {item.unit}</td>
-                        <td><strong>{item.inStock} {item.unit}</strong></td>
-                        <td><strong>{money(item.stockValue)}</strong></td>
+                        <td>{item.inStock}</td>
+                        <td>{money(item.stockValue)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Exact Prixburg Sales and Finance (`sales-finance.html`) */}
+        {view === 'sales-finance' && (
+          <div className="pb-panel">
+            <h3>Sales and finance</h3>
+            <div className="pb-choice-grid">
+              <button
+                type="button"
+                className="pb-choice-btn"
+                onClick={() => setView('sales-analysis-reports')}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 19V5" />
+                  <path d="M4 19h16" />
+                  <rect x="7" y="10" width="3" height="6" />
+                  <rect x="12" y="7" width="3" height="9" />
+                  <rect x="17" y="12" width="3" height="4" />
+                </svg>
+                Sales analysis report
+              </button>
+              <button
+                type="button"
+                className="pb-choice-btn"
+                onClick={() => setView('profit-expense-reports')}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 17l6-6 4 4 8-8" />
+                  <path d="M14 7h7v7" />
+                </svg>
+                Profit and expense reports
+              </button>
+              <button
+                type="button"
+                className="pb-choice-btn"
+                onClick={() => setView('outstanding-credit')}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+                Outstanding credit report
+              </button>
             </div>
           </div>
         )}
 
-        {view === 'sales-finance' && (
-          <div className="tpl-container">
-            <button type="button" className="tpl-link-back" onClick={() => setView('home')}>
-              ← Home
-            </button>
-            <header className="tpl-page-head">
-              <div>
-                <p className="tpl-eyebrow">Commercial & Accounting</p>
-                <h1>Sales and finance</h1>
-              </div>
-            </header>
-
-            <div className="tpl-kpi-strip tpl-kpi-4">
-              <div>
-                <span>Total Sales Revenue</span>
-                <strong>{money(totalSalesRevenue)}</strong>
-              </div>
-              <div>
-                <span>Cash Sales</span>
-                <strong>{money(cashSalesRevenue)}</strong>
-              </div>
-              <div>
-                <span>Outstanding Credit</span>
-                <strong>{money(creditOutstanding)}</strong>
-              </div>
-              <div>
-                <span>Net Profit</span>
-                <strong className={totalNetProfit >= 0 ? 'tpl-text-ok' : 'tpl-text-danger'}>
-                  {money(totalNetProfit)}
-                </strong>
-              </div>
-            </div>
-
-            <div className="tpl-panel">
-              <h3>Sales Analysis & Sales Entry</h3>
+        {/* Sales Analysis Report (`sales-analysis-reports.html`) */}
+        {view === 'sales-analysis-reports' && (
+          <div className="pb-panel">
+            <h3>Sales analysis report & sales entry</h3>
+            {salesRows.length === 0 ? (
+              <p className="tpl-muted-line">No sales entries yet. Record a sale below.</p>
+            ) : (
               <div className="tpl-table-wrap">
                 <table className="tpl-table">
                   <thead>
                     <tr>
                       <th>Date</th>
-                      <th>Product</th>
+                      <th>Item</th>
                       <th>Team Leader</th>
                       <th>Customer</th>
-                      <th>Type</th>
-                      <th>Qty</th>
+                      <th>Sale Type</th>
                       <th>Unit Price</th>
-                      <th>Total Sale</th>
+                      <th>Quantity</th>
+                      <th>Total $</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1060,76 +1155,80 @@ export default function PrixburgTemplate({
                         <td><strong>{row.item}</strong></td>
                         <td>{row.teamLeader}</td>
                         <td>{row.customer}</td>
-                        <td>
-                          <span className="tpl-code-badge">{row.saleType}</span>
-                        </td>
-                        <td>{row.quantity}</td>
+                        <td>{row.saleType}</td>
                         <td>{money(row.unitPrice)}</td>
+                        <td>{row.quantity}</td>
                         <td>{money((Number(row.quantity) || 0) * (Number(row.unitPrice) || 0))}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+            )}
 
-              <form className="tpl-inline-form" onSubmit={handleAddSale}>
-                <h4>Record Sales Entry</h4>
-                <div className="tpl-form-row">
-                  <input
-                    type="date"
-                    value={saleDraft.date}
-                    onChange={(e) => setSaleDraft({ ...saleDraft, date: e.target.value })}
-                  />
-                  <select
-                    value={saleDraft.item || formulas[0]?.name || ''}
-                    onChange={(e) => setSaleDraft({ ...saleDraft, item: e.target.value })}
-                  >
-                    {formulas.map((f) => (
-                      <option key={f.id} value={f.name}>{f.name}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="text"
-                    placeholder="Customer"
-                    value={saleDraft.customer}
-                    onChange={(e) => setSaleDraft({ ...saleDraft, customer: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Team leader"
-                    value={saleDraft.teamLeader}
-                    onChange={(e) => setSaleDraft({ ...saleDraft, teamLeader: e.target.value })}
-                  />
-                  <select
-                    value={saleDraft.saleType}
-                    onChange={(e) => setSaleDraft({ ...saleDraft, saleType: e.target.value })}
-                  >
-                    <option value="cash">Cash Sale</option>
-                    <option value="credit">Credit Sale</option>
-                  </select>
-                  <input
-                    type="number"
-                    step="1"
-                    placeholder="Qty (L)"
-                    value={saleDraft.quantity}
-                    onChange={(e) => setSaleDraft({ ...saleDraft, quantity: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Unit price ($)"
-                    value={saleDraft.unitPrice}
-                    onChange={(e) => setSaleDraft({ ...saleDraft, unitPrice: e.target.value })}
-                  />
-                  <button type="submit" className="tpl-primary-btn">Save Sale</button>
-                </div>
-              </form>
-            </div>
+            <form className="tpl-inline-form" onSubmit={handleAddSale}>
+              <h4>Sales entry</h4>
+              <div className="tpl-form-row">
+                <input
+                  type="date"
+                  value={saleDraft.date}
+                  onChange={(e) => setSaleDraft({ ...saleDraft, date: e.target.value })}
+                />
+                <input
+                  type="text"
+                  placeholder="Detergent / Item"
+                  value={saleDraft.item}
+                  onChange={(e) => setSaleDraft({ ...saleDraft, item: e.target.value })}
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Customer"
+                  value={saleDraft.customer}
+                  onChange={(e) => setSaleDraft({ ...saleDraft, customer: e.target.value })}
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Team leader"
+                  value={saleDraft.teamLeader}
+                  onChange={(e) => setSaleDraft({ ...saleDraft, teamLeader: e.target.value })}
+                />
+                <select
+                  value={saleDraft.saleType}
+                  onChange={(e) => setSaleDraft({ ...saleDraft, saleType: e.target.value })}
+                >
+                  <option value="cash">Cash</option>
+                  <option value="credit">Credit</option>
+                </select>
+                <input
+                  type="number"
+                  step="1"
+                  placeholder="Quantity"
+                  value={saleDraft.quantity}
+                  onChange={(e) => setSaleDraft({ ...saleDraft, quantity: e.target.value })}
+                  required
+                />
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Unit price ($)"
+                  value={saleDraft.unitPrice}
+                  onChange={(e) => setSaleDraft({ ...saleDraft, unitPrice: e.target.value })}
+                />
+                <button type="submit" className="tpl-primary-btn">Save Sale</button>
+              </div>
+            </form>
+          </div>
+        )}
 
-            <div className="tpl-panel">
-              <h3>Profit and Expense Reports (Daily Operating Expenses)</h3>
+        {/* Profit & Expense Reports (`profit-expense-reports.html`) */}
+        {view === 'profit-expense-reports' && (
+          <div className="pb-panel">
+            <h3>Profit and expense reports</h3>
+            {expenses.length === 0 ? (
+              <p className="tpl-muted-line">No expenses entered yet.</p>
+            ) : (
               <div className="tpl-table-wrap">
                 <table className="tpl-table">
                   <thead>
@@ -1141,12 +1240,12 @@ export default function PrixburgTemplate({
                       <th>Transport</th>
                       <th>Lunch</th>
                       <th>Other</th>
-                      <th>Day Total</th>
+                      <th>Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {expenses.map((e) => {
-                      const daySum =
+                      const dayTotal =
                         (Number(e.wages) || 0) +
                         (Number(e.rent) || 0) +
                         (Number(e.fuel) || 0) +
@@ -1162,227 +1261,105 @@ export default function PrixburgTemplate({
                           <td>{money(e.transport)}</td>
                           <td>{money(e.lunch)}</td>
                           <td>{money(e.other)}</td>
-                          <td><strong>{money(daySum)}</strong></td>
+                          <td><strong>{money(dayTotal)}</strong></td>
                         </tr>
                       )
                     })}
                   </tbody>
                 </table>
               </div>
+            )}
 
-              <form className="tpl-inline-form" onSubmit={handleAddExpense}>
-                <h4>Add Daily Operating Expense</h4>
-                <div className="tpl-form-row">
-                  <input
-                    type="date"
-                    value={expenseDraft.date}
-                    onChange={(e) => setExpenseDraft({ ...expenseDraft, date: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Wages ($)"
-                    value={expenseDraft.wages}
-                    onChange={(e) => setExpenseDraft({ ...expenseDraft, wages: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Rent ($)"
-                    value={expenseDraft.rent}
-                    onChange={(e) => setExpenseDraft({ ...expenseDraft, rent: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Fuel ($)"
-                    value={expenseDraft.fuel}
-                    onChange={(e) => setExpenseDraft({ ...expenseDraft, fuel: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Transport ($)"
-                    value={expenseDraft.transport}
-                    onChange={(e) => setExpenseDraft({ ...expenseDraft, transport: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Lunch ($)"
-                    value={expenseDraft.lunch}
-                    onChange={(e) => setExpenseDraft({ ...expenseDraft, lunch: e.target.value })}
-                  />
-                  <button type="submit" className="tpl-primary-btn">Save Expense</button>
-                </div>
-              </form>
-            </div>
+            <form className="tpl-inline-form" onSubmit={handleAddExpense}>
+              <h4>Expenses entry</h4>
+              <div className="tpl-form-row">
+                <input
+                  type="date"
+                  value={expenseDraft.date}
+                  onChange={(e) => setExpenseDraft({ ...expenseDraft, date: e.target.value })}
+                />
+                <input
+                  type="number"
+                  placeholder="Wages ($)"
+                  value={expenseDraft.wages}
+                  onChange={(e) => setExpenseDraft({ ...expenseDraft, wages: e.target.value })}
+                />
+                <input
+                  type="number"
+                  placeholder="Rent ($)"
+                  value={expenseDraft.rent}
+                  onChange={(e) => setExpenseDraft({ ...expenseDraft, rent: e.target.value })}
+                />
+                <input
+                  type="number"
+                  placeholder="Fuel ($)"
+                  value={expenseDraft.fuel}
+                  onChange={(e) => setExpenseDraft({ ...expenseDraft, fuel: e.target.value })}
+                />
+                <input
+                  type="number"
+                  placeholder="Transport ($)"
+                  value={expenseDraft.transport}
+                  onChange={(e) => setExpenseDraft({ ...expenseDraft, transport: e.target.value })}
+                />
+                <input
+                  type="number"
+                  placeholder="Lunch ($)"
+                  value={expenseDraft.lunch}
+                  onChange={(e) => setExpenseDraft({ ...expenseDraft, lunch: e.target.value })}
+                />
+                <button type="submit" className="tpl-primary-btn">Save Expense</button>
+              </div>
+            </form>
           </div>
         )}
 
-        {view === 'ceo-analysis' && (
-          <div className="tpl-container">
-            <button type="button" className="tpl-link-back" onClick={() => setView('home')}>
-              ← Home
-            </button>
-            <header className="tpl-page-head">
-              <div>
-                <p className="tpl-eyebrow">{brandName} Executive Dashboard</p>
-                <h1>CEO Analysis — Net Profit & Gross Profit</h1>
-              </div>
-            </header>
-
-            <div className="tpl-panel">
-              <h3>CEO Net Profit</h3>
-              <p className="tpl-muted-line">
-                Total sales come from sales entry. Net profit is total sales minus total expenses (raw material cost + operating expenses).
-              </p>
+        {/* Outstanding Credit Report (`outstanding-credit.html`) */}
+        {view === 'outstanding-credit' && (
+          <div className="pb-panel">
+            <h3>Outstanding credit report</h3>
+            {creditCustomerRows.length === 0 ? (
+              <p className="tpl-muted-line">No outstanding credit yet.</p>
+            ) : (
               <div className="tpl-table-wrap">
                 <table className="tpl-table">
                   <thead>
                     <tr>
-                      <th>Period / Production Line</th>
-                      <th>Total sales</th>
-                      <th>Total expenses</th>
-                      <th>Net profit</th>
+                      <th>Customer</th>
+                      <th>Total credit sales $</th>
+                      <th>Paid so far $</th>
+                      <th>Outstanding credit $</th>
+                      <th>Date</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {overviews.map((line) => (
-                      <tr key={line.id}>
-                        <td><strong>{line.name}</strong> ({line.productFocus})</td>
-                        <td>{money(line.metrics.actualSales)}</td>
-                        <td>{money(line.metrics.totalExpenses)}</td>
-                        <td className={line.metrics.netProfit >= 0 ? 'tpl-text-ok' : 'tpl-text-danger'}>
-                          <strong>{money(line.metrics.netProfit)}</strong>
-                        </td>
+                    {creditCustomerRows.map((row) => (
+                      <tr key={row.id}>
+                        <td><strong>{row.customer}</strong></td>
+                        <td>{money(row.credit)}</td>
+                        <td>{money(row.paid)}</td>
+                        <td><strong>{money(row.balance)}</strong></td>
+                        <td>{row.date}</td>
                       </tr>
                     ))}
                   </tbody>
-                  <tfoot>
-                    <tr>
-                      <th>Company Cumulative Total (Nov 2026)</th>
-                      <th>{money(totalSalesRevenue)}</th>
-                      <th>{money(totalCombinedExpenses)}</th>
-                      <th>{money(totalNetProfit)}</th>
-                    </tr>
-                  </tfoot>
                 </table>
               </div>
-            </div>
-
-            <div className="tpl-panel">
-              <h3>CEO Gross Profit</h3>
-              <p className="tpl-muted-line">
-                Expected sales come from production and pricing. Expected gross profit is expected sales minus the cost of raw materials.
-              </p>
-              <div className="tpl-table-wrap">
-                <table className="tpl-table">
-                  <thead>
-                    <tr>
-                      <th>Period / Production Line</th>
-                      <th>Expected sales</th>
-                      <th>Cost of raw materials</th>
-                      <th>Expected gross profit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {overviews.map((line) => (
-                      <tr key={line.id}>
-                        <td><strong>{line.name}</strong> ({line.productFocus})</td>
-                        <td>{money(line.metrics.expectedSales)}</td>
-                        <td>{money(line.metrics.rawMaterialCost)}</td>
-                        <td className="tpl-text-ok">
-                          <strong>{money(line.metrics.grossProfit)}</strong>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <th>Company Cumulative Total (Nov 2026)</th>
-                      <th>{money(totalExpectedSales)}</th>
-                      <th>{money(totalRawMaterialProductionCost)}</th>
-                      <th>{money(totalExpectedGrossProfit)}</th>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
+        {/* Settings (`settings.html`) */}
         {view === 'settings' && (
-          <div className="tpl-container">
-            <button type="button" className="tpl-link-back" onClick={() => setView('home')}>
-              ← Home
-            </button>
-            <header className="tpl-page-head">
-              <div>
-                <p className="tpl-eyebrow">Settings, Formulas, Pricing & CEO Metadata</p>
-                <h1>{brandName} Settings</h1>
-              </div>
-            </header>
-
-            <div className="tpl-panel">
-              <h3>CEO & Factory Metadata</h3>
-              <form
-                className="tpl-settings-form"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  persistMeta(meta)
-                  setStatusNote('CEO metadata saved and synced to Fortress platform.')
-                }}
-              >
-                <div className="tpl-form-grid">
-                  <label>
-                    Company / Factory Name
-                    <input
-                      type="text"
-                      value={meta.companyName || ''}
-                      onChange={(e) =>
-                        setMeta({ ...meta, companyName: e.target.value, brandName: e.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    CEO Name
-                    <input
-                      type="text"
-                      value={meta.ceo || ''}
-                      onChange={(e) => setMeta({ ...meta, ceo: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    Location
-                    <input
-                      type="text"
-                      value={meta.location || ''}
-                      onChange={(e) => setMeta({ ...meta, location: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    Subdomain
-                    <input type="text" value={subdomain} readOnly />
-                  </label>
-                </div>
-                <label>
-                  Factory Overview Description
-                  <textarea
-                    rows={2}
-                    value={meta.about || ''}
-                    onChange={(e) => setMeta({ ...meta, about: e.target.value })}
-                  />
-                </label>
-                <button type="submit" className="tpl-primary-btn">Save Metadata</button>
-              </form>
-            </div>
-
-            <div className="tpl-panel">
-              <h3>Detergent & Chemical Formulas ({formulas.length})</h3>
-              <div className="tpl-head-pills">
+          <>
+            <div className="pb-panel">
+              <h3>Formulas & Pricing</h3>
+              <div className="tpl-head-pills" style={{ marginBottom: 12 }}>
                 {formulas.map((f) => (
                   <button
                     key={f.id}
                     type="button"
-                    className={
-                      (activeFormula?.id === f.id) ? 'tpl-primary-btn' : 'tpl-secondary-btn'
-                    }
+                    className={activeFormula?.id === f.id ? 'tpl-primary-btn' : 'tpl-secondary-btn'}
                     onClick={() => setSelectedFormulaId(f.id)}
                   >
                     {f.name} ({f.production} {f.unit || 'L'})
@@ -1391,9 +1368,9 @@ export default function PrixburgTemplate({
               </div>
 
               {activeFormula && (
-                <div style={{ marginTop: 14 }}>
+                <div style={{ marginBottom: 16 }}>
                   <h4>
-                    Formula: {activeFormula.name} — Yield: {activeFormula.production} {activeFormula.unit || 'L'}
+                    Formula: {activeFormula.name} — Produced: {activeFormula.production} {activeFormula.unit || 'L'}
                   </h4>
                   <div className="tpl-table-wrap">
                     <table className="tpl-table">
@@ -1401,9 +1378,9 @@ export default function PrixburgTemplate({
                         <tr>
                           <th>Ingredient</th>
                           <th>Unit</th>
-                          <th>Quantity</th>
+                          <th>Amount</th>
                           <th>Unit Price</th>
-                          <th>Total Cost</th>
+                          <th>Total</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1425,7 +1402,7 @@ export default function PrixburgTemplate({
                     <div className="tpl-form-row">
                       <input
                         type="text"
-                        placeholder="Ingredient name"
+                        placeholder="Ingredient"
                         value={ingredientDraft.name}
                         onChange={(e) => setIngredientDraft({ ...ingredientDraft, name: e.target.value })}
                         required
@@ -1441,7 +1418,7 @@ export default function PrixburgTemplate({
                       <input
                         type="number"
                         step="0.01"
-                        placeholder="Qty"
+                        placeholder="Amount"
                         value={ingredientDraft.amount}
                         onChange={(e) => setIngredientDraft({ ...ingredientDraft, amount: e.target.value })}
                         required
@@ -1461,18 +1438,18 @@ export default function PrixburgTemplate({
               )}
 
               <form className="tpl-inline-form" onSubmit={handleCreateFormula}>
-                <h4>Create New Product Formula</h4>
+                <h4>Create Detergent Formula</h4>
                 <div className="tpl-form-row">
                   <input
                     type="text"
-                    placeholder="Formula product name"
+                    placeholder="Detergent file name"
                     value={formulaDraft.name}
                     onChange={(e) => setFormulaDraft({ ...formulaDraft, name: e.target.value })}
                     required
                   />
                   <input
                     type="number"
-                    placeholder="Batch output yield (L)"
+                    placeholder="Production yield (L)"
                     value={formulaDraft.production}
                     onChange={(e) => setFormulaDraft({ ...formulaDraft, production: e.target.value })}
                     required
@@ -1482,39 +1459,40 @@ export default function PrixburgTemplate({
               </form>
             </div>
 
-            <div className="tpl-panel">
-              <h3>Product Selling Prices</h3>
-              <div className="tpl-table-wrap">
-                <table className="tpl-table">
-                  <thead>
-                    <tr>
-                      <th>Product Name</th>
-                      <th>Unit</th>
-                      <th>Pack Qty</th>
-                      <th>Price</th>
-                      <th>Unit Selling Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pricing.map((row) => (
-                      <tr key={row.id}>
-                        <td><strong>{row.name}</strong></td>
-                        <td>{row.unit}</td>
-                        <td>{row.quantity}</td>
-                        <td>{money(row.price)}</td>
-                        <td>{money((Number(row.price) || 0) / (Number(row.quantity) || 1))}</td>
+            <div className="pb-panel">
+              <h3>Pricing files</h3>
+              {pricing.length > 0 && (
+                <div className="tpl-table-wrap">
+                  <table className="tpl-table">
+                    <thead>
+                      <tr>
+                        <th>Detergent</th>
+                        <th>Unit</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Unit Selling Price</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
+                    </thead>
+                    <tbody>
+                      {pricing.map((p) => (
+                        <tr key={p.id}>
+                          <td><strong>{p.name}</strong></td>
+                          <td>{p.unit}</td>
+                          <td>{p.quantity}</td>
+                          <td>{money(p.price)}</td>
+                          <td>{money((Number(p.price) || 0) / (Number(p.quantity) || 1))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               <form className="tpl-inline-form" onSubmit={handleAddPricing}>
-                <h4>Add Product Pricing</h4>
+                <h4>Add Pricing Row</h4>
                 <div className="tpl-form-row">
                   <input
                     type="text"
-                    placeholder="Product name"
+                    placeholder="Detergent name"
                     value={pricingDraft.name}
                     onChange={(e) => setPricingDraft({ ...pricingDraft, name: e.target.value })}
                     required
@@ -1527,45 +1505,11 @@ export default function PrixburgTemplate({
                     onChange={(e) => setPricingDraft({ ...pricingDraft, price: e.target.value })}
                     required
                   />
-                  <button type="submit" className="tpl-primary-btn">Save Price</button>
+                  <button type="submit" className="tpl-primary-btn">Add Price</button>
                 </div>
               </form>
             </div>
-
-            <div className="tpl-panel">
-              <h3>Add Manufacturing Production Line / Project</h3>
-              <form className="tpl-inline-form" onSubmit={handleAddLineProject}>
-                <div className="tpl-form-row">
-                  <input
-                    type="text"
-                    placeholder="Line / Project name"
-                    value={newLineDraft.name}
-                    onChange={(e) => setNewLineDraft({ ...newLineDraft, name: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Code (e.g. PB-LINE-04)"
-                    value={newLineDraft.code}
-                    onChange={(e) => setNewLineDraft({ ...newLineDraft, code: e.target.value })}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Product focus"
-                    value={newLineDraft.productFocus}
-                    onChange={(e) => setNewLineDraft({ ...newLineDraft, productFocus: e.target.value })}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Summary"
-                    value={newLineDraft.summary}
-                    onChange={(e) => setNewLineDraft({ ...newLineDraft, summary: e.target.value })}
-                  />
-                  <button type="submit" className="tpl-primary-btn">Add Production Line</button>
-                </div>
-              </form>
-            </div>
-          </div>
+          </>
         )}
       </main>
     </div>

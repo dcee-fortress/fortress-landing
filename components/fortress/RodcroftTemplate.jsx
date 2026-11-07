@@ -12,6 +12,77 @@ const money = (value) =>
     maximumFractionDigits: 2,
   })}`
 
+const rateMoney = (value) => {
+  if (value === null || value === undefined || !(Number(value) > 0)) return '—'
+  return `$${Number(value).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  })}`
+}
+
+const numFmt = (value) =>
+  Number(value || 0).toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })
+
+function ChoiceIcon({ name }) {
+  if (name === 'hard-hat') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2z" />
+        <path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5" />
+        <path d="M4 15v-3a6 6 0 0 1 6-6h0" />
+        <path d="M14 6h0a6 6 0 0 1 6 6v3" />
+      </svg>
+    )
+  }
+  if (name === 'users') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    )
+  }
+  if (name === 'package') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M16.5 9.4 7.55 4.24" />
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        <polyline points="3.29 7 12 12 20.71 7" />
+        <line x1="12" y1="22" x2="12" y2="12" />
+      </svg>
+    )
+  }
+  if (name === 'fuel') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="3" y1="22" x2="15" y2="22" />
+        <line x1="4" y1="9" x2="14" y2="9" />
+        <path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18" />
+        <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5" />
+      </svg>
+    )
+  }
+  if (name === 'shield') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </svg>
+    )
+  }
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="12" y1="20" x2="12" y2="10" />
+      <line x1="18" y1="20" x2="18" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="16" />
+    </svg>
+  )
+}
+
 export default function RodcroftTemplate({
   site,
   initialProjectId = '',
@@ -27,57 +98,37 @@ export default function RodcroftTemplate({
   )
   const [view, setView] = useState(() => (initialProjectId ? initialView || 'project-home' : initialView))
   const [statusNote, setStatusNote] = useState('')
+  const [valQuery, setValQuery] = useState('')
 
-  // New project form state
-  const [newProjForm, setNewProjForm] = useState({
-    name: '',
-    code: '',
-    location: '',
-    client: '',
-    manager: '',
-    startDate: new Date().toISOString().slice(0, 10),
-    summary: '',
-    initialActivity: 'Site establishment & main structural works',
-    initialTargetCost: '85000',
-  })
+  // New project form
+  const [newProjName, setNewProjName] = useState('')
+  const [newProjStart, setNewProjStart] = useState(() => new Date().toISOString().slice(0, 10))
 
-  // Form states for adding BOQ, Material, Fuel, Worker, SHEQ
-  const [boqDraft, setBoqDraft] = useState({
+  // Entry drafts
+  const [valDraft, setValDraft] = useState({
     description: '',
-    unit: 'm2',
-    quantity: '',
-    rate: '',
-    actualMeasuredWork: '',
-    actualCostIncurred: '',
+    valueEarned: '',
+    production: '',
   })
   const [matDraft, setMatDraft] = useState({
-    name: '',
-    unit: 'bags',
-    requested: '',
-    received: '',
-    used: '',
-    unitCost: '',
+    description: '',
+    unit: 'm3',
+    requestedQuantity: '',
+    receivedQuantity: '',
+    materialUsed: '',
   })
   const [fuelDraft, setFuelDraft] = useState({
     date: new Date().toISOString().slice(0, 10),
-    plant: '',
-    operator: '',
-    liters: '',
-    rate: '1.62',
+    description: 'Diesel',
+    unit: 'L',
+    quantity: '',
+    unitPrice: '2.05',
   })
   const [workerDraft, setWorkerDraft] = useState({
     name: '',
     role: '',
     register: 'induction',
     plant: '',
-    presentDays: '22',
-  })
-  const [sheqDraft, setSheqDraft] = useState({
-    date: new Date().toISOString().slice(0, 10),
-    type: 'Weekly SHEQ Inspection',
-    status: 'Compliant',
-    highlight: '',
-    incidents: '0',
   })
 
   useEffect(() => {
@@ -86,18 +137,21 @@ export default function RodcroftTemplate({
     if (initialProjectId) {
       setActiveProjectId(initialProjectId)
       setView(initialView === 'home' ? 'project-home' : initialView)
-    } else if (!activeProjectId && loaded.projects?.[0]?.id) {
-      setActiveProjectId(loaded.projects[0].id)
+    } else if (initialView && initialView !== 'home') {
+      if (loaded.projects?.[0]?.id) setActiveProjectId(loaded.projects[0].id)
+      setView(initialView)
     }
   }, [site?.id, site?.slug, initialProjectId, initialView])
 
+  const brandName = meta.brandName || meta.companyName || site?.name || 'Rodcroft'
+  const subdomain = subdomainLabelFor(meta)
+
   useEffect(() => {
-    const title = meta.brandName || meta.companyName || site?.name || 'Rodcroft'
-    document.title = `${title} · Construction Platform`
+    document.title = `${brandName} · Fortress Tenant`
     return () => {
       document.title = 'Fortress'
     }
-  }, [meta.brandName, meta.companyName, site?.name])
+  }, [brandName])
 
   const persistMeta = (nextMeta) => {
     const saved = saveSiteCeoMetadata(site || nextMeta.slug, nextMeta)
@@ -108,7 +162,6 @@ export default function RodcroftTemplate({
 
   const projects = meta.projects || []
   const activeProjects = projects.filter((p) => p.status !== 'ended')
-  const endedProjects = projects.filter((p) => p.status === 'ended')
   const currentProject =
     projects.find((p) => p.id === activeProjectId) || activeProjects[0] || projects[0] || null
 
@@ -123,148 +176,103 @@ export default function RodcroftTemplate({
 
   const handleCreateProject = (event) => {
     event.preventDefault()
-    const name = newProjForm.name.trim()
+    const name = newProjName.trim()
     if (!name) return
-    const targetCost = Number(newProjForm.initialTargetCost) || 0
     const created = {
       id: `p-${Date.now()}`,
       name,
-      code: newProjForm.code.trim() || `RC-${projects.length + 1}`,
-      location: newProjForm.location.trim() || meta.location || 'Zimbabwe',
-      client: newProjForm.client.trim() || 'Client',
-      manager: newProjForm.manager.trim() || meta.ceo || 'Site Engineer',
+      code: `RC-0${projects.length + 1}`,
+      location: meta.location || 'Zimbabwe',
+      client: '',
+      manager: meta.ceo || 'Engineer',
       status: 'active',
-      startDate: newProjForm.startDate || new Date().toISOString().slice(0, 10),
+      startDate: newProjStart || new Date().toISOString().slice(0, 10),
       endDate: null,
-      summary:
-        newProjForm.summary.trim() ||
-        `General construction and site works for ${name}.`,
-      boqItems: targetCost > 0
-        ? [
-            {
-              id: `boq-${Date.now()}`,
-              description: newProjForm.initialActivity.trim() || 'Main construction works',
-              unit: 'sum',
-              quantity: 1,
-              rate: targetCost,
-              targetCost,
-              actualMeasuredWork: 0,
-              actualCostIncurred: 0,
-            },
-          ]
-        : [],
-      materials: [],
+      summary: `Construction and site works for ${name}.`,
+      valuations: [],
+      materialAnalysis: [],
+      workers: [],
       fuel: {
-        bulkTankCapacityLiters: 5000,
-        bulkInsertedLiters: 2000,
-        ratePerLiter: 1.62,
+        bulkInsertedLiters: 0,
+        bulkInsertedCost: 0,
         entries: [],
       },
-      workers: [
-        {
-          id: `w-${Date.now()}`,
-          name: newProjForm.manager.trim() || meta.ceo || 'Site Agent',
-          role: 'Site Agent / Engineer',
-          register: 'admin',
-          presentDays: 1,
-        },
-      ],
-      ppe: [],
       sheqReports: [],
     }
     const nextProjects = [created, ...projects]
     persistMeta({ ...meta, projects: nextProjects })
     setActiveProjectId(created.id)
     setShowNewProjectModal(false)
+    setNewProjName('')
     setView('project-home')
-    setNewProjForm({
-      name: '',
-      code: '',
-      location: '',
-      client: '',
-      manager: '',
-      startDate: new Date().toISOString().slice(0, 10),
-      summary: '',
-      initialActivity: 'Site establishment & main structural works',
-      initialTargetCost: '85000',
-    })
   }
 
-  const handleAddBoqItem = (event) => {
+  const handleAddValuation = (event) => {
     event.preventDefault()
-    const desc = boqDraft.description.trim()
+    const desc = valDraft.description.trim()
     if (!desc) return
-    const qty = Number(boqDraft.quantity) || 1
-    const rate = Number(boqDraft.rate) || 0
-    const targetCost = qty * rate
-    const measured = Number(boqDraft.actualMeasuredWork) || 0
-    const actual = Number(boqDraft.actualCostIncurred) || 0
+    const valueEarned = Number(valDraft.valueEarned) || 0
+    const production = Number(valDraft.production) || 0
     updateCurrentProject((proj) => ({
       ...proj,
-      boqItems: [
-        ...(proj.boqItems || []),
+      valuations: [
+        ...(proj.valuations || []),
         {
-          id: `boq-${Date.now()}`,
+          id: `val-${Date.now()}`,
           description: desc,
-          unit: boqDraft.unit || 'm2',
-          quantity: qty,
-          rate,
-          targetCost,
-          actualMeasuredWork: measured,
-          actualCostIncurred: actual,
+          valueEarned,
+          production,
         },
       ],
     }))
-    setBoqDraft({
-      description: '',
-      unit: 'm2',
-      quantity: '',
-      rate: '',
-      actualMeasuredWork: '',
-      actualCostIncurred: '',
-    })
+    setValDraft({ description: '', valueEarned: '', production: '' })
   }
 
-  const handleAddMaterial = (event) => {
+  const handleAddMaterialAnalysis = (event) => {
     event.preventDefault()
-    const name = matDraft.name.trim()
-    if (!name) return
+    const desc = matDraft.description.trim()
+    if (!desc) return
+    const req = Number(matDraft.requestedQuantity) || 0
+    const rec = Number(matDraft.receivedQuantity) || 0
+    const used = Number(matDraft.materialUsed) || 0
     updateCurrentProject((proj) => ({
       ...proj,
-      materials: [
-        ...(proj.materials || []),
+      materialAnalysis: [
+        ...(proj.materialAnalysis || []),
         {
-          id: `mat-${Date.now()}`,
-          date: new Date().toISOString().slice(0, 10),
-          name,
-          unit: matDraft.unit || 'bags',
-          requested: Number(matDraft.requested) || 0,
-          received: Number(matDraft.received) || 0,
-          used: Number(matDraft.used) || 0,
-          unitCost: Number(matDraft.unitCost) || 0,
+          id: `ma-${Date.now()}`,
+          description: desc,
+          unit: matDraft.unit || 'm3',
+          requestedQuantity: req,
+          receivedQuantity: rec,
+          materialLeft: req - rec,
+          broughtOnSite: rec,
+          materialUsed: used,
+          onSiteLeft: Math.max(0, rec - used),
         },
       ],
     }))
-    setMatDraft({ name: '', unit: 'bags', requested: '', received: '', used: '', unitCost: '' })
+    setMatDraft({ description: '', unit: 'm3', requestedQuantity: '', receivedQuantity: '', materialUsed: '' })
   }
 
-  const handleAddFuelEntry = (event) => {
+  const handleAddFuel = (event) => {
     event.preventDefault()
-    const plant = fuelDraft.plant.trim()
-    const liters = Number(fuelDraft.liters) || 0
-    if (!plant || !(liters > 0)) return
+    const qty = Number(fuelDraft.quantity) || 0
+    const price = Number(fuelDraft.unitPrice) || 2.05
+    if (!(qty > 0)) return
     updateCurrentProject((proj) => ({
       ...proj,
       fuel: {
-        ...(proj.fuel || { bulkTankCapacityLiters: 5000, bulkInsertedLiters: 2000, ratePerLiter: 1.62 }),
+        ...(proj.fuel || { bulkInsertedLiters: 0, bulkInsertedCost: 0 }),
         entries: [
           {
-            id: `fuel-${Date.now()}`,
+            id: `gr-${Date.now()}`,
             date: fuelDraft.date || new Date().toISOString().slice(0, 10),
-            plant,
-            operator: fuelDraft.operator.trim() || 'Operator',
-            liters,
-            rate: Number(fuelDraft.rate) || 1.62,
+            description: fuelDraft.description.trim() || 'Diesel',
+            unit: fuelDraft.unit || 'L',
+            quantity: qty,
+            unitPrice: price,
+            totalCost: Math.round(qty * price * 100) / 100,
           },
           ...(proj.fuel?.entries || []),
         ],
@@ -272,10 +280,10 @@ export default function RodcroftTemplate({
     }))
     setFuelDraft({
       date: new Date().toISOString().slice(0, 10),
-      plant: '',
-      operator: '',
-      liters: '',
-      rate: '1.62',
+      description: 'Diesel',
+      unit: 'L',
+      quantity: '',
+      unitPrice: '2.05',
     })
   }
 
@@ -290,141 +298,162 @@ export default function RodcroftTemplate({
         {
           id: `w-${Date.now()}`,
           name,
-          role: workerDraft.role.trim() || 'Site Worker',
+          role: workerDraft.role.trim() || 'Site Crew',
           register: workerDraft.register || 'induction',
           plant: workerDraft.plant.trim(),
-          presentDays: Number(workerDraft.presentDays) || 1,
+          presentDays: 1,
         },
       ],
     }))
-    setWorkerDraft({ name: '', role: '', register: 'induction', plant: '', presentDays: '22' })
+    setWorkerDraft({ name: '', role: '', register: 'induction', plant: '' })
   }
 
-  const handleAddSheqReport = (event) => {
-    event.preventDefault()
-    const highlight = sheqDraft.highlight.trim()
-    if (!highlight) return
-    updateCurrentProject((proj) => ({
-      ...proj,
-      sheqReports: [
-        {
-          id: `sheq-${Date.now()}`,
-          date: sheqDraft.date || new Date().toISOString().slice(0, 10),
-          type: sheqDraft.type || 'Weekly SHEQ Inspection',
-          status: sheqDraft.status || 'Compliant',
-          highlight,
-          incidents: Number(sheqDraft.incidents) || 0,
-        },
-        ...(proj.sheqReports || []),
-      ],
-    }))
-    setSheqDraft({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'Weekly SHEQ Inspection',
-      status: 'Compliant',
-      highlight: '',
-      incidents: '0',
+  const valuationsList = currentProject?.valuations || []
+  const filteredValuations = useMemo(() => {
+    const q = valQuery.trim().toLowerCase()
+    if (!q) return valuationsList
+    return valuationsList.filter((r) => String(r.description || '').toLowerCase().includes(q))
+  }, [valuationsList, valQuery])
+
+  // Group fuel consumed by fuel description (project-to-date rollup)
+  const fuelRollup = useMemo(() => {
+    const entries = currentProject?.fuel?.entries || []
+    const map = new Map()
+    entries.forEach((e) => {
+      const key = String(e.description || 'Diesel').trim().toLowerCase()
+      const cur = map.get(key) || {
+        id: key,
+        description: e.description || 'Diesel',
+        unit: e.unit || 'L',
+        quantity: 0,
+        totalCost: 0,
+      }
+      cur.quantity = Math.round((cur.quantity + (Number(e.quantity || e.liters) || 0)) * 100) / 100
+      cur.totalCost = Math.round((cur.totalCost + (Number(e.totalCost) || 0)) * 100) / 100
+      map.set(key, cur)
     })
-  }
-
-  const brandName = meta.brandName || meta.companyName || site?.name || 'Rodcroft'
-  const subdomain = subdomainLabelFor(meta)
+    return [...map.values()]
+  }, [currentProject])
 
   return (
-    <div className="tpl-shell tpl-rodcroft">
-      <header className="tpl-header">
-        <div className="tpl-header-inner">
-          <div className="tpl-header-left">
-            <div className="tpl-menu-wrap">
+    <div className="rc-app">
+      {/* Exact Rodcroft Fixed Header (`ProjectMenu.jsx`) */}
+      <header className="rc-site-header">
+        <div className="rc-header-inner">
+          <div className="rc-header-left">
+            <div className="rc-menu-wrap">
               <button
                 type="button"
-                className="tpl-icon-btn"
+                className="rc-header-btn"
                 aria-label="Open projects menu"
                 onClick={() => setMenuOpen((o) => !o)}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 6h18M3 12h18M3 18h18" />
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
                 </svg>
               </button>
+
               {menuOpen && (
-                <div className="tpl-dropdown">
-                  <div className="tpl-dropdown-head">
-                    <span className="tpl-kicker">Projects</span>
-                    <p>Select a project to open dashboards</p>
+                <div className="rc-projects-dropdown">
+                  <div className="rc-dropdown-head">
+                    <p className="rc-dropdown-kicker">Projects</p>
+                    <p className="rc-dropdown-sub">Select a project to open dashboards</p>
                   </div>
-                  <div className="tpl-dropdown-list">
-                    <button
-                      type="button"
-                      className={view === 'home' ? 'tpl-dropdown-item active' : 'tpl-dropdown-item'}
-                      onClick={() => {
-                        setView('home')
-                        setMenuOpen(false)
-                      }}
-                    >
-                      <span>{brandName} Home</span>
-                      <small>Overview</small>
-                    </button>
-                    {activeProjects.map((proj) => (
-                      <button
-                        key={proj.id}
-                        type="button"
-                        className={
-                          currentProject?.id === proj.id && view !== 'home'
-                            ? 'tpl-dropdown-item active'
-                            : 'tpl-dropdown-item'
-                        }
-                        onClick={() => {
-                          setActiveProjectId(proj.id)
-                          setView('project-home')
-                          setMenuOpen(false)
-                        }}
-                      >
-                        <span>{proj.name}</span>
-                        {currentProject?.id === proj.id ? <small className="tpl-badge-open">Open</small> : null}
-                      </button>
-                    ))}
-                  </div>
+                  <ul className="rc-dropdown-list">
+                    {activeProjects.length === 0 ? (
+                      <li className="rc-dropdown-empty">
+                        No active projects. Click + New project to create one.
+                      </li>
+                    ) : (
+                      activeProjects.map((proj) => {
+                        const isCurrent = currentProject?.id === proj.id && view !== 'home'
+                        return (
+                          <li key={proj.id}>
+                            <button
+                              type="button"
+                              className={isCurrent ? 'rc-dropdown-item active' : 'rc-dropdown-item'}
+                              onClick={() => {
+                                setActiveProjectId(proj.id)
+                                setView('project-home')
+                                setMenuOpen(false)
+                              }}
+                            >
+                              <span>{proj.name}</span>
+                              {isCurrent ? (
+                                <span className="rc-pill-open">Open</span>
+                              ) : (
+                                <span className="rc-chevron">›</span>
+                              )}
+                            </button>
+                          </li>
+                        )
+                      })
+                    )}
+                  </ul>
                 </div>
               )}
             </div>
 
             <button
               type="button"
-              className="tpl-brand-btn"
+              className="rc-brand-link"
               onClick={() => {
                 setView('home')
                 setMenuOpen(false)
               }}
             >
-              <span className="tpl-brand-f">F</span>
-              <span className="tpl-brand-title">{brandName}</span>
+              <span className="rc-brand-f">F</span>
+              <span className="rc-brand-name">{brandName}</span>
             </button>
             <span className="tpl-subdomain-pill">{subdomain}</span>
           </div>
 
-          <div className="tpl-header-actions">
+          <div className="rc-header-right">
             <button
               type="button"
-              className="tpl-action-btn"
+              className="rc-header-btn rc-header-btn-wide"
               onClick={() => {
                 setMenuOpen(false)
                 setShowNewProjectModal(true)
               }}
             >
-              <span>+ New project</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              <span>New project</span>
             </button>
+
             <button
               type="button"
-              className="tpl-action-btn tpl-action-muted"
+              className="rc-header-btn rc-header-btn-wide rc-header-btn-muted"
               onClick={() => {
                 setMenuOpen(false)
                 setView('settings')
               }}
             >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="4" y1="21" x2="4" y2="14" />
+                <line x1="4" y1="10" x2="4" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12" y2="3" />
+                <line x1="20" y1="21" x2="20" y2="16" />
+                <line x1="20" y1="12" x2="20" y2="3" />
+                <line x1="1" y1="14" x2="7" y2="14" />
+                <line x1="9" y1="8" x2="15" y2="8" />
+                <line x1="17" y1="16" x2="23" y2="16" />
+              </svg>
               <span>Settings</span>
             </button>
+
             {onBack && (
-              <button type="button" className="tpl-action-btn tpl-back-fortress" onClick={onBack}>
+              <button
+                type="button"
+                className="tpl-action-btn tpl-back-fortress"
+                onClick={onBack}
+              >
                 ← Fortress
               </button>
             )}
@@ -432,1013 +461,870 @@ export default function RodcroftTemplate({
         </div>
       </header>
 
-      <main className="tpl-main">
+      {/* Main Page Frame */}
+      <div className="rc-page-frame">
+        {/* Exact Rodcroft Home (`GroveLanding.jsx`) */}
         {view === 'home' && (
-          <div className="tpl-container">
-            <div className="tpl-hero-banner">
-              <div>
-                <p className="tpl-eyebrow">Construction Website Template · Rodcroft Engine</p>
-                <h1 className="tpl-wordmark-hero">{brandName}</h1>
-                <p className="tpl-hero-sub">
-                  {meta.about || 'Construction earned-value reporting, QS schedules, plant registers, and SHEQ dashboards.'}
-                </p>
-                <div className="tpl-meta-tags">
-                  <span>Subdomain: <strong>{subdomain}</strong></span>
-                  {meta.ceo ? <span>CEO: <strong>{meta.ceo}</strong></span> : null}
-                  {meta.location ? <span>Location: <strong>{meta.location}</strong></span> : null}
+          <div className="rc-landing-stage">
+            <h1 className="rc-brand-wordmark" aria-label={brandName}>
+              {brandName}
+            </h1>
+            {activeProjects.length > 0 ? (
+              <div className="rc-landing-projects">
+                <p className="rc-landing-hint">Select a project from the top-left menu or open directly:</p>
+                <div className="rc-landing-pills">
+                  {activeProjects.map((proj) => (
+                    <button
+                      key={proj.id}
+                      type="button"
+                      className="rc-project-pill-btn"
+                      onClick={() => {
+                        setActiveProjectId(proj.id)
+                        setView('project-home')
+                      }}
+                    >
+                      <strong>{proj.name}</strong>
+                      <span>Open project →</span>
+                    </button>
+                  ))}
                 </div>
               </div>
-              <div className="tpl-hero-btns">
-                <button
-                  type="button"
-                  className="tpl-primary-btn"
-                  onClick={() => setShowNewProjectModal(true)}
-                >
-                  + New Project
-                </button>
-                <button
-                  type="button"
-                  className="tpl-secondary-btn"
-                  onClick={() => setView('settings')}
-                >
-                  Configure CEO Metadata
-                </button>
+            ) : (
+              <div className="rc-landing-projects">
+                <p className="rc-landing-hint">
+                  No projects created yet on {subdomain}. Click <strong>+ New project</strong> in the top bar to start.
+                </p>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Exact Rodcroft Project Home (`HomeMenu.jsx`) */}
+        {currentProject && view === 'project-home' && (
+          <div className="rc-content-shell">
+            <header className="rc-section-header">
+              <p className="rc-eyebrow">{currentProject.name}</p>
+              <h1>Select a department</h1>
+              <p className="rc-sub">
+                Open Quantity Survey or Engineering for current project tools, or Safety &amp; Health for upcoming modules.
+              </p>
+            </header>
+
+            <div className="rc-choice-grid">
+              <button
+                type="button"
+                className="rc-choice-card"
+                onClick={() => setView('ceo-dashboards')}
+              >
+                <span className="rc-icon-tile">
+                  <ChoiceIcon name="chart-bar" />
+                </span>
+                <div>
+                  <h2>Engineering</h2>
+                  <p>Executive overview of project performance</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="rc-choice-card"
+                onClick={() => setView('qs-engineering')}
+              >
+                <span className="rc-icon-tile">
+                  <ChoiceIcon name="hard-hat" />
+                </span>
+                <div>
+                  <h2>Quantity Survey</h2>
+                  <p>Valuations, QS schedules, plant on site, and rate analysis</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="rc-choice-card"
+                onClick={() => setView('safety-health')}
+              >
+                <span className="rc-icon-tile">
+                  <ChoiceIcon name="shield" />
+                </span>
+                <div>
+                  <h2>Safety &amp; Health</h2>
+                  <p>Site staff attendance and safety modules</p>
+                </div>
+              </button>
             </div>
+          </div>
+        )}
 
-            <section className="tpl-section">
-              <div className="tpl-section-head">
-                <h2>Active Construction Projects ({activeProjects.length})</h2>
-                <p>Select any project to open Engineering (CEO Exclusive), Quantity Survey, or Safety & Health.</p>
+        {/* Exact Rodcroft Engineering / CEO Dashboards (`CeoDashboardsView.jsx`) */}
+        {currentProject && view === 'ceo-dashboards' && (
+          <div className="rc-content-shell">
+            <header className="rc-section-header">
+              <button
+                type="button"
+                className="rc-back-link"
+                onClick={() => setView('project-home')}
+              >
+                ← Back to project home
+              </button>
+              <p className="rc-eyebrow">Engineering</p>
+              <h1>{currentProject.name}</h1>
+              <p className="rc-sub">Executive overview of project performance.</p>
+            </header>
+
+            <div className="rc-choice-grid">
+              <button
+                type="button"
+                className="rc-choice-card"
+                onClick={() => setView('work-valued')}
+              >
+                <span className="rc-icon-tile">
+                  <ChoiceIcon name="hard-hat" />
+                </span>
+                <div>
+                  <h2>Total work valued</h2>
+                  <p>Project to date activities, cost, production and rate</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="rc-choice-card"
+                onClick={() => setView('workers')}
+              >
+                <span className="rc-icon-tile">
+                  <ChoiceIcon name="users" />
+                </span>
+                <div>
+                  <h2>Total number of workers</h2>
+                  <p>Workers on site, admin members and registers</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="rc-choice-card"
+                onClick={() => setView('materials-overview')}
+              >
+                <span className="rc-icon-tile">
+                  <ChoiceIcon name="package" />
+                </span>
+                <div>
+                  <h2>Materials overview</h2>
+                  <p>Material analysis and project to date material on site</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="rc-choice-card"
+                onClick={() => setView('fuel-consumed-to-date')}
+              >
+                <span className="rc-icon-tile">
+                  <ChoiceIcon name="fuel" />
+                </span>
+                <div>
+                  <h2>Fuel consumed to date</h2>
+                  <p>Project to date fuel consumed quantities and costs from every daily entry</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Exact Rodcroft Quantity Survey Hub (`qs-engineering`) */}
+        {currentProject && view === 'qs-engineering' && (
+          <div className="rc-content-shell">
+            <header className="rc-section-header">
+              <button
+                type="button"
+                className="rc-back-link"
+                onClick={() => setView('project-home')}
+              >
+                ← Back to project home
+              </button>
+              <p className="rc-eyebrow">Quantity Survey</p>
+              <h1>{currentProject.name}</h1>
+              <p className="rc-sub">Valuations, QS schedules, plant on site, and rate analysis.</p>
+            </header>
+
+            <div className="rc-choice-grid">
+              <button
+                type="button"
+                className="rc-choice-card"
+                onClick={() => setView('work-valued')}
+              >
+                <span className="rc-icon-tile">
+                  <ChoiceIcon name="chart-bar" />
+                </span>
+                <div>
+                  <h2>Valuations</h2>
+                  <p>Open earned value dashboards for project-to-date, monthly, weekly, and daily reports</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="rc-choice-card"
+                onClick={() => setView('materials-overview')}
+              >
+                <span className="rc-icon-tile">
+                  <ChoiceIcon name="package" />
+                </span>
+                <div>
+                  <h2>Material schedule</h2>
+                  <p>Bulk material request, material received, material on site, and material analysis</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="rc-choice-card"
+                onClick={() => setView('fuel-consumed-to-date')}
+              >
+                <span className="rc-icon-tile">
+                  <ChoiceIcon name="fuel" />
+                </span>
+                <div>
+                  <h2>Fuel schedule</h2>
+                  <p>Fuel consumed project to date and daily files</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Exact Rodcroft Total Work Valued / Cumulative Valuations (`CeoWorkValuedPageClient.jsx` & `ProjectToDateReport.jsx`) */}
+        {currentProject && view === 'work-valued' && (
+          <div className="rc-content-shell">
+            <button
+              type="button"
+              className="rc-back-link"
+              onClick={() => setView('ceo-dashboards')}
+            >
+              ← Back to Engineering
+            </button>
+
+            <header className="rc-section-header">
+              <p className="rc-eyebrow">Project to Date Report</p>
+              <h1>{currentProject.name}</h1>
+              <p className="rc-sub">
+                Cumulative from project start ({currentProject.startDate}) to date.
+              </p>
+            </header>
+
+            <article className="rc-report-card">
+              <div className="rc-report-banner">
+                <p className="rc-eyebrow">Project to Date Report</p>
+                <h2>{currentProject.name}</h2>
+                <p className="rc-sub">
+                  Total Actual Cost on Site: <strong>{money(currentOverview?.metrics.totalWorkValued)}</strong>
+                </p>
               </div>
 
-              <div className="tpl-project-grid">
-                {overviews
-                  .filter((item) => item.status !== 'ended')
-                  .map((item) => (
-                    <article key={item.id} className="tpl-project-card">
-                      <div className="tpl-project-card-top">
-                        <div>
-                          <span className="tpl-code-badge">{item.code}</span>
-                          <h3>{item.name}</h3>
-                          <p className="tpl-muted-line">{item.location} · Lead: {item.manager}</p>
-                        </div>
-                        <span className="tpl-status-active">Active</span>
-                      </div>
-                      <p className="tpl-project-desc">{item.summary}</p>
-                      <div className="tpl-kpi-strip">
-                        <div>
-                          <span>Target Budget</span>
-                          <strong>{money(item.metrics.targetCost)}</strong>
-                        </div>
-                        <div>
-                          <span>Work Valued</span>
-                          <strong>{money(item.metrics.measuredWork)} ({item.metrics.progressPct}%)</strong>
-                        </div>
-                        <div>
-                          <span>Workers on Site</span>
-                          <strong>{item.metrics.workersOnSite}</strong>
-                        </div>
-                        <div>
-                          <span>Fuel Consumed</span>
-                          <strong>{item.metrics.fuelConsumedLiters} L</strong>
-                        </div>
-                      </div>
-                      <div className="tpl-card-footer">
-                        <button
-                          type="button"
-                          className="tpl-primary-btn"
-                          onClick={() => {
-                            setActiveProjectId(item.id)
-                            setView('project-home')
-                          }}
-                        >
-                          Open Project Hub
-                        </button>
-                        <button
-                          type="button"
-                          className="tpl-secondary-btn"
-                          onClick={() => {
-                            setActiveProjectId(item.id)
-                            setView('ceo-dashboards')
-                          }}
-                        >
-                          CEO Engineering Overview
-                        </button>
-                      </div>
-                    </article>
-                  ))}
+              <div className="rc-report-body">
+                <h3>Activities Completed on Site</h3>
+                <p className="rc-sub" style={{ marginBottom: 12 }}>
+                  Cumulative from project start to date. Activities with the same or similar narrative are grouped under one narrative.
+                </p>
+
+                <input
+                  type="search"
+                  className="rc-search-input"
+                  placeholder="Search activity description or quantity…"
+                  value={valQuery}
+                  onChange={(e) => setValQuery(e.target.value)}
+                />
+
+                <div className="tpl-table-wrap">
+                  <table className="rc-ev-table">
+                    <thead>
+                      <tr>
+                        <th>Description</th>
+                        <th className="text-right">Actual Cost on Site</th>
+                        <th className="text-right">Production</th>
+                        <th className="text-right">Rate</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredValuations.map((row) => {
+                        const rate =
+                          Number(row.production) > 0
+                            ? Number(row.valueEarned) / Number(row.production)
+                            : null
+                        return (
+                          <tr key={row.id}>
+                            <td><strong>{row.description}</strong></td>
+                            <td className="text-right">{money(row.valueEarned)}</td>
+                            <td className="text-right">{numFmt(row.production)}</td>
+                            <td className="text-right">{rateMoney(rate)}</td>
+                          </tr>
+                        )
+                      })}
+                      <tr className="rc-ev-total-row">
+                        <td>Total</td>
+                        <td className="text-right">{money(currentOverview?.metrics.totalWorkValued)}</td>
+                        <td className="text-right">{numFmt(currentOverview?.metrics.totalProduction)}</td>
+                        <td className="text-right">{rateMoney(currentOverview?.metrics.overallRate)}</td>
+                      </tr>
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <td colSpan={4}>
+                          Rate = actual cost on site ÷ production for each row and the dashboard total.
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                <form className="tpl-inline-form" onSubmit={handleAddValuation}>
+                  <h4>Add Daily Valuation Entry</h4>
+                  <div className="tpl-form-row">
+                    <input
+                      type="text"
+                      placeholder="Activity description"
+                      value={valDraft.description}
+                      onChange={(e) => setValDraft({ ...valDraft, description: e.target.value })}
+                      required
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Actual Cost on Site ($)"
+                      value={valDraft.valueEarned}
+                      onChange={(e) => setValDraft({ ...valDraft, valueEarned: e.target.value })}
+                      required
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Production quantity"
+                      value={valDraft.production}
+                      onChange={(e) => setValDraft({ ...valDraft, production: e.target.value })}
+                      required
+                    />
+                    <button type="submit" className="tpl-primary-btn">Save Valuation</button>
+                  </div>
+                </form>
+              </div>
+            </article>
+          </div>
+        )}
+
+        {/* Exact Rodcroft Materials Overview (`CeoMaterialsOverviewView.jsx`) */}
+        {currentProject && view === 'materials-overview' && (
+          <div className="rc-content-shell">
+            <header className="rc-section-header">
+              <button
+                type="button"
+                className="rc-back-link"
+                onClick={() => setView('ceo-dashboards')}
+              >
+                ← Back to Engineering
+              </button>
+              <p className="rc-eyebrow">Materials overview</p>
+              <h1>{currentProject.name}</h1>
+              <p className="rc-sub">
+                Open material analysis or the project to date material on site dashboard.
+              </p>
+            </header>
+
+            <div className="rc-choice-grid">
+              <button
+                type="button"
+                className="rc-choice-card"
+                onClick={() => setView('material-analysis')}
+              >
+                <span className="rc-icon-tile">
+                  <ChoiceIcon name="chart-bar" />
+                </span>
+                <div>
+                  <h2>Material analysis</h2>
+                  <p>Read-only project to date of material requested, received, and the balance left</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="rc-choice-card"
+                onClick={() => setView('material-on-site')}
+              >
+                <span className="rc-icon-tile">
+                  <ChoiceIcon name="package" />
+                </span>
+                <div>
+                  <h2>Project to date material on site</h2>
+                  <p>Storeroom quantities, material used, and material left for the whole project</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Exact Rodcroft Material Analysis (`MaterialAnalysisView.jsx`) */}
+        {currentProject && view === 'material-analysis' && (
+          <div className="rc-content-shell">
+            <header className="rc-section-header">
+              <button
+                type="button"
+                className="rc-back-link"
+                onClick={() => setView('materials-overview')}
+              >
+                ← Back to Materials overview
+              </button>
+              <p className="rc-eyebrow">Material analysis</p>
+              <h1>{currentProject.name}</h1>
+              <p className="rc-sub">
+                Read-only project to date. Similar descriptions are one line. Balance of material left is bulk material requested minus cumulative material received.
+              </p>
+            </header>
+
+            <section className="rc-report-card">
+              <div className="rc-card-head">
+                <h2>Project to date</h2>
+              </div>
+              {(currentProject.materialAnalysis || []).length === 0 ? (
+                <p className="rc-empty-msg">No bulk material request or material received yet.</p>
+              ) : (
+                <div className="tpl-table-wrap">
+                  <table className="tpl-table">
+                    <thead>
+                      <tr>
+                        <th>Description</th>
+                        <th className="text-right">Bulk material requested</th>
+                        <th className="text-right">Cumulative material received</th>
+                        <th className="text-right">Balance of material left</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(currentProject.materialAnalysis || []).map((row) => (
+                        <tr key={row.id}>
+                          <td><strong>{row.description}</strong></td>
+                          <td className="text-right">{numFmt(row.requestedQuantity)}</td>
+                          <td className="text-right">{numFmt(row.receivedQuantity)}</td>
+                          <td className="text-right">
+                            <strong>{numFmt(row.materialLeft)}</strong>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="rc-card-body">
+                <form className="tpl-inline-form" onSubmit={handleAddMaterialAnalysis}>
+                  <h4>Add Bulk Material Request / Received Line</h4>
+                  <div className="tpl-form-row">
+                    <input
+                      type="text"
+                      placeholder="Material description"
+                      value={matDraft.description}
+                      onChange={(e) => setMatDraft({ ...matDraft, description: e.target.value })}
+                      required
+                    />
+                    <input
+                      type="number"
+                      placeholder="Bulk requested"
+                      value={matDraft.requestedQuantity}
+                      onChange={(e) => setMatDraft({ ...matDraft, requestedQuantity: e.target.value })}
+                      required
+                    />
+                    <input
+                      type="number"
+                      placeholder="Cumulative received"
+                      value={matDraft.receivedQuantity}
+                      onChange={(e) => setMatDraft({ ...matDraft, receivedQuantity: e.target.value })}
+                      required
+                    />
+                    <input
+                      type="number"
+                      placeholder="Material used on site"
+                      value={matDraft.materialUsed}
+                      onChange={(e) => setMatDraft({ ...matDraft, materialUsed: e.target.value })}
+                    />
+                    <button type="submit" className="tpl-primary-btn">Save Material</button>
+                  </div>
+                </form>
               </div>
             </section>
           </div>
         )}
 
-        {currentProject && view === 'project-home' && (
-          <div className="tpl-container">
-            <div className="tpl-breadcrumb-bar">
-              <button type="button" className="tpl-link-back" onClick={() => setView('home')}>
-                ← All {brandName} Projects
-              </button>
-              <span className="tpl-code-badge">{currentProject.code || 'SITE'}</span>
-            </div>
-
-            <header className="tpl-page-head">
-              <div>
-                <p className="tpl-eyebrow">{currentProject.location} · Started {currentProject.startDate}</p>
-                <h1>{currentProject.name}</h1>
-                <p className="tpl-muted-line">{currentProject.summary}</p>
-              </div>
-            </header>
-
-            <div className="tpl-hub-grid">
+        {/* Exact Rodcroft Project to Date Material on Site */}
+        {currentProject && view === 'material-on-site' && (
+          <div className="rc-content-shell">
+            <header className="rc-section-header">
               <button
                 type="button"
-                className="tpl-hub-card"
+                className="rc-back-link"
+                onClick={() => setView('materials-overview')}
+              >
+                ← Back to Materials overview
+              </button>
+              <p className="rc-eyebrow">Project to date material on site</p>
+              <h1>{currentProject.name}</h1>
+              <p className="rc-sub">
+                Storeroom quantities brought on site, material used, and material left for the whole project.
+              </p>
+            </header>
+
+            <section className="rc-report-card">
+              <div className="rc-card-head">
+                <h2>Project to date material on site</h2>
+              </div>
+              {(currentProject.materialAnalysis || []).length === 0 ? (
+                <p className="rc-empty-msg">No material on site entries yet.</p>
+              ) : (
+                <div className="tpl-table-wrap">
+                  <table className="tpl-table">
+                    <thead>
+                      <tr>
+                        <th>Description</th>
+                        <th className="text-right">Material brought on site</th>
+                        <th className="text-right">Material used</th>
+                        <th className="text-right">Material left on site</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(currentProject.materialAnalysis || []).map((row) => {
+                        const brought = Number(row.broughtOnSite ?? row.receivedQuantity) || 0
+                        const used = Number(row.materialUsed) || 0
+                        const left = Number(row.onSiteLeft ?? brought - used) || 0
+                        return (
+                          <tr key={row.id}>
+                            <td><strong>{row.description}</strong></td>
+                            <td className="text-right">{numFmt(brought)}</td>
+                            <td className="text-right">{numFmt(used)}</td>
+                            <td className="text-right">
+                              <strong>{numFmt(left)}</strong>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
+        {/* Exact Rodcroft Total Number of Workers (`CeoWorkersPageClient.jsx`) */}
+        {currentProject && (view === 'workers' || view === 'safety-health') && (
+          <div className="rc-content-shell">
+            <header className="rc-section-header">
+              <button
+                type="button"
+                className="rc-back-link"
+                onClick={() => setView(view === 'safety-health' ? 'project-home' : 'ceo-dashboards')}
+              >
+                ← Back to {view === 'safety-health' ? 'project home' : 'Engineering'}
+              </button>
+              <p className="rc-eyebrow">Total number of workers</p>
+              <h1>{currentProject.name}</h1>
+              <p className="rc-sub">
+                People on site this month from the induction, site staff and operator registers. A name listed in more than one register is counted once.
+              </p>
+            </header>
+
+            <div className="rc-headcount-grid">
+              <div className="rc-headcount-card">
+                <p className="rc-eyebrow">Total workers on site</p>
+                <strong className="rc-headcount-num">{currentOverview?.metrics.workersOnSite || 0}</strong>
+                <p className="rc-sub">
+                  {currentOverview?.metrics.inductionCount || 0} induction register +{' '}
+                  {currentOverview?.metrics.adminCount || 0} admin members +{' '}
+                  {currentOverview?.metrics.operatorCount || 0} operator register
+                </p>
+              </div>
+              <div className="rc-headcount-card">
+                <p className="rc-eyebrow">Total admin members</p>
+                <strong className="rc-headcount-num">{currentOverview?.metrics.adminCount || 0}</strong>
+                <p className="rc-sub">Site Staff attendance register</p>
+              </div>
+            </div>
+
+            <section className="rc-report-card">
+              <div className="rc-card-head">
+                <h2>Site Staff, Induction &amp; Plant Operator Registers</h2>
+              </div>
+              {(currentProject.workers || []).length === 0 ? (
+                <p className="rc-empty-msg">No workers registered on this project yet.</p>
+              ) : (
+                <div className="tpl-table-wrap">
+                  <table className="tpl-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Role / Position</th>
+                        <th>Register</th>
+                        <th>Plant</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(currentProject.workers || []).map((w) => (
+                        <tr key={w.id}>
+                          <td><strong>{w.name}</strong></td>
+                          <td>{w.role}</td>
+                          <td>
+                            <span className="tpl-code-badge">
+                              {w.register === 'admin'
+                                ? 'Site Staff (admin)'
+                                : w.register === 'operators'
+                                  ? 'Operator'
+                                  : 'Induction'}
+                            </span>
+                          </td>
+                          <td>{w.plant || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="rc-card-body">
+                <form className="tpl-inline-form" onSubmit={handleAddWorker}>
+                  <h4>Add Person to Register</h4>
+                  <div className="tpl-form-row">
+                    <input
+                      type="text"
+                      placeholder="Full name"
+                      value={workerDraft.name}
+                      onChange={(e) => setWorkerDraft({ ...workerDraft, name: e.target.value })}
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Role / Position"
+                      value={workerDraft.role}
+                      onChange={(e) => setWorkerDraft({ ...workerDraft, role: e.target.value })}
+                    />
+                    <select
+                      value={workerDraft.register}
+                      onChange={(e) => setWorkerDraft({ ...workerDraft, register: e.target.value })}
+                    >
+                      <option value="induction">Induction register</option>
+                      <option value="admin">Site Staff (admin)</option>
+                      <option value="operators">Plant register</option>
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Plant (if operator)"
+                      value={workerDraft.plant}
+                      onChange={(e) => setWorkerDraft({ ...workerDraft, plant: e.target.value })}
+                    />
+                    <button type="submit" className="tpl-primary-btn">Add to Register</button>
+                  </div>
+                </form>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* Exact Rodcroft Fuel Consumed to Date (`GoodsReceivedRollupView.jsx`) */}
+        {currentProject && view === 'fuel-consumed-to-date' && (
+          <div className="rc-content-shell">
+            <header className="rc-section-header">
+              <button
+                type="button"
+                className="rc-back-link"
                 onClick={() => setView('ceo-dashboards')}
               >
-                <span className="tpl-hub-icon">📊</span>
-                <div>
-                  <h3>Engineering (CEO Overview)</h3>
-                  <p>Executive overview: Total work valued, total workers on site, materials overview, and fuel consumed to date.</p>
-                </div>
+                ← Back to Engineering
               </button>
-
-              <button
-                type="button"
-                className="tpl-hub-card"
-                onClick={() => setView('qs-engineering')}
-              >
-                <span className="tpl-hub-icon">📐</span>
-                <div>
-                  <h3>Quantity Survey</h3>
-                  <p>BOQ Valuations, Material Schedule, Fuel Schedule, Plant on Site, and Rate Analysis.</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className="tpl-hub-card"
-                onClick={() => setView('safety-health')}
-              >
-                <span className="tpl-hub-icon">🛡️</span>
-                <div>
-                  <h3>Safety & Health (SHEQ)</h3>
-                  <p>Site Staff attendance, Induction & Plant registers, PPE received/issued, and SHEQ inspection reports.</p>
-                </div>
-              </button>
-            </div>
-
-            {currentOverview && (
-              <section className="tpl-panel">
-                <h3>Main Activity & Cumulative Project Snapshot</h3>
-                <div className="tpl-kpi-strip tpl-kpi-4">
-                  <div>
-                    <span>Target Cost (BOQ)</span>
-                    <strong>{money(currentOverview.metrics.targetCost)}</strong>
-                  </div>
-                  <div>
-                    <span>Actual Measured Work</span>
-                    <strong>{money(currentOverview.metrics.measuredWork)}</strong>
-                  </div>
-                  <div>
-                    <span>Actual Cost Incurred</span>
-                    <strong>{money(currentOverview.metrics.actualCost)}</strong>
-                  </div>
-                  <div>
-                    <span>Cost Variance</span>
-                    <strong className={currentOverview.metrics.variance > 0 ? 'tpl-text-danger' : 'tpl-text-ok'}>
-                      {money(currentOverview.metrics.variance)}
-                    </strong>
-                  </div>
-                </div>
-              </section>
-            )}
-          </div>
-        )}
-
-        {currentProject && view === 'ceo-dashboards' && (
-          <div className="tpl-container">
-            <button type="button" className="tpl-link-back" onClick={() => setView('project-home')}>
-              ← Back to project home
-            </button>
-            <header className="tpl-page-head">
-              <div>
-                <p className="tpl-eyebrow">Engineering · Executive Overview</p>
-                <h1>{currentProject.name}</h1>
-                <p className="tpl-muted-line">Executive overview of project performance across valuations, workers, materials, and fuel.</p>
-              </div>
+              <p className="rc-eyebrow">Fuel consumed to date</p>
+              <h1>{currentProject.name}</h1>
+              <p className="rc-sub">
+                Each fuel name is one line. Fuel consumed quantities and total costs from every daily entry are added together.
+              </p>
             </header>
 
-            <div className="tpl-hub-grid tpl-hub-2">
-              <button type="button" className="tpl-hub-card" onClick={() => setView('work-valued')}>
-                <span className="tpl-hub-icon">🏗️</span>
-                <div>
-                  <h3>Total work valued</h3>
-                  <p>Project to date activities, BOQ cost, measured production and rate ({money(currentOverview?.metrics.measuredWork)})</p>
-                </div>
-              </button>
-
-              <button type="button" className="tpl-hub-card" onClick={() => setView('workers')}>
-                <span className="tpl-hub-icon">👷</span>
-                <div>
-                  <h3>Total number of workers</h3>
-                  <p>Workers on site ({currentOverview?.metrics.workersOnSite}), admin members ({currentOverview?.metrics.adminCount}) and registers</p>
-                </div>
-              </button>
-
-              <button type="button" className="tpl-hub-card" onClick={() => setView('materials-overview')}>
-                <span className="tpl-hub-icon">📦</span>
-                <div>
-                  <h3>Materials overview</h3>
-                  <p>Material analysis and project to date material on site ({money(currentOverview?.metrics.materialValueOnSite)} in stock)</p>
-                </div>
-              </button>
-
-              <button type="button" className="tpl-hub-card" onClick={() => setView('fuel-consumed')}>
-                <span className="tpl-hub-icon">⛽</span>
-                <div>
-                  <h3>Fuel consumed to date</h3>
-                  <p>Project to date fuel consumed ({currentOverview?.metrics.fuelConsumedLiters} L · {money(currentOverview?.metrics.fuelConsumedCost)})</p>
-                </div>
-              </button>
+            <div className="rc-headcount-grid">
+              <div className="rc-headcount-card">
+                <p className="rc-eyebrow">Current Bulk Fuel Inserted in Tank</p>
+                <strong className="rc-headcount-num">
+                  {numFmt(currentOverview?.metrics.bulkFuelLiters)} L
+                </strong>
+                <p className="rc-sub">{money(currentOverview?.metrics.bulkFuelCost)}</p>
+              </div>
+              <div className="rc-headcount-card">
+                <p className="rc-eyebrow">Project to Date Fuel Consumed</p>
+                <strong className="rc-headcount-num">
+                  {numFmt(currentOverview?.metrics.fuelConsumedLiters)} L
+                </strong>
+                <p className="rc-sub">{money(currentOverview?.metrics.fuelConsumedCost)}</p>
+              </div>
             </div>
-          </div>
-        )}
 
-        {currentProject && (view === 'work-valued' || view === 'qs-engineering') && (
-          <div className="tpl-container">
-            <button
-              type="button"
-              className="tpl-link-back"
-              onClick={() => setView(view === 'qs-engineering' ? 'project-home' : 'ceo-dashboards')}
-            >
-              ← Back
-            </button>
-            <header className="tpl-page-head">
-              <div>
-                <p className="tpl-eyebrow">Quantity Survey & Valuations</p>
-                <h1>{currentProject.name} — Project to Date Valuations</h1>
-                <p className="tpl-muted-line">Earned value report comparing target BOQ cost, actual measured work, and actual cost incurred.</p>
+            <section className="rc-report-card">
+              <div className="rc-card-head">
+                <h2>Project to date</h2>
               </div>
-              <div className="tpl-head-pills">
-                <button type="button" className="tpl-secondary-btn" onClick={() => setView('materials-overview')}>
-                  Material Schedule
-                </button>
-                <button type="button" className="tpl-secondary-btn" onClick={() => setView('fuel-consumed')}>
-                  Fuel Schedule
-                </button>
-              </div>
-            </header>
-
-            <div className="tpl-panel">
-              <h3>Earned Value & BOQ Schedule</h3>
-              <div className="tpl-table-wrap">
-                <table className="tpl-table">
-                  <thead>
-                    <tr>
-                      <th>Activity Description</th>
-                      <th>Unit</th>
-                      <th>Qty</th>
-                      <th>Rate</th>
-                      <th>Target Cost</th>
-                      <th>Measured Work</th>
-                      <th>Actual Cost</th>
-                      <th>Variance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(currentProject.boqItems || []).map((item) => {
-                      const variance = (Number(item.actualCostIncurred) || 0) - (Number(item.actualMeasuredWork) || 0)
-                      return (
-                        <tr key={item.id}>
-                          <td><strong>{item.description}</strong></td>
-                          <td>{item.unit}</td>
-                          <td>{item.quantity}</td>
-                          <td>{money(item.rate)}</td>
-                          <td>{money(item.targetCost)}</td>
-                          <td>
-                            <input
-                              type="number"
-                              className="tpl-inline-input"
-                              value={item.actualMeasuredWork}
-                              onChange={(e) => {
-                                const val = Number(e.target.value) || 0
-                                updateCurrentProject((proj) => ({
-                                  ...proj,
-                                  boqItems: proj.boqItems.map((b) =>
-                                    b.id === item.id ? { ...b, actualMeasuredWork: val } : b,
-                                  ),
-                                }))
-                              }}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="number"
-                              className="tpl-inline-input"
-                              value={item.actualCostIncurred}
-                              onChange={(e) => {
-                                const val = Number(e.target.value) || 0
-                                updateCurrentProject((proj) => ({
-                                  ...proj,
-                                  boqItems: proj.boqItems.map((b) =>
-                                    b.id === item.id ? { ...b, actualCostIncurred: val } : b,
-                                  ),
-                                }))
-                              }}
-                            />
-                          </td>
-                          <td className={variance > 0 ? 'tpl-text-danger' : 'tpl-text-ok'}>
-                            {money(variance)}
+              {fuelRollup.length === 0 ? (
+                <p className="rc-empty-msg">
+                  No fuel consumed in this period yet. Add entries on daily fuel consumed below.
+                </p>
+              ) : (
+                <div className="tpl-table-wrap">
+                  <table className="tpl-table">
+                    <thead>
+                      <tr>
+                        <th>Description</th>
+                        <th>Unit</th>
+                        <th className="text-right">Fuel consumed quantity</th>
+                        <th className="text-right">Total cost</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fuelRollup.map((row) => (
+                        <tr key={row.id}>
+                          <td><strong>{row.description}</strong></td>
+                          <td>{row.unit}</td>
+                          <td className="text-right">{numFmt(row.quantity)}</td>
+                          <td className="text-right">
+                            <strong>{money(row.totalCost)}</strong>
                           </td>
                         </tr>
-                      )
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <th colSpan="4">Project to Date Totals</th>
-                      <th>{money(currentOverview?.metrics.targetCost)}</th>
-                      <th>{money(currentOverview?.metrics.measuredWork)}</th>
-                      <th>{money(currentOverview?.metrics.actualCost)}</th>
-                      <th>{money(currentOverview?.metrics.variance)}</th>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-
-              <form className="tpl-inline-form" onSubmit={handleAddBoqItem}>
-                <h4>Add BOQ Valuation Activity</h4>
-                <div className="tpl-form-row">
-                  <input
-                    type="text"
-                    placeholder="Activity description"
-                    value={boqDraft.description}
-                    onChange={(e) => setBoqDraft({ ...boqDraft, description: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Unit (m2, m3, sum)"
-                    value={boqDraft.unit}
-                    onChange={(e) => setBoqDraft({ ...boqDraft, unit: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Qty"
-                    value={boqDraft.quantity}
-                    onChange={(e) => setBoqDraft({ ...boqDraft, quantity: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Rate ($)"
-                    value={boqDraft.rate}
-                    onChange={(e) => setBoqDraft({ ...boqDraft, rate: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Measured ($)"
-                    value={boqDraft.actualMeasuredWork}
-                    onChange={(e) => setBoqDraft({ ...boqDraft, actualMeasuredWork: e.target.value })}
-                  />
-                  <button type="submit" className="tpl-primary-btn">Add Activity</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {currentProject && view === 'workers' && (
-          <div className="tpl-container">
-            <button type="button" className="tpl-link-back" onClick={() => setView('ceo-dashboards')}>
-              ← Back to Engineering
-            </button>
-            <header className="tpl-page-head">
-              <div>
-                <p className="tpl-eyebrow">Total Number of Workers</p>
-                <h1>{currentProject.name}</h1>
-                <p className="tpl-muted-line">
-                  People on site this month from the induction, site staff, and operator registers.
-                </p>
-              </div>
-            </header>
-
-            <div className="tpl-kpi-strip tpl-kpi-3">
-              <div>
-                <span>Total workers on site</span>
-                <strong>{currentOverview?.metrics.workersOnSite}</strong>
-              </div>
-              <div>
-                <span>Total admin members</span>
-                <strong>{currentOverview?.metrics.adminCount}</strong>
-              </div>
-              <div>
-                <span>Plant operators</span>
-                <strong>{currentOverview?.metrics.operatorCount}</strong>
-              </div>
-            </div>
-
-            <div className="tpl-panel">
-              <h3>Site Staff, Induction & Plant Operator Registers</h3>
-              <div className="tpl-table-wrap">
-                <table className="tpl-table">
-                  <thead>
-                    <tr>
-                      <th>Full Name</th>
-                      <th>Role / Designation</th>
-                      <th>Register</th>
-                      <th>Assigned Plant</th>
-                      <th>Days Present</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(currentProject.workers || []).map((w) => (
-                      <tr key={w.id}>
-                        <td><strong>{w.name}</strong></td>
-                        <td>{w.role}</td>
-                        <td><span className="tpl-code-badge">{w.register}</span></td>
-                        <td>{w.plant || '—'}</td>
-                        <td>{w.presentDays || 0} days</td>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <th colSpan={2}>Total</th>
+                        <th className="text-right">{numFmt(currentOverview?.metrics.fuelConsumedLiters)}</th>
+                        <th className="text-right">{money(currentOverview?.metrics.fuelConsumedCost)}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <form className="tpl-inline-form" onSubmit={handleAddWorker}>
-                <h4>Register Worker / Staff Member</h4>
-                <div className="tpl-form-row">
-                  <input
-                    type="text"
-                    placeholder="Full name"
-                    value={workerDraft.name}
-                    onChange={(e) => setWorkerDraft({ ...workerDraft, name: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Role / Position"
-                    value={workerDraft.role}
-                    onChange={(e) => setWorkerDraft({ ...workerDraft, role: e.target.value })}
-                    required
-                  />
-                  <select
-                    value={workerDraft.register}
-                    onChange={(e) => setWorkerDraft({ ...workerDraft, register: e.target.value })}
-                  >
-                    <option value="induction">Induction Register</option>
-                    <option value="admin">Site Staff (Admin)</option>
-                    <option value="operators">Plant Operator</option>
-                  </select>
-                  <input
-                    type="text"
-                    placeholder="Assigned Plant (optional)"
-                    value={workerDraft.plant}
-                    onChange={(e) => setWorkerDraft({ ...workerDraft, plant: e.target.value })}
-                  />
-                  <button type="submit" className="tpl-primary-btn">Add to Register</button>
+                    </tfoot>
+                  </table>
                 </div>
-              </form>
-            </div>
+              )}
+
+              <div className="rc-card-body">
+                <form className="tpl-inline-form" onSubmit={handleAddFuel}>
+                  <h4>Add Daily Fuel Consumed Entry</h4>
+                  <div className="tpl-form-row">
+                    <input
+                      type="date"
+                      value={fuelDraft.date}
+                      onChange={(e) => setFuelDraft({ ...fuelDraft, date: e.target.value })}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Fuel description (Diesel, Petrol, Blend)"
+                      value={fuelDraft.description}
+                      onChange={(e) => setFuelDraft({ ...fuelDraft, description: e.target.value })}
+                      required
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Quantity (L)"
+                      value={fuelDraft.quantity}
+                      onChange={(e) => setFuelDraft({ ...fuelDraft, quantity: e.target.value })}
+                      required
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Unit price ($)"
+                      value={fuelDraft.unitPrice}
+                      onChange={(e) => setFuelDraft({ ...fuelDraft, unitPrice: e.target.value })}
+                      required
+                    />
+                    <button type="submit" className="tpl-primary-btn">Save Fuel Entry</button>
+                  </div>
+                </form>
+              </div>
+            </section>
           </div>
         )}
 
-        {currentProject && view === 'materials-overview' && (
-          <div className="tpl-container">
-            <button type="button" className="tpl-link-back" onClick={() => setView('ceo-dashboards')}>
-              ← Back to Engineering
-            </button>
-            <header className="tpl-page-head">
-              <div>
-                <p className="tpl-eyebrow">Materials Overview & Storeroom Schedule</p>
-                <h1>{currentProject.name}</h1>
-                <p className="tpl-muted-line">
-                  Material analysis (requested, received, balance to deliver) and project-to-date material on site.
-                </p>
-              </div>
-            </header>
-
-            <div className="tpl-kpi-strip tpl-kpi-3">
-              <div>
-                <span>Storeroom Stock lines</span>
-                <strong>{(currentProject.materials || []).length}</strong>
-              </div>
-              <div>
-                <span>Consumed Material Value</span>
-                <strong>{money(currentOverview?.metrics.materialConsumedValue)}</strong>
-              </div>
-              <div>
-                <span>On-Site Balance Value</span>
-                <strong>{money(currentOverview?.metrics.materialValueOnSite)}</strong>
-              </div>
-            </div>
-
-            <div className="tpl-panel">
-              <h3>Project to Date Material Analysis & Storeroom Stock</h3>
-              <div className="tpl-table-wrap">
-                <table className="tpl-table">
-                  <thead>
-                    <tr>
-                      <th>Material Description</th>
-                      <th>Unit</th>
-                      <th>Bulk Requested</th>
-                      <th>Received on Site</th>
-                      <th>Used / Issued</th>
-                      <th>Left in Storeroom</th>
-                      <th>Unit Cost</th>
-                      <th>Stock Value Left</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(currentProject.materials || []).map((mat) => {
-                      const left = Math.max(0, (Number(mat.received) || 0) - (Number(mat.used) || 0))
-                      const stockVal = left * (Number(mat.unitCost) || 0)
-                      return (
-                        <tr key={mat.id}>
-                          <td><strong>{mat.name}</strong></td>
-                          <td>{mat.unit}</td>
-                          <td>{mat.requested}</td>
-                          <td>
-                            <input
-                              type="number"
-                              className="tpl-inline-input"
-                              value={mat.received}
-                              onChange={(e) => {
-                                const val = Number(e.target.value) || 0
-                                updateCurrentProject((proj) => ({
-                                  ...proj,
-                                  materials: proj.materials.map((m) =>
-                                    m.id === mat.id ? { ...m, received: val } : m,
-                                  ),
-                                }))
-                              }}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="number"
-                              className="tpl-inline-input"
-                              value={mat.used}
-                              onChange={(e) => {
-                                const val = Number(e.target.value) || 0
-                                updateCurrentProject((proj) => ({
-                                  ...proj,
-                                  materials: proj.materials.map((m) =>
-                                    m.id === mat.id ? { ...m, used: val } : m,
-                                  ),
-                                }))
-                              }}
-                            />
-                          </td>
-                          <td><strong>{left} {mat.unit}</strong></td>
-                          <td>{money(mat.unitCost)}</td>
-                          <td>{money(stockVal)}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              <form className="tpl-inline-form" onSubmit={handleAddMaterial}>
-                <h4>Record Material Schedule Item</h4>
-                <div className="tpl-form-row">
-                  <input
-                    type="text"
-                    placeholder="Material name"
-                    value={matDraft.name}
-                    onChange={(e) => setMatDraft({ ...matDraft, name: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Unit (bags, m3, tons)"
-                    value={matDraft.unit}
-                    onChange={(e) => setMatDraft({ ...matDraft, unit: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Requested"
-                    value={matDraft.requested}
-                    onChange={(e) => setMatDraft({ ...matDraft, requested: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Received"
-                    value={matDraft.received}
-                    onChange={(e) => setMatDraft({ ...matDraft, received: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="number"
-                    placeholder="Used"
-                    value={matDraft.used}
-                    onChange={(e) => setMatDraft({ ...matDraft, used: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Unit Cost ($)"
-                    value={matDraft.unitCost}
-                    onChange={(e) => setMatDraft({ ...matDraft, unitCost: e.target.value })}
-                    required
-                  />
-                  <button type="submit" className="tpl-primary-btn">Save Material</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {currentProject && view === 'fuel-consumed' && (
-          <div className="tpl-container">
-            <button type="button" className="tpl-link-back" onClick={() => setView('ceo-dashboards')}>
-              ← Back to Engineering
-            </button>
-            <header className="tpl-page-head">
-              <div>
-                <p className="tpl-eyebrow">Fuel Schedule · Project to Date</p>
-                <h1>{currentProject.name} — Fuel Consumed to Date</h1>
-                <p className="tpl-muted-line">
-                  Daily plant fuel consumed against bulk diesel inserted in the site tank.
-                </p>
-              </div>
-            </header>
-
-            <div className="tpl-kpi-strip tpl-kpi-4">
-              <div>
-                <span>Bulk Fuel Inserted in Tank</span>
-                <strong>{currentProject.fuel?.bulkInsertedLiters || 0} L</strong>
-              </div>
-              <div>
-                <span>Fuel Consumed to Date</span>
-                <strong>{currentOverview?.metrics.fuelConsumedLiters} L</strong>
-              </div>
-              <div>
-                <span>Current Bulk Fuel Left</span>
-                <strong>{currentOverview?.metrics.fuelRemainingLiters} L</strong>
-              </div>
-              <div>
-                <span>Total Fuel Cost</span>
-                <strong>{money(currentOverview?.metrics.fuelConsumedCost)}</strong>
-              </div>
-            </div>
-
-            <div className="tpl-panel">
-              <h3>Daily Plant Fuel Consumption Log</h3>
-              <div className="tpl-table-wrap">
-                <table className="tpl-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Plant / Equipment</th>
-                      <th>Operator</th>
-                      <th>Liters Consumed</th>
-                      <th>Rate / L</th>
-                      <th>Total Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(currentProject.fuel?.entries || []).map((entry) => (
-                      <tr key={entry.id}>
-                        <td>{entry.date}</td>
-                        <td><strong>{entry.plant}</strong></td>
-                        <td>{entry.operator}</td>
-                        <td>{entry.liters} L</td>
-                        <td>{money(entry.rate)}</td>
-                        <td>{money((Number(entry.liters) || 0) * (Number(entry.rate) || 1.62))}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <form className="tpl-inline-form" onSubmit={handleAddFuelEntry}>
-                <h4>Record Daily Fuel Consumed</h4>
-                <div className="tpl-form-row">
-                  <input
-                    type="date"
-                    value={fuelDraft.date}
-                    onChange={(e) => setFuelDraft({ ...fuelDraft, date: e.target.value })}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Plant / Machine name"
-                    value={fuelDraft.plant}
-                    onChange={(e) => setFuelDraft({ ...fuelDraft, plant: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Operator name"
-                    value={fuelDraft.operator}
-                    onChange={(e) => setFuelDraft({ ...fuelDraft, operator: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    step="0.1"
-                    placeholder="Liters"
-                    value={fuelDraft.liters}
-                    onChange={(e) => setFuelDraft({ ...fuelDraft, liters: e.target.value })}
-                    required
-                  />
-                  <button type="submit" className="tpl-primary-btn">Log Fuel</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {currentProject && view === 'safety-health' && (
-          <div className="tpl-container">
-            <button type="button" className="tpl-link-back" onClick={() => setView('project-home')}>
-              ← Back to project home
-            </button>
-            <header className="tpl-page-head">
-              <div>
-                <p className="tpl-eyebrow">Safety, Health, Environment & Quality (SHEQ)</p>
-                <h1>{currentProject.name} — SHEQ & PPE</h1>
-                <p className="tpl-muted-line">
-                  Site inspections, incident reports, PPE received/issued, and attendance registers.
-                </p>
-              </div>
-              <button type="button" className="tpl-secondary-btn" onClick={() => setView('workers')}>
-                Open Attendance Registers
-              </button>
-            </header>
-
-            <div className="tpl-panel">
-              <h3>SHEQ Inspection & Weekly Progress Reports</h3>
-              <div className="tpl-table-wrap">
-                <table className="tpl-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Report Type</th>
-                      <th>Status</th>
-                      <th>Major Highlight / Inspection Findings</th>
-                      <th>Incidents</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(currentProject.sheqReports || []).map((rep) => (
-                      <tr key={rep.id}>
-                        <td>{rep.date}</td>
-                        <td><strong>{rep.type}</strong></td>
-                        <td><span className="tpl-status-active">{rep.status}</span></td>
-                        <td>{rep.highlight}</td>
-                        <td>{rep.incidents}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <form className="tpl-inline-form" onSubmit={handleAddSheqReport}>
-                <h4>Log SHEQ Site Inspection / Weekly Report</h4>
-                <div className="tpl-form-row">
-                  <input
-                    type="date"
-                    value={sheqDraft.date}
-                    onChange={(e) => setSheqDraft({ ...sheqDraft, date: e.target.value })}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Report type"
-                    value={sheqDraft.type}
-                    onChange={(e) => setSheqDraft({ ...sheqDraft, type: e.target.value })}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Major highlight / inspection notes"
-                    value={sheqDraft.highlight}
-                    onChange={(e) => setSheqDraft({ ...sheqDraft, highlight: e.target.value })}
-                    required
-                  />
-                  <button type="submit" className="tpl-primary-btn">Save SHEQ Report</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
+        {/* Settings (`SettingsPanel.jsx`) */}
         {view === 'settings' && (
-          <div className="tpl-container">
-            <button type="button" className="tpl-link-back" onClick={() => setView('home')}>
-              ← Back to {brandName}
-            </button>
-            <header className="tpl-page-head">
-              <div>
-                <p className="tpl-eyebrow">Settings & CEO Metadata Configuration</p>
-                <h1>{brandName} Settings</h1>
-                <p className="tpl-muted-line">
-                  Update CEO metadata, manage construction projects, and configure subdomain settings for {subdomain}.
-                </p>
-              </div>
+          <div className="rc-content-shell">
+            <header className="rc-section-header">
+              <button
+                type="button"
+                className="rc-back-link"
+                onClick={() => setView('home')}
+              >
+                ← Back to {brandName}
+              </button>
+              <h1>Settings</h1>
+              <p className="rc-sub">
+                Manage projects and shared live data for tenant <strong>{subdomain}</strong>.
+              </p>
             </header>
 
             {statusNote ? <p className="tpl-notice-ok">{statusNote}</p> : null}
 
-            <div className="tpl-panel">
-              <h3>CEO & Company Metadata</h3>
-              <form
-                className="tpl-settings-form"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  persistMeta(meta)
-                  setStatusNote('CEO metadata saved and synced to Fortress platform.')
-                }}
-              >
-                <div className="tpl-form-grid">
-                  <label>
-                    Company / Brand Name
-                    <input
-                      type="text"
-                      value={meta.companyName || ''}
-                      onChange={(e) =>
-                        setMeta({ ...meta, companyName: e.target.value, brandName: e.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    CEO Name
-                    <input
-                      type="text"
-                      value={meta.ceo || ''}
-                      onChange={(e) => setMeta({ ...meta, ceo: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    Location
-                    <input
-                      type="text"
-                      value={meta.location || ''}
-                      onChange={(e) => setMeta({ ...meta, location: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    Subdomain
-                    <input type="text" value={subdomain} readOnly />
-                  </label>
-                </div>
-                <label>
-                  Company Description
-                  <textarea
-                    rows={3}
-                    value={meta.about || ''}
-                    onChange={(e) => setMeta({ ...meta, about: e.target.value })}
-                  />
-                </label>
-                <button type="submit" className="tpl-primary-btn">Save Metadata</button>
-              </form>
-            </div>
-
-            <div className="tpl-panel">
-              <h3>Manage Projects ({projects.length})</h3>
-              <div className="tpl-table-wrap">
-                <table className="tpl-table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Project Name</th>
-                      <th>Location</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {projects.map((proj) => (
-                      <tr key={proj.id}>
-                        <td>{proj.code}</td>
-                        <td><strong>{proj.name}</strong></td>
-                        <td>{proj.location}</td>
-                        <td>{proj.status === 'ended' ? 'Ended' : 'Active'}</td>
-                        <td>
-                          <div className="tpl-row-btns">
-                            <button
-                              type="button"
-                              className="tpl-secondary-btn"
-                              onClick={() => {
-                                setActiveProjectId(proj.id)
-                                setView('project-home')
-                              }}
-                            >
-                              Open
-                            </button>
-                            <button
-                              type="button"
-                              className="tpl-secondary-btn"
-                              onClick={() => {
-                                const next = projects.map((p) =>
-                                  p.id === proj.id
-                                    ? { ...p, status: p.status === 'ended' ? 'active' : 'ended' }
-                                    : p,
-                                )
-                                persistMeta({ ...meta, projects: next })
-                              }}
-                            >
-                              {proj.status === 'ended' ? 'Reactivate' : 'End Project'}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <section className="rc-report-card">
+              <div className="rc-card-head">
+                <h2>Projects ({projects.length})</h2>
               </div>
-              {endedProjects.length > 0 ? (
-                <p className="tpl-muted-line">{endedProjects.length} ended project(s) archived.</p>
-              ) : null}
-            </div>
+              <div className="rc-card-body">
+                {projects.length === 0 ? (
+                  <p className="rc-sub">No projects on this tenant yet.</p>
+                ) : (
+                  <ul className="rc-settings-proj-list">
+                    {projects.map((proj) => (
+                      <li key={proj.id} className="rc-settings-proj-item">
+                        <div>
+                          <strong>{proj.name}</strong>
+                          <span className="rc-sub"> · Started {proj.startDate}</span>
+                        </div>
+                        <div className="tpl-row-btns">
+                          <button
+                            type="button"
+                            className="tpl-secondary-btn"
+                            onClick={() => {
+                              setActiveProjectId(proj.id)
+                              setView('project-home')
+                            }}
+                          >
+                            Open project
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
           </div>
         )}
-      </main>
+      </div>
 
+      {/* Create New Project Modal (`CreateProjectModal.jsx`) */}
       {showNewProjectModal && (
         <div className="tpl-modal-backdrop" onClick={() => setShowNewProjectModal(false)}>
           <div className="tpl-modal" onClick={(e) => e.stopPropagation()}>
             <div className="tpl-modal-head">
-              <h3>Create New Construction Project</h3>
+              <h3>Create new project</h3>
               <button type="button" className="tpl-close-x" onClick={() => setShowNewProjectModal(false)}>
                 ×
               </button>
             </div>
             <form className="tpl-settings-form" onSubmit={handleCreateProject}>
               <label>
-                Project Name
+                Project name
                 <input
                   type="text"
-                  placeholder="e.g. Victoria Falls Airport Runway Rehabilitation"
-                  value={newProjForm.name}
-                  onChange={(e) => setNewProjForm({ ...newProjForm, name: e.target.value })}
+                  placeholder="Enter project name"
+                  value={newProjName}
+                  onChange={(e) => setNewProjName(e.target.value)}
                   required
                 />
               </label>
-              <div className="tpl-form-grid">
-                <label>
-                  Project Code
-                  <input
-                    type="text"
-                    placeholder="e.g. RC-VFA-03"
-                    value={newProjForm.code}
-                    onChange={(e) => setNewProjForm({ ...newProjForm, code: e.target.value })}
-                  />
-                </label>
-                <label>
-                  Site Location
-                  <input
-                    type="text"
-                    placeholder="e.g. Victoria Falls"
-                    value={newProjForm.location}
-                    onChange={(e) => setNewProjForm({ ...newProjForm, location: e.target.value })}
-                  />
-                </label>
-                <label>
-                  Client
-                  <input
-                    type="text"
-                    placeholder="Client organization"
-                    value={newProjForm.client}
-                    onChange={(e) => setNewProjForm({ ...newProjForm, client: e.target.value })}
-                  />
-                </label>
-                <label>
-                  Start Date
-                  <input
-                    type="date"
-                    value={newProjForm.startDate}
-                    onChange={(e) => setNewProjForm({ ...newProjForm, startDate: e.target.value })}
-                  />
-                </label>
-                <label>
-                  Initial BOQ Activity
-                  <input
-                    type="text"
-                    value={newProjForm.initialActivity}
-                    onChange={(e) => setNewProjForm({ ...newProjForm, initialActivity: e.target.value })}
-                  />
-                </label>
-                <label>
-                  Initial Target Budget ($)
-                  <input
-                    type="number"
-                    value={newProjForm.initialTargetCost}
-                    onChange={(e) => setNewProjForm({ ...newProjForm, initialTargetCost: e.target.value })}
-                  />
-                </label>
-              </div>
               <label>
-                Scope Summary
-                <textarea
-                  rows={2}
-                  placeholder="Brief description of site works"
-                  value={newProjForm.summary}
-                  onChange={(e) => setNewProjForm({ ...newProjForm, summary: e.target.value })}
+                Project start date
+                <input
+                  type="date"
+                  value={newProjStart}
+                  onChange={(e) => setNewProjStart(e.target.value)}
+                  required
                 />
               </label>
               <div className="tpl-modal-actions">
@@ -1450,7 +1336,7 @@ export default function RodcroftTemplate({
                   Cancel
                 </button>
                 <button type="submit" className="tpl-primary-btn">
-                  Create Project
+                  Create project
                 </button>
               </div>
             </form>

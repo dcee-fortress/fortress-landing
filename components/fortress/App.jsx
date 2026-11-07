@@ -6156,13 +6156,8 @@ function App() {
         location: locName,
         about: aboutText,
         systemType: type.id,
+        emptyData: true,
       })
-      if (initialProjTitle && initialMeta.projects?.length) {
-        initialMeta.projects[0] = {
-          ...initialMeta.projects[0],
-          name: initialProjTitle,
-        }
-      }
       saveSiteCeoMetadata(slug, initialMeta)
     }
 
@@ -7314,10 +7309,14 @@ function App() {
                   aria-selected={profileTab === 'dash'}
                   className={profileTab === 'dash' ? 'ig-tab active' : 'ig-tab'}
                   onClick={() => setProfileTab('dash')}
-                  aria-label="Projects overview"
+                  aria-label="CEO dashboards"
                 >
                   <IconCompanyTab />
-                  <span className="ig-tab-label">Projects Overview</span>
+                  <span className="ig-tab-label">
+                    {(dashSite || currentProfile)?.systemType === 'manufacturing'
+                      ? 'CEO Analysis'
+                      : 'Engineering'}
+                  </span>
                 </button>
               </div>
 
@@ -7783,19 +7782,19 @@ function App() {
             <section className="panel-box settings-page">
               <p className="payment-approved">Payment approved</p>
               <form className="create-account-form" onSubmit={createGeneratedWebsite}>
-                <h3>CEO Metadata & Tailor-Making Details</h3>
+                <h3>Tailor making details</h3>
                 <p className="shop-copy">
                   {systemType === 'manufacturing'
-                    ? 'Generate your manufacturing app from the Prixburg template on your own .fortress.vercel.app subdomain.'
+                    ? 'Creates an exact Prixburg manufacturing website (with empty data) as a tenant subdomain of Fortress.'
                     : systemType === 'construction'
-                      ? 'Generate your construction app from the Rodcroft template on your own .fortress.vercel.app subdomain.'
+                      ? 'Creates an exact Rodcroft construction website (with empty data) as a tenant subdomain of Fortress.'
                       : 'Configure your calculator details.'}
                 </p>
                 <label>
-                  {systemType === 'fabrication' ? 'Name on the calculator' : 'Company / Website Name'}
+                  {systemType === 'fabrication' ? 'Name on the calculator' : 'Name of website'}
                   <input
                     type="text"
-                    placeholder="e.g. Rodcroft or Prixburg"
+                    placeholder="Name of the website"
                     value={websiteName}
                     onChange={(event) => setWebsiteName(event.target.value)}
                     required
@@ -7804,7 +7803,7 @@ function App() {
                 {systemType !== 'fabrication' && (
                   <>
                     <label>
-                      Subdomain Preview
+                      Tenant Subdomain (under Fortress)
                       <input
                         type="text"
                         value={subdomainLabelFor(websiteName || 'company')}
@@ -7812,7 +7811,7 @@ function App() {
                       />
                     </label>
                     <label>
-                      CEO Full Name
+                      CEO Name (optional)
                       <input
                         type="text"
                         placeholder="CEO name"
@@ -7820,43 +7819,10 @@ function App() {
                         onChange={(event) => setWebsiteCeo(event.target.value)}
                       />
                     </label>
-                    <label>
-                      Headquarters / Site Location
-                      <input
-                        type="text"
-                        placeholder="e.g. Harare, Zimbabwe"
-                        value={websiteLocation}
-                        onChange={(event) => setWebsiteLocation(event.target.value)}
-                      />
-                    </label>
-                    <label>
-                      {systemType === 'manufacturing'
-                        ? 'Primary Production Line / Project Name'
-                        : 'Flagship Construction Project Name'}
-                      <input
-                        type="text"
-                        placeholder={
-                          systemType === 'manufacturing'
-                            ? 'e.g. Dishwashing & Toilet Cleaner Line'
-                            : 'e.g. Highway & Culvert Upgrade Project'
-                        }
-                        value={websiteProjectName}
-                        onChange={(event) => setWebsiteProjectName(event.target.value)}
-                      />
-                    </label>
-                    <label>
-                      Company Overview Metadata
-                      <textarea
-                        rows={2}
-                        placeholder="Short description of operations, products, or sites"
-                        value={websiteAbout}
-                        onChange={(event) => setWebsiteAbout(event.target.value)}
-                      />
-                    </label>
                   </>
                 )}
                 <button type="submit" className="primary-button">
-                  {systemType === 'fabrication' ? 'Open calculator' : 'Generate Website from Metadata'}
+                  {systemType === 'fabrication' ? 'Open calculator' : 'Create website'}
                 </button>
               </form>
             </section>
