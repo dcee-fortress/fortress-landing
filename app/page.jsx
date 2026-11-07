@@ -1,10 +1,8 @@
-import AppShell from "@/components/project/AppShell"
-import GroveLanding from "@/components/project/GroveLanding"
+import { headers } from "next/headers"
+import UnifiedPlatformHome from "@/components/fortress/UnifiedPlatformHome"
 
-export default function Home() {
-  return (
-    <AppShell>
-      <GroveLanding />
-    </AppShell>
-  )
+export default async function Home() {
+  const hdrs = await headers()
+  const host = hdrs.get("host") || ""
+  return <UnifiedPlatformHome initialHost={host} />
 }
