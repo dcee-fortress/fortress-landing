@@ -667,6 +667,7 @@ const formatPrice = (price) =>
 
 const MENU_ACTIONS = [
   { id: 'buy', label: 'Buy CEO Website' },
+  { id: 'calc', label: 'Fabrication Calculator' },
 ]
 
 const NAV = [

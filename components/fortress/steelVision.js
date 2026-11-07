@@ -792,7 +792,7 @@ export const extractSteelScheduleWithTesseract = async (dataUrl) => {
     throw new Error('Tesseract reads photos. Snap a picture of the schedule page, or use free Gemini for PDFs.')
   }
   const pkg = 'tesseract.js'
-  const { createWorker } = await import(/* webpackIgnore: true */ pkg)
+  const { createWorker } = await import(/* @vite-ignore */ /* webpackIgnore: true */ pkg)
   const worker = await createWorker('eng')
   try {
     const {

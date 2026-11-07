@@ -3,6 +3,7 @@ import {
   computePrixburgCeoAnalysis,
   computeSiteProjectsOverview,
   getSiteCeoMetadata,
+  saveSiteCeoMetadata,
   subdomainLabelFor,
 } from './fortressMetadata'
 
@@ -36,10 +37,13 @@ export default function CeoProjectsOverview({
   const [tick, setTick] = useState(0)
   // Sub-view for Prixburg CEO Analysis: 'menu' | 'net-profit' | 'gross-profit'
   const [prixburgSubView, setPrixburgSubView] = useState('menu')
-  // Sub-view for Rodcroft Engineering: 'menu' | 'work-valued' | 'workers' | 'materials-overview' | 'material-analysis' | 'material-on-site' | 'fuel-consumed-to-date'
+  // Sub-view for Rodcroft Engineering: 'menu' | 'work-valued' | 'material-analysis' | 'material-on-site' | 'fuel-analysis' | 'workers'
   const [rodcroftSubView, setRodcroftSubView] = useState('menu')
   const [selectedProjectId, setSelectedProjectId] = useState('')
   const [valSearch, setValSearch] = useState('')
+  const [fuelDetailCostMode, setFuelDetailCostMode] = useState(false)
+  const [showNewProjForm, setShowNewProjForm] = useState(false)
+  const [newProjName, setNewProjName] = useState('')
 
   useEffect(() => {
     const refresh = () => setTick((t) => t + 1)
@@ -57,6 +61,7 @@ export default function CeoProjectsOverview({
     setPrixburgSubView('menu')
     setRodcroftSubView('menu')
     setSelectedProjectId('')
+    setShowNewProjForm(false)
   }, [targetSite?.id, targetSite?.slug])
 
   if (!targetSite) {
@@ -112,13 +117,13 @@ export default function CeoProjectsOverview({
           </div>
         )}
 
-        {/* Tenant Header & Access to Full Website */}
+        {/* Tenant Header & Direct Access to Full Prixburg Website Modules */}
         <div className="ceo-overview-header-card">
           <div>
             <span className="tpl-code-badge">Fortress Tenant · {subdomain}</span>
             <h4>{siteMeta?.companyName || targetSite.name} — CEO Analysis</h4>
             <p className="shop-copy">
-              Live CEO analysis for net profit and gross profit from {subdomain}.
+              Live CEO analysis for gross profit and net profit from {subdomain}.
             </p>
           </div>
           <div className="ceo-overview-top-btns">
@@ -132,22 +137,50 @@ export default function CeoProjectsOverview({
           </div>
         </div>
 
+        {/* Quick Tenant Module Shortcuts */}
+        <div className="tpl-head-pills">
+          <button
+            type="button"
+            className="tpl-secondary-btn"
+            onClick={() => onOpenGeneratedApp?.(targetSite, '', 'raw-materials-storeroom')}
+          >
+            Storeroom
+          </button>
+          <button
+            type="button"
+            className="tpl-secondary-btn"
+            onClick={() => onOpenGeneratedApp?.(targetSite, '', 'settings')}
+          >
+            Product Setup &amp; Formulas
+          </button>
+          <button
+            type="button"
+            className="tpl-secondary-btn"
+            onClick={() => onOpenGeneratedApp?.(targetSite, '', 'production-reports')}
+          >
+            Production
+          </button>
+          <button
+            type="button"
+            className="tpl-secondary-btn"
+            onClick={() => onOpenGeneratedApp?.(targetSite, '', 'finished-products')}
+          >
+            Finished Products
+          </button>
+          <button
+            type="button"
+            className="tpl-secondary-btn"
+            onClick={() => onOpenGeneratedApp?.(targetSite, '', 'sales-finance')}
+          >
+            Sales &amp; Finance
+          </button>
+        </div>
+
         {/* Exact Prixburg CEO Analysis Panel */}
         {prixburgSubView === 'menu' && (
           <div className="pb-panel">
             <h3>CEO Analysis</h3>
             <div className="pb-choice-grid">
-              <button
-                type="button"
-                className="pb-choice-btn"
-                onClick={() => setPrixburgSubView('net-profit')}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M3 17l6-6 4 4 8-8" />
-                  <path d="M14 7h7v7" />
-                </svg>
-                CEO Net Profit
-              </button>
               <button
                 type="button"
                 className="pb-choice-btn"
@@ -160,6 +193,78 @@ export default function CeoProjectsOverview({
                 </svg>
                 CEO Gross Profit
               </button>
+              <button
+                type="button"
+                className="pb-choice-btn"
+                onClick={() => setPrixburgSubView('net-profit')}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 17l6-6 4 4 8-8" />
+                  <path d="M14 7h7v7" />
+                </svg>
+                CEO Net Profit
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* CEO Gross Profit View */}
+        {prixburgSubView === 'gross-profit' && (
+          <div className="pb-panel">
+            <button
+              type="button"
+              className="rc-back-link"
+              onClick={() => setPrixburgSubView('menu')}
+            >
+              ← Back to CEO Analysis
+            </button>
+
+            <div className="pb-sales-cards" style={{ marginTop: 10 }}>
+              <div className="pb-sales-card">
+                <span>Today expected sales $</span>
+                <strong>{money(ceoAnalysis.grossProfitRows[0]?.expectedSales || 0)}</strong>
+              </div>
+              <div className="pb-sales-card">
+                <span>Today cost of raw materials $</span>
+                <strong>{money(ceoAnalysis.grossProfitRows[0]?.cost || 0)}</strong>
+              </div>
+              <div className="pb-sales-card">
+                <span>Today expected gross profit $</span>
+                <strong>{money(ceoAnalysis.grossProfitRows[0]?.gross || 0)}</strong>
+              </div>
+            </div>
+
+            <div className="pb-table-toolbar">
+              <div>
+                <h3>CEO Gross Profit</h3>
+                <p className="pb-dashboard-range">
+                  Expected sales come from production and pricing. Expected gross profit is expected sales minus the cost of raw materials.
+                </p>
+              </div>
+            </div>
+            <div className="tpl-table-wrap">
+              <table className="tpl-table">
+                <thead>
+                  <tr>
+                    <th>Period</th>
+                    <th>Expected sales</th>
+                    <th>Cost of raw materials</th>
+                    <th>Expected gross profit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ceoAnalysis.grossProfitRows.map((row) => (
+                    <tr key={row.key}>
+                      <td>{row.label}</td>
+                      <td>{money(row.expectedSales)}</td>
+                      <td>{money(row.cost)}</td>
+                      <td>
+                        <strong>{money(row.gross)}</strong>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -228,67 +333,6 @@ export default function CeoProjectsOverview({
             </div>
           </div>
         )}
-
-        {/* CEO Gross Profit View */}
-        {prixburgSubView === 'gross-profit' && (
-          <div className="pb-panel">
-            <button
-              type="button"
-              className="rc-back-link"
-              onClick={() => setPrixburgSubView('menu')}
-            >
-              ← Back to CEO Analysis
-            </button>
-
-            <div className="pb-sales-cards" style={{ marginTop: 10 }}>
-              <div className="pb-sales-card">
-                <span>Today expected sales $</span>
-                <strong>{money(ceoAnalysis.grossProfitRows[0]?.expectedSales || 0)}</strong>
-              </div>
-              <div className="pb-sales-card">
-                <span>Today cost of raw materials $</span>
-                <strong>{money(ceoAnalysis.grossProfitRows[0]?.cost || 0)}</strong>
-              </div>
-              <div className="pb-sales-card">
-                <span>Today expected gross profit $</span>
-                <strong>{money(ceoAnalysis.grossProfitRows[0]?.gross || 0)}</strong>
-              </div>
-            </div>
-
-            <div className="pb-table-toolbar">
-              <div>
-                <h3>CEO Gross Profit</h3>
-                <p className="pb-dashboard-range">
-                  Expected sales come from production and pricing. Expected gross profit is expected sales minus the cost of raw materials.
-                </p>
-              </div>
-            </div>
-            <div className="tpl-table-wrap">
-              <table className="tpl-table">
-                <thead>
-                  <tr>
-                    <th>Period</th>
-                    <th>Expected sales</th>
-                    <th>Cost of raw materials</th>
-                    <th>Expected gross profit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ceoAnalysis.grossProfitRows.map((row) => (
-                    <tr key={row.key}>
-                      <td>{row.label}</td>
-                      <td>{money(row.expectedSales)}</td>
-                      <td>{money(row.cost)}</td>
-                      <td>
-                        <strong>{money(row.gross)}</strong>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
       </div>
     )
   }
@@ -305,6 +349,67 @@ export default function CeoProjectsOverview({
       ? true
       : String(r.description || '').toLowerCase().includes(valSearch.trim().toLowerCase()),
   )
+
+  const fuelAnalysisRows = (() => {
+    const entries = activeProj?.fuel?.entries || []
+    const bulkTotalLiters = Number(activeProj?.fuel?.bulkInsertedLiters) || 0
+    const bulkTotalCost = Number(activeProj?.fuel?.bulkInsertedCost) || 0
+    const map = new Map()
+    entries.forEach((e) => {
+      const key = String(e.description || 'Diesel').trim().toLowerCase()
+      const cur = map.get(key) || {
+        id: key,
+        description: e.description || 'Diesel',
+        unit: e.unit || 'L',
+        consumedQty: 0,
+        consumedCost: 0,
+      }
+      cur.consumedQty = Math.round((cur.consumedQty + (Number(e.quantity || e.liters) || 0)) * 100) / 100
+      cur.consumedCost = Math.round((cur.consumedCost + (Number(e.totalCost) || 0)) * 100) / 100
+      map.set(key, cur)
+    })
+    return [...map.values()].map((row) => {
+      const isDiesel = row.id === 'diesel'
+      const bulkInsertedQty = isDiesel ? bulkTotalLiters : 0
+      const bulkInsertedCost = isDiesel ? bulkTotalCost : 0
+      return {
+        ...row,
+        bulkInsertedQty,
+        bulkInsertedCost,
+        fuelLeftQty: Math.round((row.consumedQty - bulkInsertedQty) * 100) / 100,
+        fuelLeftCost: Math.round((row.consumedCost - bulkInsertedCost) * 100) / 100,
+      }
+    })
+  })()
+
+  const handleCreateQuickProject = (event) => {
+    event.preventDefault()
+    const name = newProjName.trim()
+    if (!name || !siteMeta) return
+    const created = {
+      id: `p-${Date.now()}`,
+      name,
+      code: `RC-0${(siteMeta.projects?.length || 0) + 1}`,
+      location: siteMeta.location || 'Zimbabwe',
+      client: '',
+      manager: siteMeta.ceo || 'Engineer',
+      status: 'active',
+      startDate: new Date().toISOString().slice(0, 10),
+      endDate: null,
+      summary: `Construction and site works for ${name}.`,
+      valuations: [],
+      materialAnalysis: [],
+      workers: [],
+      fuel: { bulkInsertedLiters: 0, bulkInsertedCost: 0, entries: [] },
+      sheqReports: [],
+    }
+    const nextProjects = [created, ...(siteMeta.projects || [])]
+    saveSiteCeoMetadata(targetSite, { ...siteMeta, projects: nextProjects })
+    setNewProjName('')
+    setShowNewProjForm(false)
+    setSelectedProjectId(created.id)
+    setTick((t) => t + 1)
+  }
 
   return (
     <div className="ceo-overview-panel">
@@ -341,8 +446,63 @@ export default function CeoProjectsOverview({
           >
             Open {subdomain} Website
           </button>
+          <button
+            type="button"
+            className="tpl-secondary-btn"
+            onClick={() => setShowNewProjForm((v) => !v)}
+          >
+            {showNewProjForm ? 'Cancel' : '+ New Project'}
+          </button>
         </div>
       </div>
+
+      {/* Direct Tenant Dashboard Shortcuts (Home, Engineering, Admin/QS, Worker) */}
+      <div className="tpl-head-pills">
+        <button
+          type="button"
+          className="tpl-secondary-btn"
+          onClick={() => onOpenGeneratedApp?.(targetSite, activeProj?.id || '', 'project-home')}
+        >
+          Project Home
+        </button>
+        <button
+          type="button"
+          className="tpl-secondary-btn"
+          onClick={() => onOpenGeneratedApp?.(targetSite, activeProj?.id || '', 'ceo-dashboards')}
+        >
+          Engineering Hub
+        </button>
+        <button
+          type="button"
+          className="tpl-secondary-btn"
+          onClick={() => onOpenGeneratedApp?.(targetSite, activeProj?.id || '', 'qs-engineering')}
+        >
+          Admin / Quantity Survey
+        </button>
+        <button
+          type="button"
+          className="tpl-secondary-btn"
+          onClick={() => onOpenGeneratedApp?.(targetSite, activeProj?.id || '', 'workers')}
+        >
+          Worker &amp; Staff Registers
+        </button>
+      </div>
+
+      {showNewProjForm && (
+        <form className="ceo-quick-project-form" onSubmit={handleCreateQuickProject}>
+          <h5>Create New Project on {subdomain}</h5>
+          <input
+            type="text"
+            placeholder="Project name (e.g. Borrowdale Road Upgrade)"
+            value={newProjName}
+            onChange={(e) => setNewProjName(e.target.value)}
+            required
+          />
+          <button type="submit" className="primary-button">
+            Create Project
+          </button>
+        </form>
+      )}
 
       {projects.length > 1 && (
         <div className="ceo-site-pills">
@@ -366,12 +526,12 @@ export default function CeoProjectsOverview({
       {!activeProj ? (
         <div className="pb-panel">
           <p className="rc-sub">
-            No projects created on {subdomain} yet. Open {subdomain} Website to create your first project.
+            No projects created on {subdomain} yet. Click <strong>+ New Project</strong> above or open {subdomain} Website to create your first project.
           </p>
         </div>
       ) : (
         <>
-          {/* Engineering Main Menu (4 Main Buttons) */}
+          {/* Engineering Main Menu (Interactive Buttons for Cumulative Valuations, Material Analysis, Fuel Analysis, Workers) */}
           {rodcroftSubView === 'menu' && (
             <div className="pb-panel">
               <p className="rc-eyebrow">Engineering</p>
@@ -395,7 +555,7 @@ export default function CeoProjectsOverview({
                     </svg>
                   </span>
                   <div>
-                    <h2>Total work valued (Cumulative Valuations)</h2>
+                    <h2>Cumulative Valuations (Total work valued)</h2>
                     <p>
                       Project to date activities, cost ({money(activeProj.metrics.totalWorkValued)}), production and rate
                     </p>
@@ -405,7 +565,7 @@ export default function CeoProjectsOverview({
                 <button
                   type="button"
                   className="rc-choice-card"
-                  onClick={() => setRodcroftSubView('materials-overview')}
+                  onClick={() => setRodcroftSubView('material-analysis')}
                 >
                   <span className="rc-icon-tile">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -416,9 +576,30 @@ export default function CeoProjectsOverview({
                     </svg>
                   </span>
                   <div>
-                    <h2>Materials overview &amp; Material analysis</h2>
+                    <h2>Material Analysis</h2>
                     <p>
-                      Material analysis ({activeProj.metrics.materialLines} items) and project to date material on site
+                      Read-only project to date of material requested, received ({activeProj.metrics.materialLines} items), and balance left
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="rc-choice-card"
+                  onClick={() => setRodcroftSubView('fuel-analysis')}
+                >
+                  <span className="rc-icon-tile">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="3" y1="22" x2="15" y2="22" />
+                      <line x1="4" y1="9" x2="14" y2="9" />
+                      <path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18" />
+                      <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5" />
+                    </svg>
+                  </span>
+                  <div>
+                    <h2>Fuel Analysis</h2>
+                    <p>
+                      Fuel consumed ({numFmt(activeProj.metrics.fuelConsumedLiters)} L · {money(activeProj.metrics.fuelConsumedCost)}), bulk tank &amp; fuel left
                     </p>
                   </div>
                 </button>
@@ -437,30 +618,9 @@ export default function CeoProjectsOverview({
                     </svg>
                   </span>
                   <div>
-                    <h2>Total number of workers</h2>
+                    <h2>Total number of workers (Admin &amp; Site Registers)</h2>
                     <p>
                       Workers on site ({activeProj.metrics.workersOnSite}), admin members ({activeProj.metrics.adminCount}) and registers
-                    </p>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  className="rc-choice-card"
-                  onClick={() => setRodcroftSubView('fuel-consumed-to-date')}
-                >
-                  <span className="rc-icon-tile">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="3" y1="22" x2="15" y2="22" />
-                      <line x1="4" y1="9" x2="14" y2="9" />
-                      <path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18" />
-                      <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5" />
-                    </svg>
-                  </span>
-                  <div>
-                    <h2>Fuel consumed to date</h2>
-                    <p>
-                      Project to date fuel consumed ({numFmt(activeProj.metrics.fuelConsumedLiters)} L · {money(activeProj.metrics.fuelConsumedCost)})
                     </p>
                   </div>
                 </button>
@@ -529,8 +689,8 @@ export default function CeoProjectsOverview({
             </div>
           )}
 
-          {/* 2) Materials Overview & Material Analysis */}
-          {rodcroftSubView === 'materials-overview' && (
+          {/* 2) Material Analysis & Project to Date Material on Site */}
+          {rodcroftSubView === 'material-analysis' && (
             <div className="pb-panel">
               <button
                 type="button"
@@ -539,93 +699,28 @@ export default function CeoProjectsOverview({
               >
                 ← Back to Engineering
               </button>
-              <p className="rc-eyebrow" style={{ marginTop: 8 }}>Materials overview</p>
-              <h3>{activeProj.name}</h3>
-              <p className="rc-sub" style={{ marginBottom: 12 }}>
-                Open material analysis or the project to date material on site dashboard.
-              </p>
-
-              <div className="rc-choice-grid" style={{ marginBottom: 16 }}>
-                <button
-                  type="button"
-                  className="rc-choice-card"
-                  onClick={() => setRodcroftSubView('material-analysis')}
-                >
-                  <span className="rc-icon-tile">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="12" y1="20" x2="12" y2="10" />
-                      <line x1="18" y1="20" x2="18" y2="4" />
-                      <line x1="6" y1="20" x2="6" y2="16" />
-                    </svg>
-                  </span>
-                  <div>
-                    <h2>Material analysis</h2>
-                    <p>Read-only project to date of material requested, received, and the balance left</p>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  className="rc-choice-card"
-                  onClick={() => setRodcroftSubView('material-on-site')}
-                >
-                  <span className="rc-icon-tile">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M16.5 9.4 7.55 4.24" />
-                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                      <polyline points="3.29 7 12 12 20.71 7" />
-                      <line x1="12" y1="22" x2="12" y2="12" />
-                    </svg>
-                  </span>
-                  <div>
-                    <h2>Project to date material on site</h2>
-                    <p>Storeroom quantities, material used, and material left for the whole project</p>
-                  </div>
-                </button>
-              </div>
-
-              <h4>Material analysis (Project to date)</h4>
-              <div className="tpl-table-wrap">
-                <table className="tpl-table">
-                  <thead>
-                    <tr>
-                      <th>Description</th>
-                      <th className="text-right">Bulk material requested</th>
-                      <th className="text-right">Cumulative material received</th>
-                      <th className="text-right">Balance of material left</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(activeProj.materialAnalysis || []).map((row) => (
-                      <tr key={row.id}>
-                        <td><strong>{row.description}</strong></td>
-                        <td className="text-right">{numFmt(row.requestedQuantity)}</td>
-                        <td className="text-right">{numFmt(row.receivedQuantity)}</td>
-                        <td className="text-right">
-                          <strong>{numFmt(row.materialLeft)}</strong>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {rodcroftSubView === 'material-analysis' && (
-            <div className="pb-panel">
-              <button
-                type="button"
-                className="rc-back-link"
-                onClick={() => setRodcroftSubView('materials-overview')}
-              >
-                ← Back to Materials overview
-              </button>
               <p className="rc-eyebrow" style={{ marginTop: 8 }}>Material analysis</p>
               <h3>{activeProj.name}</h3>
               <p className="rc-sub" style={{ marginBottom: 12 }}>
                 Read-only project to date. Balance of material left is bulk material requested minus cumulative material received.
               </p>
+
+              <div className="tpl-head-pills" style={{ marginBottom: 12 }}>
+                <button
+                  type="button"
+                  className="tpl-primary-btn"
+                  onClick={() => setRodcroftSubView('material-analysis')}
+                >
+                  Material analysis
+                </button>
+                <button
+                  type="button"
+                  className="tpl-secondary-btn"
+                  onClick={() => setRodcroftSubView('material-on-site')}
+                >
+                  Project to date material on site
+                </button>
+              </div>
 
               <div className="tpl-table-wrap">
                 <table className="tpl-table">
@@ -659,9 +754,9 @@ export default function CeoProjectsOverview({
               <button
                 type="button"
                 className="rc-back-link"
-                onClick={() => setRodcroftSubView('materials-overview')}
+                onClick={() => setRodcroftSubView('material-analysis')}
               >
-                ← Back to Materials overview
+                ← Back to Material analysis
               </button>
               <p className="rc-eyebrow" style={{ marginTop: 8 }}>Project to date material on site</p>
               <h3>{activeProj.name}</h3>
@@ -701,7 +796,100 @@ export default function CeoProjectsOverview({
             </div>
           )}
 
-          {/* 3) Total Number of Workers */}
+          {/* 3) Fuel Analysis */}
+          {rodcroftSubView === 'fuel-analysis' && (
+            <div className="pb-panel">
+              <button
+                type="button"
+                className="rc-back-link"
+                onClick={() => setRodcroftSubView('menu')}
+              >
+                ← Back to Engineering
+              </button>
+              <p className="rc-eyebrow" style={{ marginTop: 8 }}>Fuel analysis</p>
+              <h3>{activeProj.name}</h3>
+              <p className="rc-sub" style={{ marginBottom: 12 }}>
+                Read-only project to date. Each fuel name is one line. Fuel left in tank is fuel consumed minus bulk fuel inserted in tank.
+              </p>
+
+              <div className="rc-headcount-grid" style={{ marginTop: 10 }}>
+                <div className="rc-headcount-card">
+                  <p className="rc-eyebrow">Bulk Fuel Inserted in Tank</p>
+                  <strong className="rc-headcount-num">{numFmt(activeProj.metrics.bulkFuelLiters)} L</strong>
+                  <p className="rc-sub">{money(activeProj.metrics.bulkFuelCost)}</p>
+                </div>
+                <div className="rc-headcount-card">
+                  <p className="rc-eyebrow">Total Fuel Consumed to Date</p>
+                  <strong className="rc-headcount-num">{numFmt(activeProj.metrics.fuelConsumedLiters)} L</strong>
+                  <p className="rc-sub">{money(activeProj.metrics.fuelConsumedCost)}</p>
+                </div>
+              </div>
+
+              <div className="tpl-head-pills" style={{ marginBottom: 12 }}>
+                <button
+                  type="button"
+                  className={!fuelDetailCostMode ? 'tpl-primary-btn' : 'tpl-secondary-btn'}
+                  onClick={() => setFuelDetailCostMode(false)}
+                >
+                  Fuel left in tank (Liters)
+                </button>
+                <button
+                  type="button"
+                  className={fuelDetailCostMode ? 'tpl-primary-btn' : 'tpl-secondary-btn'}
+                  onClick={() => setFuelDetailCostMode(true)}
+                >
+                  Details (Fuel Costs $)
+                </button>
+              </div>
+
+              <div className="tpl-table-wrap">
+                <table className="tpl-table">
+                  <thead>
+                    {!fuelDetailCostMode ? (
+                      <tr>
+                        <th>Description</th>
+                        <th className="text-right">Fuel consumed</th>
+                        <th className="text-right">Bulk fuel inserted in tank</th>
+                        <th className="text-right">Fuel left in tank</th>
+                      </tr>
+                    ) : (
+                      <tr>
+                        <th>Description</th>
+                        <th className="text-right">Fuel consumed cost</th>
+                        <th className="text-right">Bulk fuel inserted in tank cost</th>
+                        <th className="text-right">Fuel left in tank cost</th>
+                      </tr>
+                    )}
+                  </thead>
+                  <tbody>
+                    {fuelAnalysisRows.map((row) =>
+                      !fuelDetailCostMode ? (
+                        <tr key={row.id}>
+                          <td><strong>{row.description}</strong></td>
+                          <td className="text-right">{numFmt(row.consumedQty)}</td>
+                          <td className="text-right">{numFmt(row.bulkInsertedQty)}</td>
+                          <td className="text-right">
+                            <strong>{numFmt(row.fuelLeftQty)}</strong>
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr key={row.id}>
+                          <td><strong>{row.description}</strong></td>
+                          <td className="text-right">{money(row.consumedCost)}</td>
+                          <td className="text-right">{money(row.bulkInsertedCost)}</td>
+                          <td className="text-right">
+                            <strong>{money(row.fuelLeftCost)}</strong>
+                          </td>
+                        </tr>
+                      ),
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* 4) Total Number of Workers */}
           {rodcroftSubView === 'workers' && (
             <div className="pb-panel">
               <button
@@ -748,57 +936,6 @@ export default function CeoProjectsOverview({
                           <span className="tpl-code-badge">{w.register}</span>
                         </td>
                         <td>{w.plant || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* 4) Fuel Consumed to Date */}
-          {rodcroftSubView === 'fuel-consumed-to-date' && (
-            <div className="pb-panel">
-              <button
-                type="button"
-                className="rc-back-link"
-                onClick={() => setRodcroftSubView('menu')}
-              >
-                ← Back to Engineering
-              </button>
-              <p className="rc-eyebrow" style={{ marginTop: 8 }}>Fuel consumed to date</p>
-              <h3>{activeProj.name}</h3>
-
-              <div className="rc-headcount-grid" style={{ marginTop: 10 }}>
-                <div className="rc-headcount-card">
-                  <p className="rc-eyebrow">Bulk Fuel Inserted in Tank</p>
-                  <strong className="rc-headcount-num">{numFmt(activeProj.metrics.bulkFuelLiters)} L</strong>
-                  <p className="rc-sub">{money(activeProj.metrics.bulkFuelCost)}</p>
-                </div>
-                <div className="rc-headcount-card">
-                  <p className="rc-eyebrow">Total Fuel Consumed to Date</p>
-                  <strong className="rc-headcount-num">{numFmt(activeProj.metrics.fuelConsumedLiters)} L</strong>
-                  <p className="rc-sub">{money(activeProj.metrics.fuelConsumedCost)}</p>
-                </div>
-              </div>
-
-              <div className="tpl-table-wrap">
-                <table className="tpl-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Description</th>
-                      <th className="text-right">Quantity (L)</th>
-                      <th className="text-right">Total Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(activeProj.fuel?.entries || []).map((e) => (
-                      <tr key={e.id}>
-                        <td>{e.date}</td>
-                        <td><strong>{e.description}</strong></td>
-                        <td className="text-right">{numFmt(e.quantity || e.liters)}</td>
-                        <td className="text-right">{money(e.totalCost)}</td>
                       </tr>
                     ))}
                   </tbody>

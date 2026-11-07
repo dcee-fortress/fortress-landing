@@ -99,6 +99,7 @@ export default function RodcroftTemplate({
   const [view, setView] = useState(() => (initialProjectId ? initialView || 'project-home' : initialView))
   const [statusNote, setStatusNote] = useState('')
   const [valQuery, setValQuery] = useState('')
+  const [fuelDetailCostMode, setFuelDetailCostMode] = useState(false)
 
   // New project form
   const [newProjName, setNewProjName] = useState('')
@@ -123,6 +124,10 @@ export default function RodcroftTemplate({
     unit: 'L',
     quantity: '',
     unitPrice: '2.05',
+  })
+  const [bulkFuelDraft, setBulkFuelDraft] = useState({
+    liters: '',
+    unitPrice: '1.96',
   })
   const [workerDraft, setWorkerDraft] = useState({
     name: '',
@@ -287,6 +292,26 @@ export default function RodcroftTemplate({
     })
   }
 
+  const handleAddBulkFuel = (event) => {
+    event.preventDefault()
+    const liters = Number(bulkFuelDraft.liters) || 0
+    const unitPrice = Number(bulkFuelDraft.unitPrice) || 1.96
+    if (!(liters > 0)) return
+    updateCurrentProject((proj) => {
+      const prevLiters = Number(proj.fuel?.bulkInsertedLiters) || 0
+      const prevCost = Number(proj.fuel?.bulkInsertedCost) || 0
+      return {
+        ...proj,
+        fuel: {
+          ...(proj.fuel || { entries: [] }),
+          bulkInsertedLiters: Math.round((prevLiters + liters) * 100) / 100,
+          bulkInsertedCost: Math.round((prevCost + liters * unitPrice) * 100) / 100,
+        },
+      }
+    })
+    setBulkFuelDraft({ liters: '', unitPrice: '1.96' })
+  }
+
   const handleAddWorker = (event) => {
     event.preventDefault()
     const name = workerDraft.name.trim()
@@ -315,9 +340,11 @@ export default function RodcroftTemplate({
     return valuationsList.filter((r) => String(r.description || '').toLowerCase().includes(q))
   }, [valuationsList, valQuery])
 
-  // Group fuel consumed by fuel description (project-to-date rollup)
-  const fuelRollup = useMemo(() => {
+  // Group fuel consumed by fuel description (project-to-date rollup & Fuel Analysis rows)
+  const fuelAnalysisRows = useMemo(() => {
     const entries = currentProject?.fuel?.entries || []
+    const bulkTotalLiters = Number(currentProject?.fuel?.bulkInsertedLiters) || 0
+    const bulkTotalCost = Number(currentProject?.fuel?.bulkInsertedCost) || 0
     const map = new Map()
     entries.forEach((e) => {
       const key = String(e.description || 'Diesel').trim().toLowerCase()
@@ -325,14 +352,25 @@ export default function RodcroftTemplate({
         id: key,
         description: e.description || 'Diesel',
         unit: e.unit || 'L',
-        quantity: 0,
-        totalCost: 0,
+        consumedQty: 0,
+        consumedCost: 0,
       }
-      cur.quantity = Math.round((cur.quantity + (Number(e.quantity || e.liters) || 0)) * 100) / 100
-      cur.totalCost = Math.round((cur.totalCost + (Number(e.totalCost) || 0)) * 100) / 100
+      cur.consumedQty = Math.round((cur.consumedQty + (Number(e.quantity || e.liters) || 0)) * 100) / 100
+      cur.consumedCost = Math.round((cur.consumedCost + (Number(e.totalCost) || 0)) * 100) / 100
       map.set(key, cur)
     })
-    return [...map.values()]
+    return [...map.values()].map((row) => {
+      const isDiesel = row.id === 'diesel'
+      const bulkInsertedQty = isDiesel ? bulkTotalLiters : 0
+      const bulkInsertedCost = isDiesel ? bulkTotalCost : 0
+      return {
+        ...row,
+        bulkInsertedQty,
+        bulkInsertedCost,
+        fuelLeftQty: Math.round((row.consumedQty - bulkInsertedQty) * 100) / 100,
+        fuelLeftCost: Math.round((row.consumedCost - bulkInsertedCost) * 100) / 100,
+      }
+    })
   }, [currentProject])
 
   return (
@@ -521,7 +559,7 @@ export default function RodcroftTemplate({
                 </span>
                 <div>
                   <h2>Engineering</h2>
-                  <p>Executive overview of project performance</p>
+                  <p>Executive overview: Cumulative Valuations, Material Analysis, Fuel Analysis, and Workers</p>
                 </div>
               </button>
 
@@ -549,7 +587,7 @@ export default function RodcroftTemplate({
                 </span>
                 <div>
                   <h2>Safety &amp; Health</h2>
-                  <p>Site staff attendance and safety modules</p>
+                  <p>Site staff attendance, induction &amp; plant registers, and safety modules</p>
                 </div>
               </button>
             </div>
@@ -582,8 +620,36 @@ export default function RodcroftTemplate({
                   <ChoiceIcon name="hard-hat" />
                 </span>
                 <div>
-                  <h2>Total work valued</h2>
+                  <h2>Cumulative valuations (Total work valued)</h2>
                   <p>Project to date activities, cost, production and rate</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="rc-choice-card"
+                onClick={() => setView('material-analysis')}
+              >
+                <span className="rc-icon-tile">
+                  <ChoiceIcon name="package" />
+                </span>
+                <div>
+                  <h2>Material analysis</h2>
+                  <p>Project to date bulk material requested, received, and balance left on site</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="rc-choice-card"
+                onClick={() => setView('fuel-analysis')}
+              >
+                <span className="rc-icon-tile">
+                  <ChoiceIcon name="fuel" />
+                </span>
+                <div>
+                  <h2>Fuel analysis</h2>
+                  <p>Project to date fuel consumed, bulk fuel inserted in tank, and fuel left</p>
                 </div>
               </button>
 
@@ -596,36 +662,8 @@ export default function RodcroftTemplate({
                   <ChoiceIcon name="users" />
                 </span>
                 <div>
-                  <h2>Total number of workers</h2>
+                  <h2>Total number of workers (Admin &amp; Site Registers)</h2>
                   <p>Workers on site, admin members and registers</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className="rc-choice-card"
-                onClick={() => setView('materials-overview')}
-              >
-                <span className="rc-icon-tile">
-                  <ChoiceIcon name="package" />
-                </span>
-                <div>
-                  <h2>Materials overview</h2>
-                  <p>Material analysis and project to date material on site</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className="rc-choice-card"
-                onClick={() => setView('fuel-consumed-to-date')}
-              >
-                <span className="rc-icon-tile">
-                  <ChoiceIcon name="fuel" />
-                </span>
-                <div>
-                  <h2>Fuel consumed to date</h2>
-                  <p>Project to date fuel consumed quantities and costs from every daily entry</p>
                 </div>
               </button>
             </div>
@@ -658,7 +696,7 @@ export default function RodcroftTemplate({
                   <ChoiceIcon name="chart-bar" />
                 </span>
                 <div>
-                  <h2>Valuations</h2>
+                  <h2>Cumulative Valuations</h2>
                   <p>Open earned value dashboards for project-to-date, monthly, weekly, and daily reports</p>
                 </div>
               </button>
@@ -672,7 +710,7 @@ export default function RodcroftTemplate({
                   <ChoiceIcon name="package" />
                 </span>
                 <div>
-                  <h2>Material schedule</h2>
+                  <h2>Material schedule &amp; Material analysis</h2>
                   <p>Bulk material request, material received, material on site, and material analysis</p>
                 </div>
               </button>
@@ -680,14 +718,14 @@ export default function RodcroftTemplate({
               <button
                 type="button"
                 className="rc-choice-card"
-                onClick={() => setView('fuel-consumed-to-date')}
+                onClick={() => setView('fuel-analysis')}
               >
                 <span className="rc-icon-tile">
                   <ChoiceIcon name="fuel" />
                 </span>
                 <div>
-                  <h2>Fuel schedule</h2>
-                  <p>Fuel consumed project to date and daily files</p>
+                  <h2>Fuel schedule &amp; Fuel analysis</h2>
+                  <p>Fuel consumed project to date, bulk fuel in tank, and fuel analysis</p>
                 </div>
               </button>
             </div>
@@ -706,7 +744,7 @@ export default function RodcroftTemplate({
             </button>
 
             <header className="rc-section-header">
-              <p className="rc-eyebrow">Project to Date Report</p>
+              <p className="rc-eyebrow">Project to Date Report · Cumulative Valuations</p>
               <h1>{currentProject.name}</h1>
               <p className="rc-sub">
                 Cumulative from project start ({currentProject.startDate}) to date.
@@ -869,9 +907,9 @@ export default function RodcroftTemplate({
               <button
                 type="button"
                 className="rc-back-link"
-                onClick={() => setView('materials-overview')}
+                onClick={() => setView('ceo-dashboards')}
               >
-                ← Back to Materials overview
+                ← Back to Engineering
               </button>
               <p className="rc-eyebrow">Material analysis</p>
               <h1>{currentProject.name}</h1>
@@ -879,6 +917,23 @@ export default function RodcroftTemplate({
                 Read-only project to date. Similar descriptions are one line. Balance of material left is bulk material requested minus cumulative material received.
               </p>
             </header>
+
+            <div className="tpl-head-pills">
+              <button
+                type="button"
+                className="tpl-primary-btn"
+                onClick={() => setView('material-analysis')}
+              >
+                Material analysis
+              </button>
+              <button
+                type="button"
+                className="tpl-secondary-btn"
+                onClick={() => setView('material-on-site')}
+              >
+                Project to date material on site
+              </button>
+            </div>
 
             <section className="rc-report-card">
               <div className="rc-card-head">
@@ -959,9 +1014,9 @@ export default function RodcroftTemplate({
               <button
                 type="button"
                 className="rc-back-link"
-                onClick={() => setView('materials-overview')}
+                onClick={() => setView('material-analysis')}
               >
-                ← Back to Materials overview
+                ← Back to Material analysis
               </button>
               <p className="rc-eyebrow">Project to date material on site</p>
               <h1>{currentProject.name}</h1>
@@ -1011,6 +1066,176 @@ export default function RodcroftTemplate({
           </div>
         )}
 
+        {/* Exact Rodcroft Fuel Analysis & Fuel Consumed (`GoodsAnalysisView.jsx` & `GoodsReceivedRollupView.jsx`) */}
+        {currentProject && (view === 'fuel-analysis' || view === 'fuel-consumed-to-date') && (
+          <div className="rc-content-shell">
+            <header className="rc-section-header">
+              <button
+                type="button"
+                className="rc-back-link"
+                onClick={() => setView('ceo-dashboards')}
+              >
+                ← Back to Engineering
+              </button>
+              <p className="rc-eyebrow">Fuel analysis &amp; Fuel consumed to date</p>
+              <h1>{currentProject.name}</h1>
+              <p className="rc-sub">
+                Read-only project to date. Each fuel name is one line comparing fuel consumed against bulk fuel inserted in tank.
+              </p>
+            </header>
+
+            <div className="rc-headcount-grid">
+              <div className="rc-headcount-card">
+                <p className="rc-eyebrow">Bulk Fuel Inserted in Tank</p>
+                <strong className="rc-headcount-num">
+                  {numFmt(currentOverview?.metrics.bulkFuelLiters)} L
+                </strong>
+                <p className="rc-sub">{money(currentOverview?.metrics.bulkFuelCost)}</p>
+              </div>
+              <div className="rc-headcount-card">
+                <p className="rc-eyebrow">Project to Date Fuel Consumed</p>
+                <strong className="rc-headcount-num">
+                  {numFmt(currentOverview?.metrics.fuelConsumedLiters)} L
+                </strong>
+                <p className="rc-sub">{money(currentOverview?.metrics.fuelConsumedCost)}</p>
+              </div>
+            </div>
+
+            <div className="tpl-head-pills">
+              <button
+                type="button"
+                className={!fuelDetailCostMode ? 'tpl-primary-btn' : 'tpl-secondary-btn'}
+                onClick={() => setFuelDetailCostMode(false)}
+              >
+                Fuel Quantities (Liters)
+              </button>
+              <button
+                type="button"
+                className={fuelDetailCostMode ? 'tpl-primary-btn' : 'tpl-secondary-btn'}
+                onClick={() => setFuelDetailCostMode(true)}
+              >
+                Details (Fuel Costs $)
+              </button>
+            </div>
+
+            <section className="rc-report-card">
+              <div className="rc-card-head">
+                <h2>{fuelDetailCostMode ? 'Fuel analysis details (Costs)' : 'Fuel left in tank (Quantities)'}</h2>
+              </div>
+              {fuelAnalysisRows.length === 0 ? (
+                <p className="rc-empty-msg">
+                  No petrol, diesel, oil, or blend has been entered yet. Add entries below.
+                </p>
+              ) : (
+                <div className="tpl-table-wrap">
+                  <table className="tpl-table">
+                    <thead>
+                      {!fuelDetailCostMode ? (
+                        <tr>
+                          <th>Description</th>
+                          <th className="text-right">Fuel consumed</th>
+                          <th className="text-right">Bulk fuel inserted in tank</th>
+                          <th className="text-right">Fuel left in tank</th>
+                        </tr>
+                      ) : (
+                        <tr>
+                          <th>Description</th>
+                          <th className="text-right">Fuel consumed cost</th>
+                          <th className="text-right">Bulk fuel inserted in tank cost</th>
+                          <th className="text-right">Fuel left in tank cost</th>
+                        </tr>
+                      )}
+                    </thead>
+                    <tbody>
+                      {fuelAnalysisRows.map((row) =>
+                        !fuelDetailCostMode ? (
+                          <tr key={row.id}>
+                            <td><strong>{row.description}</strong></td>
+                            <td className="text-right">{numFmt(row.consumedQty)}</td>
+                            <td className="text-right">{numFmt(row.bulkInsertedQty)}</td>
+                            <td className="text-right">
+                              <strong>{numFmt(row.fuelLeftQty)}</strong>
+                            </td>
+                          </tr>
+                        ) : (
+                          <tr key={row.id}>
+                            <td><strong>{row.description}</strong></td>
+                            <td className="text-right">{money(row.consumedCost)}</td>
+                            <td className="text-right">{money(row.bulkInsertedCost)}</td>
+                            <td className="text-right">
+                              <strong>{money(row.fuelLeftCost)}</strong>
+                            </td>
+                          </tr>
+                        ),
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="rc-card-body">
+                <form className="tpl-inline-form" onSubmit={handleAddFuel}>
+                  <h4>Add Daily Fuel Consumed Entry</h4>
+                  <div className="tpl-form-row">
+                    <input
+                      type="date"
+                      value={fuelDraft.date}
+                      onChange={(e) => setFuelDraft({ ...fuelDraft, date: e.target.value })}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Fuel description (Diesel, Petrol, Blend)"
+                      value={fuelDraft.description}
+                      onChange={(e) => setFuelDraft({ ...fuelDraft, description: e.target.value })}
+                      required
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Quantity (L)"
+                      value={fuelDraft.quantity}
+                      onChange={(e) => setFuelDraft({ ...fuelDraft, quantity: e.target.value })}
+                      required
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Unit price ($)"
+                      value={fuelDraft.unitPrice}
+                      onChange={(e) => setFuelDraft({ ...fuelDraft, unitPrice: e.target.value })}
+                      required
+                    />
+                    <button type="submit" className="tpl-primary-btn">Save Fuel Consumed</button>
+                  </div>
+                </form>
+
+                <form className="tpl-inline-form" onSubmit={handleAddBulkFuel} style={{ marginTop: 12 }}>
+                  <h4>Add Bulk Fuel Inserted in Tank</h4>
+                  <div className="tpl-form-row">
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Bulk diesel inserted (L)"
+                      value={bulkFuelDraft.liters}
+                      onChange={(e) => setBulkFuelDraft({ ...bulkFuelDraft, liters: e.target.value })}
+                      required
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Unit price ($/L)"
+                      value={bulkFuelDraft.unitPrice}
+                      onChange={(e) => setBulkFuelDraft({ ...bulkFuelDraft, unitPrice: e.target.value })}
+                      required
+                    />
+                    <button type="submit" className="tpl-secondary-btn">Add Bulk Fuel to Tank</button>
+                  </div>
+                </form>
+              </div>
+            </section>
+          </div>
+        )}
+
         {/* Exact Rodcroft Total Number of Workers (`CeoWorkersPageClient.jsx`) */}
         {currentProject && (view === 'workers' || view === 'safety-health') && (
           <div className="rc-content-shell">
@@ -1022,7 +1247,7 @@ export default function RodcroftTemplate({
               >
                 ← Back to {view === 'safety-health' ? 'project home' : 'Engineering'}
               </button>
-              <p className="rc-eyebrow">Total number of workers</p>
+              <p className="rc-eyebrow">Total number of workers · Admin &amp; Site Registers</p>
               <h1>{currentProject.name}</h1>
               <p className="rc-sub">
                 People on site this month from the induction, site staff and operator registers. A name listed in more than one register is counted once.
@@ -1048,7 +1273,7 @@ export default function RodcroftTemplate({
 
             <section className="rc-report-card">
               <div className="rc-card-head">
-                <h2>Site Staff, Induction &amp; Plant Operator Registers</h2>
+                <h2>Site Staff (Admin), Induction &amp; Plant Operator Registers</h2>
               </div>
               {(currentProject.workers || []).length === 0 ? (
                 <p className="rc-empty-msg">No workers registered on this project yet.</p>
@@ -1117,123 +1342,6 @@ export default function RodcroftTemplate({
                       onChange={(e) => setWorkerDraft({ ...workerDraft, plant: e.target.value })}
                     />
                     <button type="submit" className="tpl-primary-btn">Add to Register</button>
-                  </div>
-                </form>
-              </div>
-            </section>
-          </div>
-        )}
-
-        {/* Exact Rodcroft Fuel Consumed to Date (`GoodsReceivedRollupView.jsx`) */}
-        {currentProject && view === 'fuel-consumed-to-date' && (
-          <div className="rc-content-shell">
-            <header className="rc-section-header">
-              <button
-                type="button"
-                className="rc-back-link"
-                onClick={() => setView('ceo-dashboards')}
-              >
-                ← Back to Engineering
-              </button>
-              <p className="rc-eyebrow">Fuel consumed to date</p>
-              <h1>{currentProject.name}</h1>
-              <p className="rc-sub">
-                Each fuel name is one line. Fuel consumed quantities and total costs from every daily entry are added together.
-              </p>
-            </header>
-
-            <div className="rc-headcount-grid">
-              <div className="rc-headcount-card">
-                <p className="rc-eyebrow">Current Bulk Fuel Inserted in Tank</p>
-                <strong className="rc-headcount-num">
-                  {numFmt(currentOverview?.metrics.bulkFuelLiters)} L
-                </strong>
-                <p className="rc-sub">{money(currentOverview?.metrics.bulkFuelCost)}</p>
-              </div>
-              <div className="rc-headcount-card">
-                <p className="rc-eyebrow">Project to Date Fuel Consumed</p>
-                <strong className="rc-headcount-num">
-                  {numFmt(currentOverview?.metrics.fuelConsumedLiters)} L
-                </strong>
-                <p className="rc-sub">{money(currentOverview?.metrics.fuelConsumedCost)}</p>
-              </div>
-            </div>
-
-            <section className="rc-report-card">
-              <div className="rc-card-head">
-                <h2>Project to date</h2>
-              </div>
-              {fuelRollup.length === 0 ? (
-                <p className="rc-empty-msg">
-                  No fuel consumed in this period yet. Add entries on daily fuel consumed below.
-                </p>
-              ) : (
-                <div className="tpl-table-wrap">
-                  <table className="tpl-table">
-                    <thead>
-                      <tr>
-                        <th>Description</th>
-                        <th>Unit</th>
-                        <th className="text-right">Fuel consumed quantity</th>
-                        <th className="text-right">Total cost</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {fuelRollup.map((row) => (
-                        <tr key={row.id}>
-                          <td><strong>{row.description}</strong></td>
-                          <td>{row.unit}</td>
-                          <td className="text-right">{numFmt(row.quantity)}</td>
-                          <td className="text-right">
-                            <strong>{money(row.totalCost)}</strong>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <th colSpan={2}>Total</th>
-                        <th className="text-right">{numFmt(currentOverview?.metrics.fuelConsumedLiters)}</th>
-                        <th className="text-right">{money(currentOverview?.metrics.fuelConsumedCost)}</th>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              )}
-
-              <div className="rc-card-body">
-                <form className="tpl-inline-form" onSubmit={handleAddFuel}>
-                  <h4>Add Daily Fuel Consumed Entry</h4>
-                  <div className="tpl-form-row">
-                    <input
-                      type="date"
-                      value={fuelDraft.date}
-                      onChange={(e) => setFuelDraft({ ...fuelDraft, date: e.target.value })}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Fuel description (Diesel, Petrol, Blend)"
-                      value={fuelDraft.description}
-                      onChange={(e) => setFuelDraft({ ...fuelDraft, description: e.target.value })}
-                      required
-                    />
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Quantity (L)"
-                      value={fuelDraft.quantity}
-                      onChange={(e) => setFuelDraft({ ...fuelDraft, quantity: e.target.value })}
-                      required
-                    />
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Unit price ($)"
-                      value={fuelDraft.unitPrice}
-                      onChange={(e) => setFuelDraft({ ...fuelDraft, unitPrice: e.target.value })}
-                      required
-                    />
-                    <button type="submit" className="tpl-primary-btn">Save Fuel Entry</button>
                   </div>
                 </form>
               </div>

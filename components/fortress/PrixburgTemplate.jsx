@@ -480,6 +480,21 @@ export default function PrixburgTemplate({
                     type="button"
                     className="pb-menu-btn"
                     onClick={() => {
+                      setView('settings')
+                      setMenuOpen(false)
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M9 3h6" />
+                      <path d="M10 3v7.5L5.2 18.2A2 2 0 0 0 6.9 21h10.2a2 2 0 0 0 1.7-2.8L14 10.5V3" />
+                      <path d="M8.5 14h7" />
+                    </svg>
+                    Product setup (Formulas &amp; Pricing)
+                  </button>
+                  <button
+                    type="button"
+                    className="pb-menu-btn"
+                    onClick={() => {
                       setView('ceo-analysis')
                       setMenuOpen(false)
                     }}
@@ -774,6 +789,18 @@ export default function PrixburgTemplate({
                   <path d="M8.5 12h7" />
                 </svg>
                 Finished products
+              </button>
+              <button
+                type="button"
+                className="pb-choice-btn"
+                onClick={() => setView('settings')}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 3h6" />
+                  <path d="M10 3v7.5L5.2 18.2A2 2 0 0 0 6.9 21h10.2a2 2 0 0 0 1.7-2.8L14 10.5V3" />
+                  <path d="M8.5 14h7" />
+                </svg>
+                Product setup (Detergent formulas &amp; Pricing)
               </button>
             </div>
           </div>
