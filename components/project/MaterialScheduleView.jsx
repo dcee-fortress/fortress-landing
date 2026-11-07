@@ -24,6 +24,7 @@ import {
   normalizeMaterialScheduleRows,
   readMaterialScheduleEditorRows,
   saveMaterialScheduleRows,
+  writeMaterialScheduleDraftRows,
   getActivityDescriptionsForSlot,
 } from "@/lib/materialSchedule"
 import {
@@ -99,9 +100,10 @@ function MaterialScheduleEditor({
       limit: 200,
     })
 
-  const persistRows = useCallback(
-    (nextRows = rowsRef.current, options) => {
-      return saveMaterialScheduleRows(projectId, dayId, slotId, scheduleType, nextRows, options)
+  // Edits stay in the day draft so the template can roll forward; Save publishes to dashboards.
+  const persistDraft = useCallback(
+    (nextRows = rowsRef.current) => {
+      writeMaterialScheduleDraftRows(projectId, dayId, slotId, scheduleType, nextRows)
     },
     [projectId, dayId, slotId, scheduleType]
   )
@@ -135,16 +137,16 @@ function MaterialScheduleEditor({
     if (!hasEditedRef.current) return undefined
 
     const timeoutId = window.setTimeout(() => {
-      persistRows(rowsRef.current, { rememberDescriptions: false })
+      persistDraft(rowsRef.current)
     }, 200)
 
     return () => window.clearTimeout(timeoutId)
-  }, [persistRows, rows])
+  }, [persistDraft, rows])
 
   useEffect(() => {
     const flush = () => {
       if (!hasEditedRef.current) return
-      persistRows(rowsRef.current)
+      persistDraft(rowsRef.current)
     }
 
     const onVisibility = () => {
@@ -160,7 +162,7 @@ function MaterialScheduleEditor({
       window.removeEventListener("beforeunload", flush)
       document.removeEventListener("visibilitychange", onVisibility)
     }
-  }, [persistRows])
+  }, [persistDraft])
 
   const markEdited = () => {
     hasEditedRef.current = true
@@ -197,7 +199,7 @@ function MaterialScheduleEditor({
     setRows((current) => {
       const next = [...current, createMaterialRow("", dayId)]
       rowsRef.current = next
-      persistRows(next)
+      persistDraft(next)
       return next
     })
   }
@@ -208,7 +210,7 @@ function MaterialScheduleEditor({
     setRows((current) => {
       const next = current.filter((row) => row.id !== rowId)
       rowsRef.current = next
-      persistRows(next)
+      persistDraft(next)
       return next
     })
     setSelectedCell(null)
@@ -223,7 +225,7 @@ function MaterialScheduleEditor({
       ])
       hasEditedRef.current = false
       setSavedMessage(
-        `${schedule.label} saved to Postgres. On each valuation dashboard, rate = actual cost on site ÷ production.`
+        `${schedule.label} saved. Valuations now roll to the dashboards, and this day becomes tomorrow's entry template.`
       )
     } catch (error) {
       setSavedMessage(
