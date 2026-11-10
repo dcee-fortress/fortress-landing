@@ -158,10 +158,10 @@ export default function CeoProjectsOverview({
 
         <div className="ceo-overview-header-card">
           <div>
-            <p className="rc-eyebrow">Cumulative Dashboard</p>
-            <h4>{siteMeta?.companyName || targetSite.name} — CEO Analysis</h4>
+            <p className="rc-eyebrow">CEO Analysis</p>
+            <h4>{siteMeta?.companyName || targetSite.name}</h4>
             <p className="shop-copy">
-              Command center for {subdomain}. Gross profit and net profit, with each report opening here.
+              Command center for {subdomain}. CEO Gross Profit and CEO Net Profit open here.
             </p>
           </div>
         </div>

@@ -5130,6 +5130,19 @@
   background: #fff;
 }
 
+.prixburg-live-site {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid rgba(28, 25, 21, 0.12);
+  border-radius: 16px;
+  background: #f4f4f5;
+}
+
+.prixburg-live-site .pb-app {
+  min-height: 100%;
+}
+
 .ceo-preview-note {
   margin: 4px 0 0;
 }

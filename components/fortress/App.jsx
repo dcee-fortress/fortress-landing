@@ -93,11 +93,11 @@ const COMPANY_LIVE_SITES = {
     label: 'rodcroft.fortress.vercel.app',
   },
   prixburg: {
-    home: 'https://prixburg.fortress.vercel.app/',
-    ceo: 'https://prixburg.fortress.vercel.app/ceo-analysis.html',
-    ceoNet: 'https://prixburg.fortress.vercel.app/ceo-net-profit.html',
-    ceoGross: 'https://prixburg.fortress.vercel.app/ceo-gross-profit.html',
-    label: 'prixburg.fortress.vercel.app',
+    home: 'https://prixburg.vercel.app/',
+    ceo: 'https://prixburg.vercel.app/',
+    ceoNet: 'https://prixburg.vercel.app/',
+    ceoGross: 'https://prixburg.vercel.app/',
+    label: 'prixburg.vercel.app',
   },
 }
 
@@ -5931,6 +5931,12 @@ function App() {
   })
   const ceoActiveSite =
     privateSystems.find((site) => site.id === ceoAppId) || rodcroftCeoSite || dashSite || currentProfile
+  const ceoPreviewSlug = cleanSlug(
+    String(ceoActiveSite?.slug || ceoActiveSite?.catalogId || '').replace(/^site-/, ''),
+  )
+  const ceoWebsitePreviewOpen =
+    Boolean(profileWebsitePreview && ceoActiveSite && !siteTrialEnded(ceoActiveSite)) &&
+    (ceoPreviewSlug === 'rodcroft' || ceoPreviewSlug === 'prixburg')
   const switchAccounts = signedInAccount
     ? accounts.filter(
         (account) =>
@@ -7434,12 +7440,7 @@ function App() {
             </section>
           )}
 
-          {tab === 'profile' &&
-            signedInAccount &&
-            profileWebsitePreview &&
-            ceoActiveSite &&
-            !siteTrialEnded(ceoActiveSite) &&
-            cleanSlug(ceoActiveSite.slug || ceoActiveSite.catalogId || '') === 'rodcroft' && (
+          {tab === 'profile' && signedInAccount && ceoWebsitePreviewOpen && ceoPreviewSlug === 'rodcroft' && (
             <section className="profile-panel ceo-live-preview-panel">
               <div className="ceo-preview-bar">
                 <button type="button" className="text-back" onClick={() => setProfileWebsitePreview(false)}>
@@ -7454,14 +7455,31 @@ function App() {
             </section>
           )}
 
-          {tab === 'profile' &&
-            signedInAccount &&
-            !(
-              profileWebsitePreview &&
-              ceoActiveSite &&
-              !siteTrialEnded(ceoActiveSite) &&
-              cleanSlug(ceoActiveSite.slug || ceoActiveSite.catalogId || '') === 'rodcroft'
-            ) && (
+          {tab === 'profile' && signedInAccount && ceoWebsitePreviewOpen && ceoPreviewSlug === 'prixburg' && (
+            <section className="profile-panel ceo-live-preview-panel">
+              <div className="ceo-preview-bar">
+                <button type="button" className="text-back" onClick={() => setProfileWebsitePreview(false)}>
+                  ← Dashboard
+                </button>
+              </div>
+              <div className="prixburg-live-site">
+                <PrixburgTemplate
+                  site={ceoActiveSite}
+                  initialView="home"
+                  onMetadataUpdated={(updatedMeta) => {
+                    if (ceoActiveSite?.id && signedInAccount) {
+                      updateWebsite(ceoActiveSite.id, {
+                        name: updatedMeta.companyName || ceoActiveSite.name,
+                        ceo: updatedMeta.ceo ?? ceoActiveSite.ceo,
+                      })
+                    }
+                  }}
+                />
+              </div>
+            </section>
+          )}
+
+          {tab === 'profile' && signedInAccount && !ceoWebsitePreviewOpen && (
             <section className="profile-panel">
               <div className="profile-summary ig-profile-head">
                 <div className="profile-avatar-wrap" ref={avatarMenuRef}>

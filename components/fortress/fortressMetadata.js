@@ -20,7 +20,13 @@ export const subdomainLabelFor = (slugOrSite) => {
         slugOrSite?.catalogId ||
         slugOrSite?.name ||
         'company'
-  const slug = cleanSlug(String(rawSlug).replace(/^site-/, '').replace(/\.fortress\.vercel\.app$/i, ''))
+  const slug = cleanSlug(
+    String(rawSlug)
+      .replace(/^site-/, '')
+      .replace(/\.fortress\.vercel\.app$/i, '')
+      .replace(/\.vercel\.app$/i, ''),
+  )
+  if (slug === 'prixburg') return 'prixburg.vercel.app'
   return `${slug}.${FORTRESS_SUBDOMAIN_ROOT}`
 }
 
@@ -265,7 +271,7 @@ export const DEFAULT_RODCROFT_METADATA = {
 
 export const DEFAULT_PRIXBURG_METADATA = {
   slug: 'prixburg',
-  subdomain: 'prixburg.fortress.vercel.app',
+  subdomain: 'prixburg.vercel.app',
   template: 'prixburg',
   systemType: 'manufacturing',
   isSeededTenant: true,
