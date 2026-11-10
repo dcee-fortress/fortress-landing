@@ -2,6 +2,7 @@ import { storage } from './storage'
 
 export const FORTRESS_SUBDOMAIN_ROOT = 'fortress.vercel.app'
 export const CEO_METADATA_STORAGE_KEY = 'fortress-ceo-metadata-v4'
+export const RODCROFT_CHADCOMBE_PROJECT_ID = 'p-1789313935790'
 
 export const cleanSlug = (value = '') =>
   String(value || '')
@@ -548,6 +549,7 @@ export const loadAllCeoMetadata = () => {
         }
       }
     })
+    if (merged.rodcroft) merged.rodcroft = pinRodcroftChadcombe(merged.rodcroft, defaults.rodcroft)
     return merged
   } catch {
     return defaults
@@ -564,6 +566,36 @@ export const saveAllCeoMetadata = (map) => {
   }
 }
 
+function pinRodcroftChadcombe(saved, base) {
+  const chadcombe = (base?.projects || []).find((project) => project?.id === RODCROFT_CHADCOMBE_PROJECT_ID) ||
+    (base?.projects || [])[0]
+  const savedProjects = Array.isArray(saved?.projects) ? saved.projects : []
+  const extras = savedProjects.filter((project) => {
+    const name = String(project?.name || '').trim().toLowerCase()
+    if (!project?.id || name === 'lemon') return false
+    if (project.id === RODCROFT_CHADCOMBE_PROJECT_ID) return false
+    return true
+  })
+  return {
+    ...(base || {}),
+    ...(saved || {}),
+    slug: 'rodcroft',
+    companyName: 'Rodcroft',
+    brandName: 'Rodcroft',
+    template: 'rodcroft',
+    systemType: 'construction',
+    subdomain: 'rodcroft.fortress.vercel.app',
+    projects: [
+      {
+        ...(chadcombe || {}),
+        id: RODCROFT_CHADCOMBE_PROJECT_ID,
+        name: 'Chadcombe',
+      },
+      ...extras,
+    ],
+  }
+}
+
 export const getSiteCeoMetadata = (siteOrSlug) => {
   const all = loadAllCeoMetadata()
   const rawSlug =
@@ -571,6 +603,7 @@ export const getSiteCeoMetadata = (siteOrSlug) => {
       ? siteOrSlug
       : siteOrSlug?.slug || siteOrSlug?.catalogId || siteOrSlug?.name || 'rodcroft'
   const slug = cleanSlug(String(rawSlug).replace(/^site-/, ''))
+  if (slug === 'rodcroft') return pinRodcroftChadcombe(all.rodcroft, all.rodcroft)
   if (all[slug]) return all[slug]
 
   const isSeeded = slug === 'rodcroft' || slug === 'prixburg'
@@ -730,26 +763,20 @@ export const computePrixburgCeoAnalysis = (metaOrSite) => {
   }
 }
 
-export const computeSiteProjectsOverview = (siteOrSlug) => {
-  const meta = getSiteCeoMetadata(siteOrSlug)
-  const isManufacturing = meta.systemType === 'manufacturing' || meta.template === 'prixburg'
+export function overviewForConstructionProject(project, meta = {}) {
+  const valuations = project.valuations || []
+  const totalWorkValued = valuations.reduce((sum, v) => sum + (Number(v.valueEarned) || 0), 0)
+  const totalProduction = valuations.reduce((sum, v) => sum + (Number(v.production) || 0), 0)
+  const matAnalysis = project.materialAnalysis || []
+  const workers = project.workers || []
+  const adminCount = workers.filter((w) => w.register === 'admin').length
+  const operatorCount = workers.filter((w) => w.register === 'operators').length
+  const inductionCount = workers.filter((w) => w.register === 'induction').length
+  const fuelEntries = project.fuel?.entries || []
+  const fuelConsumedLiters = fuelEntries.reduce((sum, e) => sum + (Number(e.quantity || e.liters) || 0), 0)
+  const fuelConsumedCost = fuelEntries.reduce((sum, e) => sum + (Number(e.totalCost) || 0), 0)
 
-  if (!isManufacturing) {
-    const projects = Array.isArray(meta.projects) ? meta.projects : []
-    return projects.map((project) => {
-      const valuations = project.valuations || []
-      const totalWorkValued = valuations.reduce((sum, v) => sum + (Number(v.valueEarned) || 0), 0)
-      const totalProduction = valuations.reduce((sum, v) => sum + (Number(v.production) || 0), 0)
-      const matAnalysis = project.materialAnalysis || []
-      const workers = project.workers || []
-      const adminCount = workers.filter((w) => w.register === 'admin').length
-      const operatorCount = workers.filter((w) => w.register === 'operators').length
-      const inductionCount = workers.filter((w) => w.register === 'induction').length
-      const fuelEntries = project.fuel?.entries || []
-      const fuelConsumedLiters = fuelEntries.reduce((sum, e) => sum + (Number(e.quantity || e.liters) || 0), 0)
-      const fuelConsumedCost = fuelEntries.reduce((sum, e) => sum + (Number(e.totalCost) || 0), 0)
-
-      return {
+  return {
         id: project.id,
         name: project.name,
         code: project.code || 'SITE',
@@ -781,9 +808,17 @@ export const computeSiteProjectsOverview = (siteOrSlug) => {
           fuelConsumedCost: Math.round(fuelConsumedCost * 100) / 100,
           bulkFuelLiters: Number(project.fuel?.bulkInsertedLiters) || 0,
           bulkFuelCost: Number(project.fuel?.bulkInsertedCost) || 0,
-        },
-      }
-    })
+    },
+  }
+}
+
+export const computeSiteProjectsOverview = (siteOrSlug) => {
+  const meta = getSiteCeoMetadata(siteOrSlug)
+  const isManufacturing = meta.systemType === 'manufacturing' || meta.template === 'prixburg'
+
+  if (!isManufacturing) {
+    const projects = Array.isArray(meta.projects) ? meta.projects : []
+    return projects.map((project) => overviewForConstructionProject(project, meta))
   }
 
   const analysis = computePrixburgCeoAnalysis(meta)

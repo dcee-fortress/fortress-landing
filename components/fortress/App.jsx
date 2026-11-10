@@ -33,6 +33,7 @@ import {
   cleanSlug,
   detectActiveSubdomain,
   getSiteCeoMetadata,
+  RODCROFT_CHADCOMBE_PROJECT_ID,
   saveSiteCeoMetadata,
   subdomainLabelFor,
   subdomainUrlFor,
@@ -665,9 +666,37 @@ const formatPrice = (price) =>
     maximumFractionDigits: 2,
   })}`
 
+const TRIAL_DAYS = 14
+const TRIAL_MS = TRIAL_DAYS * 86400000
+
+const siteTrialEnded = (site) => {
+  if (!site || site.catalogId) return false
+  if (site.billingStatus === 'paused') return true
+  if (site.billingStatus !== 'trial') return false
+  return Number(site.trialUntil) > 0 && Date.now() > Number(site.trialUntil)
+}
+
+function PausedTrial({ site, onSubscribe, onBack }) {
+  return (
+    <section className="panel-box settings-page trial-paused">
+      {onBack ? (
+        <button type="button" className="text-back" onClick={onBack}>
+          Back
+        </button>
+      ) : null}
+      <h3>Your app is paused. Subscribe to reactivate.</h3>
+      <p className="shop-copy">
+        {site?.name || 'This app'} is still here with its photos, services, and data. It stays locked until you subscribe.
+      </p>
+      <button type="button" className="primary-button" onClick={onSubscribe}>
+        Subscribe to reactivate
+      </button>
+    </section>
+  )
+}
+
 const MENU_ACTIONS = [
   { id: 'buy', label: 'Buy CEO Website' },
-  { id: 'calc', label: 'Fabrication Calculator' },
 ]
 
 const NAV = [
@@ -838,31 +867,17 @@ const readMediaFile = async (file) => {
 
 const FAB_PLANS = [{ id: 'month', label: '1 month', price: 100, days: 30 }]
 
-/** Freemium: 6 free drawing uploads, then $100/month. */
-const FAB_FREE_DRAWS_KEY = 'fortress-fab-free-draws-v1'
-const FAB_FREE_DRAW_LIMIT = 6
-const FAB_FREE_DRAW_WARN_AT = 2
-
-const loadFreeDrawUsage = () => {
-  try {
-    const n = Number(storage.getItem(FAB_FREE_DRAWS_KEY) || '0')
-    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0
-  } catch {
-    return 0
-  }
-}
-
-const saveFreeDrawUsage = (count) => {
-  try {
-    storage.setItem(FAB_FREE_DRAWS_KEY, String(Math.max(0, Math.floor(count))))
-  } catch {
-    /* ignore */
-  }
-}
+/** Fabrication calculator is $100/month, or a 14 day trial. It does not open for free. */
 
 const fabSubscriptionActive = (site) => Number(site?.paidUntil) > Date.now()
 
-const freeDrawsRemaining = (used = 0) => Math.max(0, FAB_FREE_DRAW_LIMIT - Number(used || 0))
+const fabTrialActive = (site) =>
+  Boolean(site?.id) &&
+  !site?.catalogId &&
+  site?.billingStatus === 'trial' &&
+  Number(site.trialUntil) > Date.now()
+
+const fabAccessActive = (site) => fabSubscriptionActive(site) || fabTrialActive(site)
 
 const GATE_COMPLEXITY = [
   { id: 'simple', label: 'Simple design', rate: 45, copy: 'Straight frame, rails, and standard infill.' },
@@ -968,8 +983,8 @@ const HOME_ADS = [
   {
     id: 'ad-fab',
     kicker: 'Ad',
-    title: 'Fabrication calculator',
-    copy: '$100 a month',
+    title: 'Fabrication website',
+    copy: 'Zantac template · $100 a month',
   },
   {
     id: 'ad-site',
@@ -982,9 +997,9 @@ const HOME_ADS = [
 const SYSTEM_TYPES = [
   {
     id: 'fabrication',
-    label: 'Fabrication calculator',
-    style: 'Free to open',
-    how: 'Open the calculator webpage. Pick a gate design, enter width and height, then choose simple, medium, or complex laser cut. Use it for $100 a month.',
+    label: 'Fabrication website',
+    style: 'Zantac template',
+    how: 'A private Zantac-template fabrication website. Pick a gate design, enter width and height, then choose simple, medium, or complex laser cut. Pay $100 a month, or start a 14 day trial.',
     preview: GATE_DESIGNS.slice(0, 4).map((gate) => gate.photo),
     slides: GATE_DESIGNS.slice(0, 5).map((gate, index) => ({
       photo: gate.photo,
@@ -1127,6 +1142,9 @@ const makeWebsite = ({
   cssName = '',
   fabPlan = '',
   paidUntil = 0,
+  billingStatus = '',
+  trialUntil = 0,
+  domain = '',
   drawings = [],
   catalogId = '',
   ceo = '',
@@ -1150,6 +1168,9 @@ const makeWebsite = ({
   cssName: cssName || slugify(brandName || name).replace(/-/g, ''),
   fabPlan,
   paidUntil,
+  billingStatus,
+  trialUntil,
+  domain,
   drawings,
   catalogId,
   ceo,
@@ -1161,6 +1182,7 @@ const makeAccount = (email, password, companyName, { withWebsite = true, id = ''
   id: id || makeId('account'),
   email,
   password,
+  linkedAccountIds: [],
   websites: withWebsite ? [makeWebsite({ name: companyName || 'My company', type: 'Business' })] : [],
 })
 
@@ -2549,6 +2571,7 @@ function OpenedCard({
 function CeoDashboard({
   site,
   onBack,
+  backLabel = '← Fortress',
   embedded = false,
   initialProjectId = '',
   initialView = 'home',
@@ -2561,7 +2584,8 @@ function CeoDashboard({
       site={site}
       initialProjectId={initialProjectId}
       initialView={initialView}
-      onBack={embedded ? undefined : onBack}
+      onBack={onBack}
+      backLabel={backLabel}
       onMetadataUpdated={onMetadataUpdated}
     />
   ) : (
@@ -2569,7 +2593,8 @@ function CeoDashboard({
       site={site}
       initialProjectId={initialProjectId}
       initialView={initialView}
-      onBack={embedded ? undefined : onBack}
+      onBack={onBack}
+      backLabel={backLabel}
       onMetadataUpdated={onMetadataUpdated}
     />
   )
@@ -2920,6 +2945,7 @@ function FabricationCalculator({
   onSave,
   onRenew,
   onBack,
+  backLabel = 'Fortress',
   pricing,
   onSavePricing,
   routePanel = 'home',
@@ -2946,15 +2972,15 @@ function FabricationCalculator({
   const [objections, setObjections] = useState('')
   const [aiBusy, setAiBusy] = useState(false)
   const [master, setMaster] = useState(() => loadMasterTemplate())
-  const [online, setOnline] = useState(() => readOnline())
-  const [freeDrawsUsed, setFreeDrawsUsed] = useState(() => loadFreeDrawUsage())
+  const [online, setOnline] = useState(true)
   const [freemiumNote, setFreemiumNote] = useState('')
-  /** One freemium credit per project start (drawing upload or gate size entry). */
+  /** Kept so a job already started in this session can finish its steps. */
   const [freemiumConsumedForProject, setFreemiumConsumedForProject] = useState(false)
   const rates = { ...emptyFabPricing(), ...(pricing || {}), ...(priceForm || {}) }
-  const subActive = fabSubscriptionActive(site)
-  const freeLeft = freeDrawsRemaining(freeDrawsUsed)
-  const canUseFreemiumJob = subActive || freeLeft > 0
+  const trialActive = fabTrialActive(site)
+  const subActive = fabSubscriptionActive(site) || trialActive
+  const freeLeft = 0
+  const canUseFreemiumJob = subActive
   const canUploadDrawing = canUseFreemiumJob
   const canStartGateQuote = canUseFreemiumJob
 
@@ -2976,13 +3002,13 @@ function FabricationCalculator({
     })
 
   useEffect(() => {
-    const goOnline = () => setOnline(true)
-    const goOffline = () => setOnline(false)
-    window.addEventListener('online', goOnline)
-    window.addEventListener('offline', goOffline)
+    const syncOnline = () => setOnline(readOnline())
+    syncOnline()
+    window.addEventListener('online', syncOnline)
+    window.addEventListener('offline', syncOnline)
     return () => {
-      window.removeEventListener('online', goOnline)
-      window.removeEventListener('offline', goOffline)
+      window.removeEventListener('online', syncOnline)
+      window.removeEventListener('offline', syncOnline)
     }
   }, [])
 
@@ -2999,62 +3025,23 @@ function FabricationCalculator({
       setFreemiumConsumedForProject(true)
       return { ok: true, left: null }
     }
-    if (freeLeft <= 0) {
-      setFreemiumNote(
-        'Free uses used up. Subscribe ($100/month) to upload drawings or start new gate quotes.',
-      )
-      goView('subscriptions')
-      return { ok: false, left: 0 }
-    }
-    const nextUsed = freeDrawsUsed + 1
-    const nextLeft = freeDrawsRemaining(nextUsed)
-    setFreeDrawsUsed(nextUsed)
-    saveFreeDrawUsage(nextUsed)
-    setFreemiumConsumedForProject(true)
-    if (nextLeft === FAB_FREE_DRAW_WARN_AT) {
-      setFreemiumNote(
-        '2 free uses left — then you need a subscription for new drawings or gate width/height quotes.',
-      )
-    } else if (nextLeft === 0) {
-      setFreemiumNote(
-        'That was your last free use. Subscribe to upload drawings or enter new gate sizes.',
-      )
-    } else if (nextLeft < FAB_FREE_DRAW_WARN_AT) {
-      setFreemiumNote(`${nextLeft} free use${nextLeft === 1 ? '' : 's'} left.`)
-    } else {
-      setFreemiumNote('')
-    }
-    return { ok: true, left: nextLeft }
+    setFreemiumNote('The fabrication calculator is $100/month. Pay first, or use an active 14 day trial.')
+    goView('subscriptions')
+    return { ok: false, left: 0 }
   }
 
   const guardDrawingUpload = () => {
     if (subActive) return true
-    if (freeLeft <= 0) {
-      setFreemiumNote(
-        'Free uses used up. Subscribe ($100/month) to upload drawings or start new gate quotes.',
-      )
-      goView('subscriptions')
-      return false
-    }
-    if (freeLeft === FAB_FREE_DRAW_WARN_AT) {
-      setFreemiumNote('2 free uses left — subscribe anytime under Subscriptions.')
-    }
-    return true
+    setFreemiumNote('The fabrication calculator is $100/month. Pay first, or use an active 14 day trial.')
+    goView('subscriptions')
+    return false
   }
 
   const guardGateQuoteStart = () => {
     if (subActive) return true
-    if (freeLeft <= 0) {
-      setFreemiumNote(
-        'Free uses used up. Subscribe ($100/month) to enter gate width and height.',
-      )
-      goView('subscriptions')
-      return false
-    }
-    if (freeLeft === FAB_FREE_DRAW_WARN_AT) {
-      setFreemiumNote('2 free uses left — subscribe anytime under Subscriptions.')
-    }
-    return true
+    setFreemiumNote('The fabrication calculator is $100/month. Pay first, or use an active 14 day trial.')
+    goView('subscriptions')
+    return false
   }
   const gateDraft = { ...emptyDrawingDraft(), ...(project.gate || {}) }
   const gateQuote = project.jobType === 'gate' ? fabQuote({ ...gateDraft, ...project.gate }, rates) : null
@@ -3138,6 +3125,11 @@ function FabricationCalculator({
   }
 
   const startNewProject = () => {
+    if (!subActive) {
+      setFreemiumNote('The fabrication calculator is $100/month. Pay first, or use an active 14 day trial.')
+      goView('subscriptions')
+      return
+    }
     setProject(emptyProject())
     onChange(emptyDrawingDraft())
     setNote('')
@@ -3685,7 +3677,7 @@ function FabricationCalculator({
     setProject(base)
     setObjections('')
 
-    const online = typeof navigator === 'undefined' ? true : navigator.onLine
+    const online = readOnline()
     const provider = online ? 'gemini' : 'tesseract'
     setAiBusy(true)
     setDrawingNote(
@@ -3825,18 +3817,18 @@ function FabricationCalculator({
           onForward={onHistoryForward}
         />
         <div>
-          <p className="eyebrow">Fabrication calc{online ? '' : ' · offline'}</p>
-          <strong>{project.name || 'Fabrication calc'}</strong>
+          <p className="eyebrow">Fabrication website{online ? '' : ' · offline'}</p>
+          <strong>{project.name || 'Fabrication website'}</strong>
         </div>
         {onBack ? (
           <button
             type="button"
             className="text-back fab-fortress-home"
             onClick={onBack}
-            aria-label="Back to Fortress"
+            aria-label={`Back to ${backLabel}`}
           >
             <FabMenuIcon name="home" />
-            Fortress
+            {backLabel}
           </button>
         ) : (
           <span />
@@ -3893,8 +3885,8 @@ function FabricationCalculator({
         <main className="fab-home">
           <section className="fab-section">
             <div className="fab-title-row">
-              <h1>Fabrication calc</h1>
-              {!subActive ? <span className="fab-freemium-sticker">Freemium</span> : null}
+              <h1>Fabrication website</h1>
+              {!subActive ? <span className="fab-freemium-sticker">$100/month</span> : null}
             </div>
             <p>
               Upload any drawing. The app reads this plan only (same file can reuse memory), shows a take-off script to
@@ -3902,13 +3894,13 @@ function FabricationCalculator({
             </p>
             {!subActive ? (
               <p className="fab-freemium-meter" role="status">
-                {freeLeft > 0
-                  ? `${freeLeft} of ${FAB_FREE_DRAW_LIMIT} free uses left (drawings or gate quotes)`
-                  : 'Free uses gone — subscribe to upload drawings or enter gate sizes'}
+                $100/month. Pay first, or start a 14 day free trial from Buy CEO Website.
               </p>
             ) : (
               <p className="fab-freemium-meter fab-freemium-meter-active" role="status">
-                Subscription active — unlimited drawings and gate quotes
+                {trialActive
+                  ? `14 day trial active until ${new Date(Number(site?.trialUntil)).toLocaleDateString()}`
+                  : 'Subscription active — unlimited drawings and gate quotes'}
               </p>
             )}
             {freemiumNote ? <p className="fab-freemium-alert">{freemiumNote}</p> : null}
@@ -3916,8 +3908,8 @@ function FabricationCalculator({
               CREATE PROJECT
             </button>
             <p className="fab-note">
-              Upload a CAD plan, scan, or hand-drawn sketch, or price a gate with no drawing. Freemium allows 6 free jobs
-              total.
+              Upload a CAD plan, scan, or hand-drawn sketch, or price a gate with no drawing. This calculator is $100/month,
+              or a 14 day trial.
             </p>
             <div className="fab-master-card">
               <strong>Master template</strong>
@@ -3953,17 +3945,14 @@ function FabricationCalculator({
           <section className="fab-section">
             <div className="fab-title-row">
               <h1>Create project</h1>
-              {!subActive ? <span className="fab-freemium-sticker">Freemium</span> : null}
+              {!subActive ? <span className="fab-freemium-sticker">$100/month</span> : null}
             </div>
             <p className="fab-note">
-              Name the job, then upload a drawing — or price a gate with no drawing. Both use the same 6 free freemium
-              credits.
+              Name the job, then upload a drawing — or price a gate with no drawing. Payment or an active 14 day trial is required.
             </p>
             {!subActive ? (
               <p className="fab-freemium-meter" role="status">
-                {freeLeft > 0
-                  ? `${freeLeft} of ${FAB_FREE_DRAW_LIMIT} free uses left`
-                  : 'No free uses left — subscribe to continue'}
+                $100/month. Pay first, or use an active 14 day trial.
               </p>
             ) : null}
             {freemiumNote ? <p className="fab-freemium-alert">{freemiumNote}</p> : null}
@@ -4063,16 +4052,14 @@ function FabricationCalculator({
           <section className="fab-section">
             <div className="fab-title-row">
               <h1>Plan without drawing</h1>
-              {!subActive ? <span className="fab-freemium-sticker">Freemium</span> : null}
+              {!subActive ? <span className="fab-freemium-sticker">$100/month</span> : null}
             </div>
             {!project.planKind ? (
               <p className="fab-note">Choose what to price — Zimbabwe shop formulas, no drawing needed.</p>
             ) : null}
             {!subActive ? (
               <p className="fab-freemium-meter" role="status">
-                {freeLeft > 0
-                  ? `${freeLeft} of ${FAB_FREE_DRAW_LIMIT} free uses left`
-                  : 'No free uses left — subscribe to continue'}
+                $100/month. Pay first, or use an active 14 day trial.
               </p>
             ) : null}
             {freemiumNote ? <p className="fab-freemium-alert">{freemiumNote}</p> : null}
@@ -4080,7 +4067,7 @@ function FabricationCalculator({
             {!canStartGateQuote && !freemiumConsumedForProject ? (
               <div className="drawing-paywall">
                 <p className="fab-freemium-alert">
-                  You used all 6 free uses. Subscribe ($100/month) to continue.
+                  The fabrication calculator is $100/month. Pay first, or use an active 14 day trial.
                 </p>
                 <button type="button" className="fab-next-btn" onClick={() => goView('subscriptions')}>
                   View subscriptions
@@ -5066,20 +5053,20 @@ function FabricationCalculator({
           <section className="fab-section">
             <div className="fab-title-row">
               <h1>Subscriptions</h1>
-              {!subActive ? <span className="fab-freemium-sticker">Freemium</span> : null}
+              {!subActive ? <span className="fab-freemium-sticker">$100/month</span> : null}
             </div>
             <p className="fab-note">
-              After 6 free uses, new drawing uploads and new gate size entries need a paid plan ($100/month).
+              The fabrication calculator is $100/month. It opens after payment, or during a 14 day free trial.
             </p>
             {!subActive ? (
               <p className="fab-freemium-meter" role="status">
-                {freeLeft > 0
-                  ? `${freeLeft} of ${FAB_FREE_DRAW_LIMIT} free uses left (drawings or gate quotes)`
-                  : '0 free uses left — pick a plan below'}
+                Pay $100 for 30 days, or go back to Buy CEO Website and start a 14 day free trial.
               </p>
             ) : (
               <p className="fab-freemium-meter fab-freemium-meter-active" role="status">
-                Active until {new Date(Number(site?.paidUntil)).toLocaleDateString()}
+                {trialActive
+                  ? `14 day trial active until ${new Date(Number(site?.trialUntil)).toLocaleDateString()}`
+                  : `Active until ${new Date(Number(site?.paidUntil)).toLocaleDateString()}`}
               </p>
             )}
             {freemiumNote ? <p className="fab-freemium-alert">{freemiumNote}</p> : null}
@@ -5448,7 +5435,7 @@ function App() {
   })
   const [activeProfileId, setActiveProfileId] = useState('')
   const [tab, setTab] = useState('home')
-  const [online, setOnline] = useState(() => readOnline())
+  const [online, setOnline] = useState(true)
   const [offlineNotice, setOfflineNotice] = useState('')
   const [liveFeedItems, setLiveFeedItems] = useState(() => loadLiveFeedCache())
   const [menuOpen, setMenuOpen] = useState(false)
@@ -5462,6 +5449,8 @@ function App() {
     }
   })
   const [profileTab, setProfileTab] = useState('gallery')
+  const [profileWebsitePreview, setProfileWebsitePreview] = useState(false)
+  const [ceoAppId, setCeoAppId] = useState('')
   const [compose, setCompose] = useState({
     mode: '',
     photo: '',
@@ -5474,6 +5463,9 @@ function App() {
   const [settingsView, setSettingsView] = useState('home')
   const [authForm, setAuthForm] = useState({ email: '', password: '' })
   const [authError, setAuthError] = useState('')
+  const [deleteAppId, setDeleteAppId] = useState('')
+  const [deleteAppForm, setDeleteAppForm] = useState({ email: '', password: '' })
+  const [deleteAppError, setDeleteAppError] = useState('')
   const [busyLabel, setBusyLabel] = useState('')
   const [systemType, setSystemType] = useState('')
   const [fabPlan, setFabPlan] = useState('month')
@@ -5483,6 +5475,10 @@ function App() {
   const [ecocash, setEcocash] = useState({ number: '', password: '', name: '' })
   const [paymentNote, setPaymentNote] = useState('')
   const [websiteName, setWebsiteName] = useState('')
+  const [websiteDomain, setWebsiteDomain] = useState('')
+  const [domainEdited, setDomainEdited] = useState(false)
+  const [purchaseMode, setPurchaseMode] = useState('buy')
+  const [reactivateSiteId, setReactivateSiteId] = useState('')
   const [websiteCeo, setWebsiteCeo] = useState('')
   const [websiteLocation, setWebsiteLocation] = useState('Harare, Zimbabwe')
   const [websiteProjectName, setWebsiteProjectName] = useState('')
@@ -5506,6 +5502,7 @@ function App() {
   const shopFlowRef = useRef(false)
   const skipShopChoiceRef = useRef(false)
   const cardBuyRef = useRef(false)
+  const trialIntentRef = useRef(false)
   const drawingInputRef = useRef(null)
   const skipPushRef = useRef(false)
   const ignorePopRef = useRef(false)
@@ -5522,6 +5519,10 @@ function App() {
   useEffect(() => {
     if (profileTab === 'buy') setProfileTab('gallery')
   }, [profileTab])
+
+  useEffect(() => {
+    setProfileWebsitePreview(false)
+  }, [activeProfileId, profileTab])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -5580,6 +5581,7 @@ function App() {
     const goOffline = () => {
       setOnline(false)
     }
+    setOnline(readOnline())
     window.addEventListener('online', goOnline)
     window.addEventListener('offline', goOffline)
     refreshLiveFeed()
@@ -5673,6 +5675,23 @@ function App() {
   }, [])
 
   const signedInAccount = accounts.find((account) => account.id === signedInId) || null
+
+  useEffect(() => {
+    const now = Date.now()
+    let changed = false
+    const next = accounts.map((account) => {
+      let siteChanged = false
+      const websites = (account.websites || []).map((site) => {
+        if (site.catalogId || site.billingStatus !== 'trial') return site
+        if (!(Number(site.trialUntil) > 0) || now <= Number(site.trialUntil)) return site
+        siteChanged = true
+        changed = true
+        return { ...site, billingStatus: 'paused' }
+      })
+      return siteChanged ? { ...account, websites } : account
+    })
+    if (changed) setAccounts(next)
+  }, [accounts])
 
   useEffect(() => {
     if (signedInId && !signedInAccount) {
@@ -5906,6 +5925,19 @@ function App() {
     privateSystems.find((site) => site.id === currentProfile?.id) ||
     privateSystems[dashCursor % Math.max(privateSystems.length, 1)] ||
     null
+  const rodcroftCeoSite = privateSystems.find((site) => {
+    const key = String(site.slug || site.catalogId || '').replace(/^site-/, '').toLowerCase()
+    return key === 'rodcroft'
+  })
+  const ceoActiveSite =
+    privateSystems.find((site) => site.id === ceoAppId) || rodcroftCeoSite || dashSite || currentProfile
+  const switchAccounts = signedInAccount
+    ? accounts.filter(
+        (account) =>
+          account.id === signedInAccount.id ||
+          (signedInAccount.linkedAccountIds || []).includes(account.id),
+      )
+    : []
 
   const companyMatchesQuery = (company, query) => {
     const needle = query.trim().toLowerCase()
@@ -6028,6 +6060,13 @@ function App() {
     setAuthError('')
     setMenuOpen(false)
     setOverlay(null)
+    if (trialIntentRef.current || purchaseMode === 'trial') {
+      trialIntentRef.current = false
+      setPurchaseMode('trial')
+      setTab('settings')
+      goSettingsView('system')
+      return
+    }
     if (cardBuyRef.current || shopFlowRef.current) {
       setTab('settings')
       goSettingsView('shop-account')
@@ -6059,35 +6098,92 @@ function App() {
     const email = authForm.email.trim()
     const password = authForm.password
 
+    if (!signedInAccount) {
+      setAuthError('Sign in before adding another account.')
+      return
+    }
     if (!email || !password.trim()) {
       setAuthError('Enter the email and password.')
       return
     }
-
-    const existing = accounts.find((account) => account.email.toLowerCase() === email.toLowerCase())
-    if (existing) {
-      if (existing.password !== password) {
-        setAuthError('That email or password does not match an account.')
-        return
-      }
-      finishLogin(existing)
+    if (email.toLowerCase() === signedInAccount.email.toLowerCase()) {
+      setAuthError('That is already this account.')
+      return
+    }
+    if (accounts.some((account) => account.email.toLowerCase() === email.toLowerCase())) {
+      setAuthError('That email is already used. Enter a new email to create an account.')
       return
     }
 
-    const nextAccount = makeAccount(email, password, '', { withWebsite: false })
-    setAccounts((previous) => [...previous, nextAccount])
-    setSignedInId(nextAccount.id)
-    setActiveProfileId(nextAccount.websites[0]?.id || '')
-    setPendingSignup(null)
+    const nextAccount = {
+      ...makeAccount(email, password, '', { withWebsite: false }),
+      linkedAccountIds: [signedInAccount.id],
+    }
+    setAccounts((previous) =>
+      previous
+        .map((account) => {
+          if (account.id !== signedInAccount.id) return account
+          const linked = new Set(account.linkedAccountIds || [])
+          linked.add(nextAccount.id)
+          return { ...account, linkedAccountIds: [...linked] }
+        })
+        .concat(nextAccount),
+    )
     setAuthForm({ email: '', password: '' })
     setAuthError('')
     setMenuOpen(false)
     setOverlay(null)
     setSettingsView('home')
-    setProfileTab('gallery')
-    setTab('profile')
-    setAppRoute({ kind: '', slug: '' })
-    pushPath('/profile')
+    setTab('settings')
+    pushPath('/settings')
+  }
+
+  const requestDeleteApplication = (siteId) => {
+    setDeleteAppId(siteId)
+    setDeleteAppForm({ email: '', password: '' })
+    setDeleteAppError('')
+  }
+
+  const cancelDeleteApplication = () => {
+    setDeleteAppId('')
+    setDeleteAppForm({ email: '', password: '' })
+    setDeleteAppError('')
+  }
+
+  const confirmDeleteApplication = (event) => {
+    event.preventDefault()
+    if (!signedInAccount || !deleteAppId) return
+    const site = signedInAccount.websites.find((item) => item.id === deleteAppId)
+    if (!site) {
+      cancelDeleteApplication()
+      return
+    }
+    const email = deleteAppForm.email.trim()
+    const password = deleteAppForm.password
+    if (!email || !password) {
+      setDeleteAppError('Enter this account’s email and password to delete the app.')
+      return
+    }
+    if (email.toLowerCase() !== signedInAccount.email.toLowerCase() || password !== signedInAccount.password) {
+      setDeleteAppError('Those credentials do not match this account. The app was not deleted.')
+      return
+    }
+    const siteId = deleteAppId
+    setAccounts((previous) =>
+      previous.map((account) => {
+        if (account.id !== signedInAccount.id) return account
+        return {
+          ...account,
+          websites: (account.websites || []).filter((item) => item.id !== siteId),
+        }
+      }),
+    )
+    if (activeProfileId === siteId) {
+      const nextSite = signedInAccount.websites.find((item) => item.id !== siteId)
+      setActiveProfileId(nextSite?.id || '')
+    }
+    if (ceoAppId === siteId) setCeoAppId('')
+    cancelDeleteApplication()
   }
 
   const approvePayment = (event) => {
@@ -6124,9 +6220,37 @@ function App() {
     setBusyLabel('Approving payment…')
     goSettingsView('loading', { replace: true })
 
+    const payingSiteId = purchaseMode === 'reactivate' ? reactivateSiteId : ''
+    const payingAccountId = signedInAccount?.id || ''
     window.setTimeout(() => {
       if (flowToken.current !== token) return
       setBusyLabel('')
+      if (payingSiteId && payingAccountId) {
+        setAccounts((previous) =>
+          previous.map((account) => {
+            if (account.id !== payingAccountId) return account
+            return {
+              ...account,
+              websites: (account.websites || []).map((site) =>
+                site.id === payingSiteId
+                  ? { ...site, billingStatus: 'paid', trialUntil: 0, paidUntil: Date.now() + 30 * 86400000 }
+                  : site,
+              ),
+            }
+          }),
+        )
+        setPurchaseMode('buy')
+        setReactivateSiteId('')
+        setCeoAppId(payingSiteId)
+        setActiveProfileId(payingSiteId)
+        setPaymentNote('')
+        setProfileWebsitePreview(true)
+        setProfileTab('dash')
+        setTab('profile')
+        setSettingsView('home')
+        pushPath('/profile')
+        return
+      }
       setPaymentNote('Payment approved')
       goSettingsView('tailor')
     }, 900)
@@ -6140,10 +6264,11 @@ function App() {
     if (!signedInAccount && !pendingSignup) return
 
     const isFabrication = type.id === 'fabrication'
+    const isTrial = purchaseMode === 'trial'
     const plan = FAB_PLANS.find((item) => item.id === fabPlan) || FAB_PLANS[0]
     const slides = type.id === 'construction' || type.id === 'manufacturing' ? type.slides : []
     const [first, ...rest] = slides
-    const slug = uniqueSlug(name, accounts)
+    const slug = uniqueSlug(isTrial ? websiteDomain.trim() || name : name, accounts)
     const ceoName = websiteCeo.trim() || currentProfile?.ceo || ''
     const locName = websiteLocation.trim() || 'Harare, Zimbabwe'
     const initialProjTitle = websiteProjectName.trim()
@@ -6178,7 +6303,10 @@ function App() {
       brandName: name,
       cssName: slugify(name).replace(/-/g, ''),
       fabPlan: isFabrication ? plan.id : '',
-      paidUntil: isFabrication ? Date.now() + plan.days * 86400000 : 0,
+      paidUntil: isTrial ? 0 : isFabrication ? Date.now() + plan.days * 86400000 : 0,
+      billingStatus: isTrial ? 'trial' : '',
+      trialUntil: isTrial ? Date.now() + TRIAL_MS : 0,
+      domain: slug,
       drawings: [],
       ceo: ceoName,
     })
@@ -6200,8 +6328,16 @@ function App() {
       )
       setActiveProfileId(site.id)
     }
+    setCeoAppId(site.id)
+    if (isFabrication && (isTrial || Number(site.paidUntil) > Date.now())) {
+      setProfileWebsitePreview(true)
+    }
 
     setWebsiteName('')
+    setWebsiteDomain('')
+    setDomainEdited(false)
+    setPurchaseMode('buy')
+    trialIntentRef.current = false
     setWebsiteCeo('')
     setWebsiteProjectName('')
     setWebsiteAbout('')
@@ -6692,17 +6828,25 @@ function App() {
 
   const continueFromSystem = (typeId) => {
     setSystemType(typeId)
+    setPurchaseMode('buy')
+    trialIntentRef.current = false
     setEcocash({ number: '', password: '', name: '' })
     setPaymentNote('')
     shopFlowRef.current = false
     setOverlay(null)
     setMenuOpen(false)
-    if (typeId === 'fabrication') {
-      openCalc()
-      return
-    }
     setTab('settings')
     goSettingsView('preview')
+  }
+
+  const startFreeTrial = () => {
+    setPurchaseMode('trial')
+    trialIntentRef.current = false
+    setReactivateSiteId('')
+    setWebsiteDomain('')
+    setDomainEdited(false)
+    setPaymentNote('')
+    goSettingsView('tailor')
   }
 
   const continuePreview = () => {
@@ -6762,15 +6906,52 @@ function App() {
   const openPrivateSystem = (site, projectId = '', view = 'home') => {
     if (!site) return
     setOverlay(null)
+    if (siteTrialEnded(site)) {
+      setCeoAppId(site.id)
+      setActiveProfileId(site.id)
+      setProfileWebsitePreview(false)
+      setAppRoute({ kind: '', slug: '' })
+      setTab('profile')
+      setProfileTab('dash')
+      pushPath('/profile')
+      return
+    }
     if (site.systemType === 'fabrication') {
-      openCalc(site)
+      if (!fabAccessActive(site)) {
+        subscribeToReactivate(site)
+        return
+      }
+      setCeoAppId(site.id)
+      setActiveProfileId(site.id)
+      setProfileWebsitePreview(true)
+      setAppRoute({ kind: '', slug: '' })
+      setTab('profile')
+      setProfileTab('dash')
+      pushPath('/profile')
       return
     }
     openGeneratedSite(site, projectId, view)
   }
 
-  const openBuyWebsite = () => {
+  const subscribeToReactivate = (site) => {
+    if (!site) return
+    setPurchaseMode('reactivate')
+    setReactivateSiteId(site.id)
+    setSystemType(site.systemType || 'construction')
+    setEcocash({ number: '', password: '', name: '' })
+    setPaymentNote('')
+    setOverlay(null)
+    setMenuOpen(false)
+    setAppRoute({ kind: '', slug: '' })
+    setTab('settings')
+    goSettingsView('ecocash')
+  }
+
+  const openBuyWebsite = ({ trial = false } = {}) => {
     // Browse / open Buy CEO website UI offline; EcoCash pay still needs data later.
+    trialIntentRef.current = trial
+    setPurchaseMode(trial ? 'trial' : 'buy')
+    setReactivateSiteId('')
     setOverlay(null)
     setMenuOpen(false)
     setPendingSignup(null)
@@ -6790,11 +6971,25 @@ function App() {
   }
 
   const openCalc = (site) => {
+    const owned =
+      site?.systemType === 'fabrication'
+        ? site
+        : signedInAccount?.websites.find((item) => item.systemType === 'fabrication')
+    if (!fabAccessActive(owned)) {
+      if (owned?.id) {
+        subscribeToReactivate(owned)
+        return
+      }
+      setSystemType('fabrication')
+      setFabPlan('month')
+      openBuyWebsite()
+      return
+    }
     setOverlay(null)
     setMenuOpen(false)
     setDrawingDraft(emptyDrawingDraft())
-    if (site?.slug && site.systemType === 'fabrication') {
-      navigateApp(`/site/${site.slug}`)
+    if (owned?.slug) {
+      navigateApp(`/site/${owned.slug}`)
       return
     }
     navigateApp('/calc')
@@ -6945,7 +7140,7 @@ function App() {
       ? publishedSite
       : signedInAccount?.websites.find((item) => item.systemType === 'fabrication') || {
           id: '',
-          name: 'Fabrication calculator',
+          name: 'Fabrication website',
           drawings: [],
         }
 
@@ -6958,7 +7153,56 @@ function App() {
     goSettingsView('preview')
   }
 
+  const frozenPublished = siteTrialEnded(publishedSite)
+    ? publishedSite
+    : appRoute.kind === 'calc' && siteTrialEnded(calcSite)
+      ? calcSite
+      : null
+
+  if (frozenPublished) {
+    return (
+      <div className="phone-app-shell">
+        <div className="phone-frame">
+          <main className="phone-content">
+            <PausedTrial
+              site={frozenPublished}
+              onBack={leavePublished}
+              onSubscribe={() => subscribeToReactivate(frozenPublished)}
+            />
+          </main>
+        </div>
+      </div>
+    )
+  }
+
   if (appRoute.kind === 'calc' || publishedSite?.systemType === 'fabrication') {
+    const lockedSite = publishedSite?.systemType === 'fabrication' ? publishedSite : calcSite
+    if (!fabAccessActive(lockedSite)) {
+      return (
+        <div className="phone-app-shell">
+          <div className="phone-frame">
+            <main className="phone-content">
+              <section className="panel-box settings-page">
+                <button type="button" className="text-back" onClick={leavePublished}>
+                  Back
+                </button>
+                <h3>Fabrication website</h3>
+                <p className="shop-copy">
+                  This Zantac template website is $100/month. Pay first, or start a 14 day free trial from Buy CEO Website and use it until the trial ends.
+                </p>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => (lockedSite?.id ? subscribeToReactivate(lockedSite) : openBuyWebsite())}
+                >
+                  Buy with EcoCash
+                </button>
+              </section>
+            </main>
+          </div>
+        </div>
+      )
+    }
     return (
       <FabricationCalculator
         site={calcSite}
@@ -6986,6 +7230,21 @@ function App() {
   }
 
   if (appRoute.kind === 'site') {
+    if (siteTrialEnded(publishedSite)) {
+      return (
+        <div className="phone-app-shell">
+          <div className="phone-frame">
+            <main className="phone-content">
+              <PausedTrial
+                site={publishedSite}
+                onBack={leavePublished}
+                onSubscribe={() => subscribeToReactivate(publishedSite)}
+              />
+            </main>
+          </div>
+        </div>
+      )
+    }
     const requestedProjectId =
       appRoute.projectId && appRoute.projectId !== 'all' ? appRoute.projectId : ''
     const requestedView = appRoute.view || 'home'
@@ -7175,7 +7434,34 @@ function App() {
             </section>
           )}
 
-          {tab === 'profile' && signedInAccount && (
+          {tab === 'profile' &&
+            signedInAccount &&
+            profileWebsitePreview &&
+            ceoActiveSite &&
+            !siteTrialEnded(ceoActiveSite) &&
+            cleanSlug(ceoActiveSite.slug || ceoActiveSite.catalogId || '') === 'rodcroft' && (
+            <section className="profile-panel ceo-live-preview-panel">
+              <div className="ceo-preview-bar">
+                <button type="button" className="text-back" onClick={() => setProfileWebsitePreview(false)}>
+                  ← Dashboard
+                </button>
+              </div>
+              <iframe
+                className="ceo-live-site-frame"
+                title="Rodcroft website"
+                src={`/project/${RODCROFT_CHADCOMBE_PROJECT_ID}`}
+              />
+            </section>
+          )}
+
+          {tab === 'profile' &&
+            signedInAccount &&
+            !(
+              profileWebsitePreview &&
+              ceoActiveSite &&
+              !siteTrialEnded(ceoActiveSite) &&
+              cleanSlug(ceoActiveSite.slug || ceoActiveSite.catalogId || '') === 'rodcroft'
+            ) && (
             <section className="profile-panel">
               <div className="profile-summary ig-profile-head">
                 <div className="profile-avatar-wrap" ref={avatarMenuRef}>
@@ -7244,6 +7530,7 @@ function App() {
                     onClick={() => openPrivateSystem(site)}
                   >
                     {index + 1}) {liveDomain(site)}
+                    {site.systemType === 'fabrication' ? ' — Fabrication website' : ''}
                   </button>
                 ))
               ) : (
@@ -7347,19 +7634,81 @@ function App() {
 
               {profileTab === 'dash' && (
                 <div className="profile-tab-panel">
-                  <CeoProjectsOverview
-                    sites={privateSystems.length ? privateSystems : currentProfile ? [currentProfile] : []}
-                    activeSite={dashSite || currentProfile}
-                    onSelectSite={(selected) => {
-                      setActiveProfileId(selected.id)
-                      const idx = privateSystems.findIndex((s) => s.id === selected.id)
-                      if (idx >= 0) setDashCursor(idx)
-                    }}
-                    onOpenGeneratedApp={(targetSite, projId, targetView) =>
-                      openPrivateSystem(targetSite, projId, targetView)
-                    }
-                    onOpenCalc={(targetSite) => openCalc(targetSite)}
-                  />
+                  {ceoActiveSite && siteTrialEnded(ceoActiveSite) ? (
+                    <PausedTrial
+                      site={ceoActiveSite}
+                      onSubscribe={() => subscribeToReactivate(ceoActiveSite)}
+                    />
+                  ) : profileWebsitePreview && ceoActiveSite ? (
+                    <div className="ceo-website-preview">
+                      <p className="shop-copy ceo-preview-note">
+                        Preview of {ceoActiveSite.name}, the same site a worker opens.
+                      </p>
+                      {ceoActiveSite.systemType === 'fabrication' ? (
+                        fabAccessActive(ceoActiveSite) ? (
+                        <FabricationCalculator
+                          site={ceoActiveSite}
+                          draft={drawingDraft}
+                          onChange={setDrawingDraft}
+                          onSave={ceoActiveSite.id ? () => saveDrawing(ceoActiveSite) : undefined}
+                          onRenew={openFabPay}
+                          onBack={() => setProfileWebsitePreview(false)}
+                          backLabel="Dashboard"
+                          pricing={fabPricing}
+                          routePanel="home"
+                          onNavigate={() => {}}
+                          {...historyNavProps}
+                          onSavePricing={(next) => {
+                            const merged = { ...emptyFabPricing(), ...next }
+                            delete merged.visionApiKey
+                            setFabPricing(merged)
+                            try {
+                              storage.setItem(PRICING_KEY, JSON.stringify(merged))
+                            } catch {
+                              /* ignore */
+                            }
+                          }}
+                        />
+                        ) : (
+                          <section className="panel-box">
+                            <h3>Fabrication website</h3>
+                            <p className="shop-copy">
+                              This Zantac template website is $100/month. Pay first, or start a 14 day free trial and use it until the trial ends.
+                            </p>
+                            <button type="button" className="primary-button" onClick={() => subscribeToReactivate(ceoActiveSite)}>
+                              Buy with EcoCash
+                            </button>
+                          </section>
+                        )
+                      ) : (
+                        <CeoDashboard
+                          site={ceoActiveSite}
+                          embedded
+                          initialView="home"
+                          onBack={() => setProfileWebsitePreview(false)}
+                          backLabel="← Dashboard"
+                          onMetadataUpdated={(updatedMeta) => {
+                            if (ceoActiveSite?.id && signedInAccount) {
+                              updateWebsite(ceoActiveSite.id, {
+                                name: updatedMeta.companyName || ceoActiveSite.name,
+                                ceo: updatedMeta.ceo ?? ceoActiveSite.ceo,
+                              })
+                            }
+                          }}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <CeoProjectsOverview
+                      sites={privateSystems.length ? privateSystems : currentProfile ? [currentProfile] : []}
+                      activeSite={ceoActiveSite}
+                      onSelectSite={(selected) => {
+                        setCeoAppId(selected.id)
+                        setProfileWebsitePreview(false)
+                      }}
+                      onViewWebsite={() => setProfileWebsitePreview(true)}
+                    />
+                  )}
                   <input ref={drawingInputRef} type="file" accept="image/*" hidden onChange={handleDrawingFile} />
                 </div>
               )}
@@ -7377,10 +7726,10 @@ function App() {
                   <strong>Not signed in</strong>
                 )}
               </div>
-              {accounts.length > 0 && (
+              {switchAccounts.length > 1 && (
                 <div className="account-switch">
                   <p className="shop-copy">Switch accounts</p>
-                  {accounts.map((account) => (
+                  {switchAccounts.map((account) => (
                     <button
                       key={account.id}
                       type="button"
@@ -7394,8 +7743,26 @@ function App() {
                 </div>
               )}
               <p className="shop-copy">Manage the account that runs your Fortress website.</p>
-              <button type="button" className="buy-website-btn" onClick={() => goSettingsView('system')}>
-                Buy website
+              {signedInAccount ? (
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => {
+                    setAuthError('')
+                    setAuthForm({ email: '', password: '' })
+                    goSettingsView('add')
+                  }}
+                >
+                  Add another account
+                </button>
+              ) : null}
+              {signedInAccount ? (
+                <button type="button" className="primary-button" onClick={() => goSettingsView('apps')}>
+                  Manage Applications
+                </button>
+              ) : null}
+              <button type="button" className="buy-website-btn" onClick={() => openBuyWebsite()}>
+                Buy CEO Website
               </button>
               <button type="button" className="primary-button" onClick={() => goSettingsView('manage')}>
                 Manage accounts
@@ -7534,8 +7901,10 @@ function App() {
                 Back
               </button>
               <form className="create-account-form" onSubmit={handleAddAccount}>
-                <h3>Add account</h3>
-                <p className="shop-copy">Enter the email and password for the account to add.</p>
+                <h3>Add another account</h3>
+                <p className="shop-copy">
+                  Enter an email and password. A new account is created and saved. You stay on this account and can switch to it from Settings.
+                </p>
                 <input
                   type="email"
                   placeholder="Email"
@@ -7552,9 +7921,86 @@ function App() {
                 />
                 {authError && <p className="form-error">{authError}</p>}
                 <button type="submit" className="primary-button">
-                  Add account
+                  Create account
                 </button>
               </form>
+            </section>
+          )}
+
+          {tab === 'settings' && settingsView === 'apps' && (
+            <section className="panel-box settings-page">
+              <button
+                type="button"
+                className="text-back"
+                onClick={() => {
+                  cancelDeleteApplication()
+                  goSettingsView('home')
+                }}
+              >
+                Back
+              </button>
+              <h3>Manage Applications</h3>
+              <p className="shop-copy">Apps saved on {signedInAccount?.email || 'this account'}.</p>
+              {signedInAccount?.websites?.length ? (
+                <div className="app-manage-list">
+                  {signedInAccount.websites.map((site) => {
+                    const label = `${subdomainLabelFor(site)} - ${site.name || 'App'}`
+                    const confirming = deleteAppId === site.id
+                    return (
+                      <div key={site.id} className="app-manage-item">
+                        <div className="app-manage-row">
+                          <div>
+                            <strong>{subdomainLabelFor(site)}</strong>
+                            <span>
+                              {' '}
+                              - {site.name || 'App'}
+                            </span>
+                          </div>
+                          {!confirming && (
+                            <button type="button" className="danger-button" onClick={() => requestDeleteApplication(site.id)}>
+                              Delete app
+                            </button>
+                          )}
+                        </div>
+                        {confirming && (
+                          <form className="create-account-form app-delete-confirm" onSubmit={confirmDeleteApplication}>
+                            <h3>Confirm delete</h3>
+                            <p className="shop-copy">
+                              Are you sure you want to delete {label}? Enter the email and password for{' '}
+                              {signedInAccount.email} to confirm.
+                            </p>
+                            <input
+                              type="email"
+                              placeholder="Account email"
+                              autoComplete="username"
+                              value={deleteAppForm.email}
+                              onChange={(event) => setDeleteAppForm((value) => ({ ...value, email: event.target.value }))}
+                              required
+                            />
+                            <input
+                              type="password"
+                              placeholder="Account password"
+                              autoComplete="current-password"
+                              value={deleteAppForm.password}
+                              onChange={(event) => setDeleteAppForm((value) => ({ ...value, password: event.target.value }))}
+                              required
+                            />
+                            {deleteAppError && <p className="form-error">{deleteAppError}</p>}
+                            <button type="submit" className="danger-button">
+                              Delete app
+                            </button>
+                            <button type="button" className="text-back" onClick={cancelDeleteApplication}>
+                              Cancel
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="empty-note">No apps on this account yet.</p>
+              )}
             </section>
           )}
 
@@ -7587,7 +8033,7 @@ function App() {
             <section className="panel-box settings-page">
               <h3>Buy CEO Website</h3>
               <p className="shop-copy">
-                Choose construction (Rodcroft template), manufacturing (Prixburg template), or the fabrication calculator.
+                Choose construction (Rodcroft template), manufacturing (Prixburg template), or the fabrication website (Zantac template).
                 Swipe the pictures to see how that website solves problems at that kind of company.
               </p>
               <div className="settings-actions">
@@ -7691,6 +8137,9 @@ function App() {
               <button type="button" className="primary-button" onClick={continuePreview}>
                 Continue to EcoCash
               </button>
+              <button type="button" className="trial-button" onClick={startFreeTrial}>
+                Start 14 day free trial
+              </button>
             </section>
           )}
 
@@ -7773,7 +8222,7 @@ function App() {
                 </label>
                 {paymentNote && <p className="form-error">{paymentNote}</p>}
                 <button type="submit" className="primary-button" disabled={!PHASE1_COMPLETE}>
-                  Approve payment
+                  {purchaseMode === 'reactivate' ? 'Subscribe to reactivate' : 'Buy with EcoCash'}
                 </button>
               </form>
             </section>
@@ -7781,18 +8230,20 @@ function App() {
 
           {tab === 'settings' && settingsView === 'tailor' && (
             <section className="panel-box settings-page">
-              <p className="payment-approved">Payment approved</p>
+              {purchaseMode !== 'trial' ? <p className="payment-approved">Payment approved</p> : null}
               <form className="create-account-form" onSubmit={createGeneratedWebsite}>
-                <h3>Tailor making details</h3>
+                <h3>{purchaseMode === 'trial' ? 'Free trial tailor making details' : 'Tailor making details'}</h3>
                 <p className="shop-copy">
-                  {systemType === 'manufacturing'
+                  {purchaseMode === 'trial'
+                    ? 'Write a domain. Fortress creates a free temporary subdomain for 14 days. You can edit it. The app works fully, and it shows next to your profile grid.'
+                    : systemType === 'manufacturing'
                     ? 'Creates an exact Prixburg manufacturing website (with empty data) as a tenant subdomain of Fortress.'
                     : systemType === 'construction'
                       ? 'Creates an exact Rodcroft construction website (with empty data) as a tenant subdomain of Fortress.'
                       : 'Configure your calculator details.'}
                 </p>
                 <label>
-                  {systemType === 'fabrication' ? 'Name on the calculator' : 'Name of website'}
+                  {systemType === 'fabrication' ? 'Name of fabrication website' : 'Name of website'}
                   <input
                     type="text"
                     placeholder="Name of the website"
@@ -7801,16 +8252,38 @@ function App() {
                     required
                   />
                 </label>
+                {purchaseMode === 'trial' && (
+                  <label>
+                    Domain
+                    <input
+                      type="text"
+                      placeholder="your-company"
+                      value={domainEdited ? websiteDomain : slugify(websiteName || 'company')}
+                      onChange={(event) => {
+                        setDomainEdited(true)
+                        setWebsiteDomain(event.target.value)
+                      }}
+                    />
+                  </label>
+                )}
+                {(purchaseMode === 'trial' || systemType !== 'fabrication') && (
+                  <label>
+                    {purchaseMode === 'trial' ? 'Temporary subdomain (edit the domain above)' : 'Tenant Subdomain (under Fortress)'}
+                    <input
+                      type="text"
+                      value={subdomainLabelFor(
+                        purchaseMode === 'trial'
+                          ? domainEdited
+                            ? websiteDomain || websiteName || 'company'
+                            : websiteName || 'company'
+                          : websiteName || 'company',
+                      )}
+                      readOnly
+                    />
+                  </label>
+                )}
                 {systemType !== 'fabrication' && (
                   <>
-                    <label>
-                      Tenant Subdomain (under Fortress)
-                      <input
-                        type="text"
-                        value={subdomainLabelFor(websiteName || 'company')}
-                        readOnly
-                      />
-                    </label>
                     <label>
                       CEO Name (optional)
                       <input
@@ -7823,7 +8296,11 @@ function App() {
                   </>
                 )}
                 <button type="submit" className="primary-button">
-                  {systemType === 'fabrication' ? 'Open calculator' : 'Create website'}
+                  {purchaseMode === 'trial'
+                    ? 'Start 14 day free trial'
+                    : systemType === 'fabrication'
+                      ? 'Open calculator'
+                      : 'Create website'}
                 </button>
               </form>
             </section>
@@ -7951,7 +8428,7 @@ function App() {
             <div className="lock-card buy-system-card">
               <h2>Buy CEO Website</h2>
               <p className="shop-copy">
-                Construction (Rodcroft template), manufacturing (Prixburg template), or the fabrication calculator.
+                Construction (Rodcroft template), manufacturing (Prixburg template), or the fabrication website (Zantac template).
               </p>
               <div className="settings-actions">
                 {SYSTEM_TYPES.map((type) => (

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  cleanSlug,
   computePrixburgCeoAnalysis,
   computeSiteProjectsOverview,
   getSiteCeoMetadata,
-  saveSiteCeoMetadata,
   subdomainLabelFor,
 } from './fortressMetadata'
+import { fetchLiveChadcombeOverview } from './liveChadcombe'
 
 const money = (value) =>
   `$${Number(value || 0).toLocaleString('en-US', {
@@ -27,12 +28,29 @@ const numFmt = (value) =>
     maximumFractionDigits: 2,
   })
 
+function CommandBar({ sites, targetSite, onSelectSite, onViewWebsite }) {
+  const index = sites.findIndex((site) => site.id === targetSite?.id)
+  const nextSite = sites.length > 1 ? sites[(index + 1) % sites.length] : null
+
+  return (
+    <div className="ceo-command-bar">
+      <button type="button" className="primary-button" onClick={() => onViewWebsite?.(targetSite)}>
+        View My Website
+      </button>
+      {nextSite ? (
+        <button type="button" className="tpl-secondary-btn" onClick={() => onSelectSite?.(nextSite)}>
+          Switch app · {nextSite.name}
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 export default function CeoProjectsOverview({
   sites = [],
   activeSite = null,
   onSelectSite,
-  onOpenGeneratedApp,
-  onOpenCalc,
+  onViewWebsite,
 }) {
   const [tick, setTick] = useState(0)
   // Sub-view for Prixburg CEO Analysis: 'menu' | 'net-profit' | 'gross-profit'
@@ -42,8 +60,8 @@ export default function CeoProjectsOverview({
   const [selectedProjectId, setSelectedProjectId] = useState('')
   const [valSearch, setValSearch] = useState('')
   const [fuelDetailCostMode, setFuelDetailCostMode] = useState(false)
-  const [showNewProjForm, setShowNewProjForm] = useState(false)
-  const [newProjName, setNewProjName] = useState('')
+  const [liveChadcombe, setLiveChadcombe] = useState(null)
+  const [liveStatus, setLiveStatus] = useState('idle')
 
   useEffect(() => {
     const refresh = () => setTick((t) => t + 1)
@@ -57,12 +75,37 @@ export default function CeoProjectsOverview({
     return targetSite ? getSiteCeoMetadata(targetSite) : null
   }, [targetSite, tick])
 
+  const siteSlug = cleanSlug(
+    String(targetSite?.slug || targetSite?.catalogId || targetSite?.name || '').replace(/^site-/, ''),
+  )
+
   useEffect(() => {
     setPrixburgSubView('menu')
     setRodcroftSubView('menu')
     setSelectedProjectId('')
-    setShowNewProjForm(false)
   }, [targetSite?.id, targetSite?.slug])
+
+  useEffect(() => {
+    if (siteSlug !== 'rodcroft') {
+      setLiveChadcombe(null)
+      setLiveStatus('idle')
+      return undefined
+    }
+    let cancelled = false
+    setLiveStatus('loading')
+    fetchLiveChadcombeOverview()
+      .then((overview) => {
+        if (cancelled) return
+        setLiveChadcombe(overview)
+        setLiveStatus(overview?.valuations?.length ? 'ready' : 'error')
+      })
+      .catch(() => {
+        if (!cancelled) setLiveStatus('error')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [siteSlug])
 
   if (!targetSite) {
     return (
@@ -74,16 +117,21 @@ export default function CeoProjectsOverview({
 
   if (targetSite.systemType === 'fabrication') {
     return (
-      <div className="ceo-embedded">
+      <div className="ceo-overview-panel">
+        <CommandBar
+          sites={sites}
+          targetSite={targetSite}
+          onSelectSite={onSelectSite}
+          onViewWebsite={onViewWebsite}
+        />
         <div className="ceo-overview-header-card">
           <div>
-            <span className="tpl-code-badge">Fabrication Calculator</span>
+            <p className="rc-eyebrow">Cumulative Dashboard</p>
             <h4>{targetSite.name}</h4>
-            <p className="shop-copy">{subdomainLabelFor(targetSite)}</p>
+            <p className="shop-copy">
+              Command center for {subdomainLabelFor(targetSite)}. Open the website to use the calculator the way the workshop sees it.
+            </p>
           </div>
-          <button type="button" className="primary-button" onClick={() => onOpenCalc?.(targetSite)}>
-            Open Calculator
-          </button>
         </div>
       </div>
     )
@@ -101,79 +149,21 @@ export default function CeoProjectsOverview({
 
     return (
       <div className="ceo-overview-panel">
-        {sites.length > 1 && (
-          <div className="ceo-site-pills">
-            {sites.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                className={s.id === targetSite.id ? 'ceo-site-pill active' : 'ceo-site-pill'}
-                onClick={() => onSelectSite?.(s)}
-              >
-                <strong>{s.name}</strong>
-                <small>{subdomainLabelFor(s)}</small>
-              </button>
-            ))}
-          </div>
-        )}
+        <CommandBar
+          sites={sites}
+          targetSite={targetSite}
+          onSelectSite={onSelectSite}
+          onViewWebsite={onViewWebsite}
+        />
 
-        {/* Tenant Header & Direct Access to Full Prixburg Website Modules */}
         <div className="ceo-overview-header-card">
           <div>
-            <span className="tpl-code-badge">Fortress Tenant · {subdomain}</span>
+            <p className="rc-eyebrow">Cumulative Dashboard</p>
             <h4>{siteMeta?.companyName || targetSite.name} — CEO Analysis</h4>
             <p className="shop-copy">
-              Live CEO analysis for gross profit and net profit from {subdomain}.
+              Command center for {subdomain}. Gross profit and net profit, with each report opening here.
             </p>
           </div>
-          <div className="ceo-overview-top-btns">
-            <button
-              type="button"
-              className="primary-button"
-              onClick={() => onOpenGeneratedApp?.(targetSite, '', 'home')}
-            >
-              Open {subdomain} Website
-            </button>
-          </div>
-        </div>
-
-        {/* Quick Tenant Module Shortcuts */}
-        <div className="tpl-head-pills">
-          <button
-            type="button"
-            className="tpl-secondary-btn"
-            onClick={() => onOpenGeneratedApp?.(targetSite, '', 'raw-materials-storeroom')}
-          >
-            Storeroom
-          </button>
-          <button
-            type="button"
-            className="tpl-secondary-btn"
-            onClick={() => onOpenGeneratedApp?.(targetSite, '', 'settings')}
-          >
-            Product Setup &amp; Formulas
-          </button>
-          <button
-            type="button"
-            className="tpl-secondary-btn"
-            onClick={() => onOpenGeneratedApp?.(targetSite, '', 'production-reports')}
-          >
-            Production
-          </button>
-          <button
-            type="button"
-            className="tpl-secondary-btn"
-            onClick={() => onOpenGeneratedApp?.(targetSite, '', 'finished-products')}
-          >
-            Finished Products
-          </button>
-          <button
-            type="button"
-            className="tpl-secondary-btn"
-            onClick={() => onOpenGeneratedApp?.(targetSite, '', 'sales-finance')}
-          >
-            Sales &amp; Finance
-          </button>
         </div>
 
         {/* Exact Prixburg CEO Analysis Panel */}
@@ -340,7 +330,10 @@ export default function CeoProjectsOverview({
   // ============================================================================
   // 2) RODCROFT / CONSTRUCTION TENANT: Exact Live Engineering Dashboard
   // ============================================================================
-  const projects = computeSiteProjectsOverview(targetSite)
+  const projects =
+    liveStatus === 'ready' && liveChadcombe
+      ? [liveChadcombe]
+      : computeSiteProjectsOverview(targetSite)
   const activeProj =
     projects.find((p) => p.id === selectedProjectId) || projects[0] || null
 
@@ -382,127 +375,30 @@ export default function CeoProjectsOverview({
     })
   })()
 
-  const handleCreateQuickProject = (event) => {
-    event.preventDefault()
-    const name = newProjName.trim()
-    if (!name || !siteMeta) return
-    const created = {
-      id: `p-${Date.now()}`,
-      name,
-      code: `RC-0${(siteMeta.projects?.length || 0) + 1}`,
-      location: siteMeta.location || 'Zimbabwe',
-      client: '',
-      manager: siteMeta.ceo || 'Engineer',
-      status: 'active',
-      startDate: new Date().toISOString().slice(0, 10),
-      endDate: null,
-      summary: `Construction and site works for ${name}.`,
-      valuations: [],
-      materialAnalysis: [],
-      workers: [],
-      fuel: { bulkInsertedLiters: 0, bulkInsertedCost: 0, entries: [] },
-      sheqReports: [],
-    }
-    const nextProjects = [created, ...(siteMeta.projects || [])]
-    saveSiteCeoMetadata(targetSite, { ...siteMeta, projects: nextProjects })
-    setNewProjName('')
-    setShowNewProjForm(false)
-    setSelectedProjectId(created.id)
-    setTick((t) => t + 1)
-  }
-
   return (
     <div className="ceo-overview-panel">
-      {sites.length > 1 && (
-        <div className="ceo-site-pills">
-          {sites.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              className={s.id === targetSite.id ? 'ceo-site-pill active' : 'ceo-site-pill'}
-              onClick={() => onSelectSite?.(s)}
-            >
-              <strong>{s.name}</strong>
-              <small>{subdomainLabelFor(s)}</small>
-            </button>
-          ))}
-        </div>
-      )}
+      <CommandBar
+        sites={sites}
+        targetSite={targetSite}
+        onSelectSite={onSelectSite}
+        onViewWebsite={onViewWebsite}
+      />
 
-      {/* Tenant Header & Access to Full Website */}
       <div className="ceo-overview-header-card">
         <div>
-          <span className="tpl-code-badge">Fortress Tenant · {subdomain}</span>
-          <h4>{siteMeta?.companyName || targetSite.name} — Engineering</h4>
+          <p className="rc-eyebrow">Cumulative Dashboard</p>
+            <h4>{siteSlug === 'rodcroft' ? 'Rodcroft' : siteMeta?.companyName || targetSite.name} — Engineering</h4>
           <p className="shop-copy">
-            Executive overview of project performance from {subdomain}.
+            Command center for {subdomain}. The engineering page stays here, and each button opens its report.
+            {siteSlug === 'rodcroft' && liveStatus === 'loading'
+              ? ' Loading Chadcombe from rodcroft.fortress.vercel.app…'
+              : ''}
+            {siteSlug === 'rodcroft' && liveStatus === 'ready'
+              ? ' Showing live Chadcombe data from rodcroft.fortress.vercel.app.'
+              : ''}
           </p>
         </div>
-        <div className="ceo-overview-top-btns">
-          <button
-            type="button"
-            className="primary-button"
-            onClick={() => onOpenGeneratedApp?.(targetSite, activeProj?.id || '', 'home')}
-          >
-            Open {subdomain} Website
-          </button>
-          <button
-            type="button"
-            className="tpl-secondary-btn"
-            onClick={() => setShowNewProjForm((v) => !v)}
-          >
-            {showNewProjForm ? 'Cancel' : '+ New Project'}
-          </button>
-        </div>
       </div>
-
-      {/* Direct Tenant Dashboard Shortcuts (Home, Engineering, Admin/QS, Worker) */}
-      <div className="tpl-head-pills">
-        <button
-          type="button"
-          className="tpl-secondary-btn"
-          onClick={() => onOpenGeneratedApp?.(targetSite, activeProj?.id || '', 'project-home')}
-        >
-          Project Home
-        </button>
-        <button
-          type="button"
-          className="tpl-secondary-btn"
-          onClick={() => onOpenGeneratedApp?.(targetSite, activeProj?.id || '', 'ceo-dashboards')}
-        >
-          Engineering Hub
-        </button>
-        <button
-          type="button"
-          className="tpl-secondary-btn"
-          onClick={() => onOpenGeneratedApp?.(targetSite, activeProj?.id || '', 'qs-engineering')}
-        >
-          Admin / Quantity Survey
-        </button>
-        <button
-          type="button"
-          className="tpl-secondary-btn"
-          onClick={() => onOpenGeneratedApp?.(targetSite, activeProj?.id || '', 'workers')}
-        >
-          Worker &amp; Staff Registers
-        </button>
-      </div>
-
-      {showNewProjForm && (
-        <form className="ceo-quick-project-form" onSubmit={handleCreateQuickProject}>
-          <h5>Create New Project on {subdomain}</h5>
-          <input
-            type="text"
-            placeholder="Project name (e.g. Borrowdale Road Upgrade)"
-            value={newProjName}
-            onChange={(e) => setNewProjName(e.target.value)}
-            required
-          />
-          <button type="submit" className="primary-button">
-            Create Project
-          </button>
-        </form>
-      )}
 
       {projects.length > 1 && (
         <div className="ceo-site-pills">
@@ -526,7 +422,7 @@ export default function CeoProjectsOverview({
       {!activeProj ? (
         <div className="pb-panel">
           <p className="rc-sub">
-            No projects created on {subdomain} yet. Click <strong>+ New Project</strong> above or open {subdomain} Website to create your first project.
+            No projects on {subdomain} yet. Use View My Website to create the first project the way the site does.
           </p>
         </div>
       ) : (
@@ -535,7 +431,9 @@ export default function CeoProjectsOverview({
           {rodcroftSubView === 'menu' && (
             <div className="pb-panel">
               <p className="rc-eyebrow">Engineering</p>
-              <h3 style={{ fontSize: '1.35rem', marginBottom: 4 }}>{activeProj.name}</h3>
+              <h3 style={{ fontSize: '1.35rem', marginBottom: 4 }}>
+                {siteSlug === 'rodcroft' ? 'Chadcombe' : activeProj.name}
+              </h3>
               <p className="rc-sub" style={{ marginBottom: 14 }}>
                 Executive overview of project performance.
               </p>

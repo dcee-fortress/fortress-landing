@@ -619,9 +619,7 @@ export default function DrawingChatSession({
           )}
           {!subscriptionActive ? (
             <p className="fab-freemium-meter" role="status">
-              {freeDrawsLeft > 0
-                ? `${freeDrawsLeft} free drawing upload${freeDrawsLeft === 1 ? '' : 's'} left`
-                : 'No free uploads left — subscribe to add a new drawing'}
+              $100/month. Pay first, or use an active 14 day trial.
             </p>
           ) : null}
           {freemiumNote ? <p className="fab-freemium-alert">{freemiumNote}</p> : null}
@@ -649,7 +647,7 @@ export default function DrawingChatSession({
           ) : (
             <div className="drawing-paywall">
               <p className="fab-freemium-alert">
-                You used all 6 free drawing uploads. Subscribe ($100/month) to upload new plans.
+                The fabrication calculator is $100/month. Pay first, or use an active 14 day trial.
               </p>
               <button type="button" className="fab-next-btn" onClick={() => onRequireSubscription?.()}>
                 View subscriptions

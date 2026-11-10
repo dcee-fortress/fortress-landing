@@ -103,7 +103,9 @@ function MaterialScheduleEditor({
   // Edits stay in the day draft so the template can roll forward; Save publishes to dashboards.
   const persistDraft = useCallback(
     (nextRows = rowsRef.current) => {
-      writeMaterialScheduleDraftRows(projectId, dayId, slotId, scheduleType, nextRows)
+      writeMaterialScheduleDraftRows(projectId, dayId, slotId, scheduleType, nextRows, {
+        edited: true,
+      })
     },
     [projectId, dayId, slotId, scheduleType]
   )

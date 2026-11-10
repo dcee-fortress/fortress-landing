@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   computeSiteProjectsOverview,
   getSiteCeoMetadata,
+  RODCROFT_CHADCOMBE_PROJECT_ID,
   saveSiteCeoMetadata,
   subdomainLabelFor,
 } from './fortressMetadata'
+import { fetchLiveChadcombeOverview } from './liveChadcombe'
 
 const money = (value) =>
   `$${Number(value || 0).toLocaleString('en-US', {
@@ -88,14 +90,20 @@ export default function RodcroftTemplate({
   initialProjectId = '',
   initialView = 'home',
   onBack,
+  backLabel = '← Fortress',
   onMetadataUpdated,
 }) {
   const [meta, setMeta] = useState(() => getSiteCeoMetadata(site))
   const [menuOpen, setMenuOpen] = useState(false)
   const [showNewProjectModal, setShowNewProjectModal] = useState(false)
-  const [activeProjectId, setActiveProjectId] = useState(
-    () => initialProjectId || getSiteCeoMetadata(site).projects?.[0]?.id || '',
-  )
+  const [activeProjectId, setActiveProjectId] = useState(() => {
+    const loaded = getSiteCeoMetadata(site)
+    const slug = String(loaded?.slug || site?.slug || site?.catalogId || '')
+      .replace(/^site-/, '')
+      .toLowerCase()
+    if (slug === 'rodcroft') return initialProjectId || RODCROFT_CHADCOMBE_PROJECT_ID
+    return initialProjectId || loaded.projects?.[0]?.id || ''
+  })
   const [view, setView] = useState(() => (initialProjectId ? initialView || 'project-home' : initialView))
   const [statusNote, setStatusNote] = useState('')
   const [valQuery, setValQuery] = useState('')
@@ -147,6 +155,42 @@ export default function RodcroftTemplate({
       setView(initialView)
     }
   }, [site?.id, site?.slug, initialProjectId, initialView])
+
+  useEffect(() => {
+    const slug = String(site?.slug || site?.catalogId || meta?.slug || '')
+      .replace(/^site-/, '')
+      .toLowerCase()
+    if (slug !== 'rodcroft') return undefined
+    let cancelled = false
+    fetchLiveChadcombeOverview()
+      .then((overview) => {
+        if (cancelled || !overview) return
+        const chadcombe = {
+          ...overview,
+          id: RODCROFT_CHADCOMBE_PROJECT_ID,
+          name: 'Chadcombe',
+          status: 'active',
+        }
+        setMeta((current) => ({
+          ...current,
+          companyName: 'Rodcroft',
+          brandName: 'Rodcroft',
+          projects: [
+            chadcombe,
+            ...(current.projects || []).filter(
+              (project) =>
+                project?.id !== RODCROFT_CHADCOMBE_PROJECT_ID &&
+                String(project?.name || '').trim().toLowerCase() !== 'lemon',
+            ),
+          ],
+        }))
+        setActiveProjectId(RODCROFT_CHADCOMBE_PROJECT_ID)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [site?.id, site?.slug, site?.catalogId, meta?.slug])
 
   const brandName = meta.brandName || meta.companyName || site?.name || 'Rodcroft'
   const subdomain = subdomainLabelFor(meta)
@@ -492,7 +536,7 @@ export default function RodcroftTemplate({
                 className="tpl-action-btn tpl-back-fortress"
                 onClick={onBack}
               >
-                ← Fortress
+                {backLabel}
               </button>
             )}
           </div>

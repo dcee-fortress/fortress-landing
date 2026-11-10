@@ -1,6 +1,11 @@
 /** Online / offline helpers for Fortress (web, Electron, Capacitor). */
 
-export const readOnline = () => (typeof navigator === 'undefined' ? true : navigator.onLine)
+export const readOnline = () => {
+  // Node and some SSR runtimes define `navigator` without `onLine`.
+  // Treat that as online so the first paint matches a connected browser.
+  if (typeof navigator === 'undefined' || typeof navigator.onLine !== 'boolean') return true
+  return navigator.onLine
+}
 
 export const offlineActionMessage = (action = 'do that') =>
   `Connect to the internet to ${action}. Already saved projects, drawings, photos, and quotes on this device still open offline.`

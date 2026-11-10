@@ -16,6 +16,7 @@ export default function PrixburgTemplate({
   site,
   initialView = 'home',
   onBack,
+  backLabel = '← Fortress',
   onMetadataUpdated,
 }) {
   const [meta, setMeta] = useState(() => getSiteCeoMetadata(site))
@@ -578,7 +579,7 @@ export default function PrixburgTemplate({
                 className="tpl-action-btn tpl-back-fortress"
                 onClick={onBack}
               >
-                ← Fortress
+                {backLabel}
               </button>
             )}
           </div>
