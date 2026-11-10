@@ -21,7 +21,18 @@ const nextConfig = {
     pagesBufferLength: 32,
   },
   async redirects() {
+    const rodcroftHosts = [
+      "rodcroft-fortress.vercel.app",
+      "rodcroft.fortress.vercel.app",
+      "rodcroft.vercel.app",
+    ]
     return [
+      ...rodcroftHosts.map((host) => ({
+        source: "/",
+        has: [{ type: "host", value: host }],
+        destination: "/project/p-1789313935790",
+        permanent: false,
+      })),
       {
         source: "/favicon.ico",
         destination: "/favicon.svg",
