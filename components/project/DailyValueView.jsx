@@ -110,7 +110,7 @@ const DailyFileRow = memo(function DailyFileRow({
 
 export default function DailyValueView({ projectName, projectId }) {
   const { version, getDayValueEarnedByIds, refresh } = useProjectData()
-  const { refresh: refreshProjects } = useProjects()
+  const { refresh: refreshProjects, syncReady } = useProjects()
   const [showAllFiles, setShowAllFiles] = useState(false)
   const [deletingDayId, setDeletingDayId] = useState("")
   const [bulkDeleting, setBulkDeleting] = useState(false)
@@ -320,7 +320,11 @@ export default function DailyValueView({ projectName, projectId }) {
           </>
         ) : (
           <div className="px-6 py-12 text-center text-zinc-500">
-            {search.activeQuery ? "No daily files match your search." : "No daily files yet."}
+            {search.activeQuery
+              ? "No daily files match your search."
+              : !syncReady
+                ? "Loading daily files…"
+                : "No daily files yet."}
           </div>
         )}
       </section>

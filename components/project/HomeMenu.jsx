@@ -6,6 +6,7 @@ import ChoiceCard from "@/components/project/ChoiceCard"
 import Icon from "@/components/icon/icon"
 import PageLoadingShell from "@/components/project/PageLoadingShell"
 import { useProjects } from "@/components/project/ProjectsProvider"
+import { RODCROFT_CHADCOMBE_PROJECT_ID } from "@/lib/projectList"
 import { useHasHydrated } from "@/hooks/useHasHydrated"
 import { isDeletedProjectId } from "@/lib/projectRegistry"
 import {
@@ -102,9 +103,15 @@ export default function HomeMenu({ projectId }) {
   const hasHydrated = useHasHydrated()
   const pathname = usePathname()
   const router = useRouter()
-  const { getProject } = useProjects()
+  const { getProject, syncReady } = useProjects()
   const project = getProject(projectId)
   const deleted = hasHydrated && isDeletedProjectId(projectId)
+  const shownProject =
+    project?.name
+      ? project
+      : projectId === RODCROFT_CHADCOMBE_PROJECT_ID
+        ? { id: projectId, name: "Chadcombe" }
+        : project
   const [incidentAlerts, setIncidentAlerts] = useState([])
   const [inspectionAlerts, setInspectionAlerts] = useState([])
   const [showIncident, setShowIncident] = useState(false)
@@ -226,11 +233,10 @@ export default function HomeMenu({ projectId }) {
     )
   }
 
-  if (!hasHydrated) {
-    return <PageLoadingShell />
-  }
-
-  if (!project) {
+  if (!shownProject) {
+    if (!hasHydrated || !syncReady) {
+      return <PageLoadingShell />
+    }
     return (
       <div className="app-content-shell">
         <p className="text-sm text-zinc-500">This project is not available.</p>
@@ -245,7 +251,7 @@ export default function HomeMenu({ projectId }) {
   return (
     <div className="app-content-shell flex flex-col gap-6">
       <header className="space-y-1">
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{project.name}</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">{shownProject.name}</p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl lg:text-4xl">
           Select a department
         </h1>
