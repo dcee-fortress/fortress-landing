@@ -1289,10 +1289,11 @@ const withCompanyAccounts = (list) => {
           id: site.id || login.siteId,
           catalogId: login.catalogId,
           slug: site.slug || login.catalogId,
-          name: catalogEntry.name || site.name,
+          name: site.name || catalogEntry.name,
           type: catalogEntry.category || site.type,
           systemType: systemIdFromCompany(catalogEntry) || site.systemType,
-          ceo: catalogEntry.ceo ?? site.ceo ?? '',
+          ceo:
+            site.ceoEdited || site.ceo != null ? site.ceo : catalogEntry.ceo || '',
           ceoTestimonial: '',
           testimonial: '',
           link: site.link || companyLiveSite({ catalogId: login.catalogId })?.home || seededSite.link || '',
@@ -6000,19 +6001,35 @@ function App() {
   const updateCurrentWebsite = (updates) => {
     if (!signedInAccount || !currentProfile) return
 
+    const profileId = currentProfile.id
+    const accountId = signedInAccount.id
     setAccounts((previous) =>
       previous.map((account) => {
-        if (account.id !== signedInAccount.id) return account
+        if (account.id !== accountId) return account
 
         return {
           ...account,
-          websites: account.websites.map((site) => {
-            if (site.id !== currentProfile.id) return site
-            return { ...site, ...updates }
+          websites: (account.websites || []).map((site) => {
+            if (site.id !== profileId) return site
+            const next = { ...site, ...updates }
+            if (Object.prototype.hasOwnProperty.call(updates, 'ceo')) {
+              next.ceoEdited = true
+            }
+            return next
           }),
         }
       }),
     )
+    if (Object.prototype.hasOwnProperty.call(updates, 'ceo') || Object.prototype.hasOwnProperty.call(updates, 'name')) {
+      const meta = getSiteCeoMetadata(currentProfile)
+      saveSiteCeoMetadata(currentProfile, {
+        ...meta,
+        ...(Object.prototype.hasOwnProperty.call(updates, 'name')
+          ? { companyName: updates.name, brandName: updates.name }
+          : {}),
+        ...(Object.prototype.hasOwnProperty.call(updates, 'ceo') ? { ceo: updates.ceo } : {}),
+      })
+    }
   }
 
   const openSettingsPage = (view = 'home') => {
