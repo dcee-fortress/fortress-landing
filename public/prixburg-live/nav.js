@@ -171,6 +171,28 @@ function renderAppMenu() {
     `;
 }
 
+function syncStatusLabel() {
+    return typeof dbSyncLabel === 'function' ? dbSyncLabel() : 'Synced';
+}
+
+function paintSyncPill() {
+    const el = document.getElementById('topbarActions');
+    if (!el) return;
+    const label = syncStatusLabel();
+    const waiting = label === 'Waiting';
+    let pill = document.getElementById('syncPill');
+    if (!pill) {
+        pill = document.createElement('span');
+        pill.id = 'syncPill';
+        el.insertBefore(pill, el.firstChild);
+    }
+    pill.textContent = label;
+    pill.className = 'sync-pill ' + (waiting ? 'is-waiting' : 'is-synced');
+    pill.title = waiting
+        ? 'Saved on this device. It uploads when the internet is back.'
+        : 'Uploaded to the main system.';
+}
+
 function renderTopbarActions() {
     const el = document.getElementById('topbarActions');
     if (!el) return;
@@ -179,6 +201,7 @@ function renderTopbarActions() {
         <a class="icon-btn icon-settings" href="access-login.html?next=settings" title="Settings">${iconSettings()}</a>
         <button type="button" class="icon-btn icon-logout" onclick="logout()" title="Logout">${iconLogout()}</button>
     `;
+    paintSyncPill();
 }
 
 function toggleDropdown(event) {
@@ -218,6 +241,9 @@ function initNav() {
             closeAllMenus();
         }
     });
+    window.addEventListener('prixburg-sync', paintSyncPill);
+    window.addEventListener('online', paintSyncPill);
+    window.addEventListener('offline', paintSyncPill);
 }
 
 checkAuthentication();

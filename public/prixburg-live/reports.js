@@ -494,6 +494,7 @@ function saveDailyExpenses(fileId, expenses) {
         if (item.id !== fileId) return item;
         item.expenses = normalizeExpenses(expenses);
         item.expensesUpdated = true;
+        item.expensesSavedAt = Date.now();
         saved = true;
         return item;
     });
@@ -774,6 +775,8 @@ function flattenPeriodSalesRows(type, period) {
     rows.sort(function (a, b) {
         const byDate = String(a.date || '').localeCompare(String(b.date || ''));
         if (byDate) return byDate;
+        const byTime = (Number(a.savedAt) || 0) - (Number(b.savedAt) || 0);
+        if (byTime) return byTime;
         return String(a.id).localeCompare(String(b.id));
     });
     return rows;
@@ -793,18 +796,34 @@ function saleRowSearchText(row) {
 }
 
 function stripStoredSaleRow(row) {
+    const now = Date.now();
     const stored = {
-        id: row.id,
+        id: row.id || (now.toString() + '-' + Math.random().toString(36).slice(2, 7)),
         item: row.item || '',
         teamLeader: row.teamLeader || '',
         customer: row.customer || '',
         unitPrice: row.unitPrice === '' || row.unitPrice == null ? row.unitPrice : round2(row.unitPrice),
         quantity: row.quantity === '' || row.quantity == null ? row.quantity : round2(row.quantity),
-        saleType: normalizeSaleType(row.saleType)
+        saleType: normalizeSaleType(row.saleType),
+        savedAt: Number(row.savedAt) || now,
+        updatedAt: now
     };
     if (row.source) stored.source = String(row.source);
     if (row.creditPaymentId) stored.creditPaymentId = String(row.creditPaymentId);
     return stored;
+}
+
+function saleSyncLabel(row) {
+    const at = Number(row && (row.updatedAt || row.savedAt)) || 0;
+    if (typeof dbRecordSyncStatus === 'function') return dbRecordSyncStatus('prixburgReportFiles', at);
+    return 'Synced';
+}
+
+function rememberRemovedSale(file, id) {
+    if (!file || !id) return;
+    const list = Array.isArray(file.removedSaleIds) ? file.removedSaleIds.slice() : [];
+    if (list.indexOf(id) === -1) list.push(id);
+    file.removedSaleIds = list;
 }
 
 function canRefreshLiveViewsHere() {
@@ -858,6 +877,38 @@ function refreshLiveReportViews() {
     else if (document.getElementById('expenseForm')) updateExpenseTotalCard();
 }
 
+function paintSaleSyncCells() {
+    document.querySelectorAll('#dashboardBody tr[data-row-id]').forEach(function (tr) {
+        const cell = tr.querySelector('[data-sale-sync]');
+        if (!cell) return;
+        const rowId = tr.getAttribute('data-row-id');
+        const current = typeof dashboardFile === 'function' ? dashboardFile() : null;
+        const row = current && current.file
+            ? flattenPeriodSalesRows(current.type, current.file.period).filter(function (item) { return item.id === rowId; })[0]
+            : null;
+        const label = saleSyncLabel(row || { updatedAt: Date.now() });
+        cell.textContent = label;
+        cell.className = 'sync-cell ' + (label === 'Waiting' ? 'is-waiting' : 'is-synced');
+    });
+}
+
+function paintExpenseSync() {
+    const title = document.getElementById('expenseTitle');
+    if (!title) return;
+    let el = document.getElementById('expenseSyncStatus');
+    if (!el) {
+        el = document.createElement('p');
+        el.id = 'expenseSyncStatus';
+        title.insertAdjacentElement('afterend', el);
+    }
+    const file = typeof currentExpenseFile === 'function' ? currentExpenseFile() : null;
+    const label = typeof dbRecordSyncStatus === 'function'
+        ? dbRecordSyncStatus('prixburgReportFiles', file && file.expensesSavedAt)
+        : 'Synced';
+    el.textContent = label;
+    el.className = 'sync-status ' + (label === 'Waiting' ? 'is-waiting' : 'is-synced');
+}
+
 function bindLiveReportRefresh() {
     if (window._prixburgReportSyncBound) return;
     window._prixburgReportSyncBound = true;
@@ -892,8 +943,14 @@ function saveSalesEntryRow(row) {
     const dest = (all.daily || []).find(function (file) { return file.period === date; });
     const stored = stripStoredSaleRow(row);
     all.daily = (all.daily || []).map(function (file) {
+        const had = (file.salesRows || []).some(function (item) { return item && item.id === stored.id; });
         let rows = currentSalesRows(file).filter(function (item) { return item.id !== stored.id; });
-        if (dest && file.id === dest.id) rows = rows.concat([stored]);
+        if (dest && file.id === dest.id) {
+            rows = rows.concat([stored]);
+            file.removedSaleIds = (file.removedSaleIds || []).filter(function (id) { return id !== stored.id; });
+        } else if (had) {
+            rememberRemovedSale(file, stored.id);
+        }
         file.salesRows = rows;
         return file;
     });
@@ -1358,8 +1415,9 @@ function runProduceDetergent(name, amount, unit, setStatus) {
     const all = loadAllReportFiles();
     all.daily = (all.daily || []).map((item) => {
         if (item.id !== file.id) return item;
+        const madeAt = Date.now();
         item.productions = (item.productions || []).concat([{
-            id: Date.now().toString(),
+            id: madeAt.toString() + '-' + Math.random().toString(36).slice(2, 7),
             product: formula.name,
             detergent: formula.name,
             quantity: amount,
@@ -1367,7 +1425,8 @@ function runProduceDetergent(name, amount, unit, setStatus) {
             cost: cost,
             production: productionValue,
             totalSales: totalSales,
-            createdAt: new Date().toISOString()
+            createdAt: new Date(madeAt).toISOString(),
+            savedAt: madeAt
         }]);
         return item;
     });
@@ -1635,7 +1694,11 @@ function currentSalesRows(file) {
             customer: row.customer || '',
             unitPrice: row.unitPrice,
             quantity: row.quantity,
-            saleType: normalizeSaleType(row.saleType)
+            saleType: normalizeSaleType(row.saleType),
+            savedAt: Number(row.savedAt) || 0,
+            updatedAt: Number(row.updatedAt) || Number(row.savedAt) || 0,
+            source: row.source || '',
+            creditPaymentId: row.creditPaymentId || ''
         };
     });
 }
@@ -1696,6 +1759,7 @@ function renderSalesEntryDashboard(current) {
         'Unit price',
         'Quantity of detergent sold',
         'Total sales',
+        'Sync',
         ''
     ]);
     const deleteHead = document.querySelector('#dashboardHead th:last-child');
@@ -1721,6 +1785,7 @@ function renderSalesEntryDashboard(current) {
             + '<td><input data-sale-field="unitPrice" type="number" min="0" step="0.01" value="' + escapeHtml(price) + '" placeholder="0.00"></td>'
             + '<td><input data-sale-field="quantity" type="number" min="0" step="0.01" value="' + escapeHtml(qty) + '" placeholder="0"></td>'
             + '<td data-sale-total>' + moneyText(saleLineTotal(row)) + '</td>'
+            + '<td data-sale-sync class="sync-cell ' + (saleSyncLabel(row) === 'Waiting' ? 'is-waiting' : 'is-synced') + '">' + escapeHtml(saleSyncLabel(row)) + '</td>'
             + '<td class="row-delete-cell"><button type="button" class="danger-btn row-delete-btn" data-sale-delete>Delete</button></td>'
             + '</tr>';
     }).join('');
@@ -1845,6 +1910,7 @@ function deleteSalesEntryRow(rowId) {
         const rows = currentSalesRows(file);
         const next = rows.filter(function (item) { return item.id !== rowId; });
         if (next.length === rows.length) return file;
+        rememberRemovedSale(file, rowId);
         file.salesRows = next;
         removed = true;
         if (!removedDate) removedDate = file.period || '';
@@ -1863,14 +1929,17 @@ function addSalesEntryRow() {
     const period = current.file && current.file.period ? current.file.period : defaultPeriodValue(current.type);
     const date = defaultEntryDate(current.type, period);
     const dest = ensureReportFile('daily', date);
+    const createdAt = Date.now();
     const rows = currentSalesRows(dest).concat([{
-        id: Date.now().toString() + '-' + Math.random().toString(36).slice(2, 7),
+        id: createdAt.toString() + '-' + Math.random().toString(36).slice(2, 7),
         item: '',
         teamLeader: '',
         customer: '',
         unitPrice: '',
         quantity: '',
-        saleType: 'cash'
+        saleType: 'cash',
+        savedAt: createdAt,
+        updatedAt: createdAt
     }]);
     saveDailySalesRows(dest.id, rows);
     renderSalesEntryDashboard(dashboardFile());
@@ -2470,6 +2539,7 @@ function initExpensesEntry() {
     });
     updateExpenseTotalCard();
     bindExpenseForm();
+    paintExpenseSync();
 }
 
 function daysOverdue(dateValue) {

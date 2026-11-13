@@ -30,6 +30,43 @@ body {
     color: var(--zinc-950);
 }
 
+.sync-pill,
+.sync-status,
+.sync-cell {
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 999px;
+}
+
+.sync-pill,
+.sync-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    margin: 0;
+}
+
+.sync-cell {
+    display: table-cell;
+    width: 1%;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.sync-pill.is-waiting,
+.sync-status.is-waiting,
+.sync-cell.is-waiting {
+    color: #9a3412;
+    background: #ffedd5;
+}
+
+.sync-pill.is-synced,
+.sync-status.is-synced,
+.sync-cell.is-synced {
+    color: #166534;
+    background: #dcfce7;
+}
+
 .db-error {
     position: fixed;
     left: 16px;

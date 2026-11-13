@@ -1,4 +1,4 @@
-const CACHE = 'prixburg-lowdata-v15';
+const CACHE = 'prixburg-lowdata-v17';
 const PRECACHE = [
     './',
     './index.html',
@@ -10,18 +10,38 @@ const PRECACHE = [
     './protect_user.js',
     './nav.js',
     './gates.js',
+    './search.js',
+    './file-select.js',
+    './recycle-bin.js',
+    './report-period.js',
+    './report-boot.js',
     './manufacturing-factory.html',
+    './raw-materials.html',
+    './raw-materials-storeroom.html',
+    './raw-material-movements.html',
+    './production-reports.html',
+    './production.html',
+    './production-entry.html',
+    './finished-products.html',
     './sales-finance.html',
+    './sales-analysis-reports.html',
+    './sales-analysis.html',
+    './sales-entry.html',
+    './profit-expense-reports.html',
+    './profit-expense.html',
+    './expenses-entry.html',
+    './outstanding-credit.html',
+    './outstanding-credit-entry.html',
     './ceo-analysis.html',
     './ceo-net-profit.html',
     './ceo-gross-profit.html',
-    './sales-analysis-reports.html',
-    './profit-expense-reports.html',
-    './outstanding-credit.html',
-    './outstanding-credit-entry.html',
-    './production-reports.html',
-    './finished-products.html',
-    './raw-materials.html'
+    './reports.js',
+    './qty-math.js',
+    './formulas.js',
+    './pricing.js',
+    './storeroom.js',
+    './movements.js',
+    './export-pdf.js'
 ];
 
 self.addEventListener('message', function (event) {
@@ -84,8 +104,7 @@ function offlinePageResponse(requestUrl) {
 
 function savedCopy(cache, request) {
     const url = new URL(request.url);
-    const matchOpts = request.mode === 'navigate' ? { ignoreSearch: true } : undefined;
-    return cache.match(request, matchOpts).then(function (cached) {
+    return cache.match(request, { ignoreSearch: true }).then(function (cached) {
         if (cached) return cached;
         if (request.mode !== 'navigate') return Promise.reject(new Error('offline'));
         // Never substitute Home for another route — that made clicks look broken.
