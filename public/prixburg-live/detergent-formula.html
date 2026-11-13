@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg - Detergent file</title>
+    <link rel="stylesheet" href="app.css?v=10">
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+    <script src="gates.js"></script>
+    <script>requireFormulasAccess();</script>
+</head>
+<body>
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="menu-wrap">
+                    <button type="button" class="dropdown-btn" onclick="toggleDropdown(event)" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+                    <div id="dropdownMenu" class="dropdown-content"></div>
+                </div>
+                <h2><a href="detergent-formulas.html" class="page-back">Detergent formulars</a></h2>
+            </div>
+            <div class="topbar-actions" id="topbarActions"></div>
+        </div>
+
+        <div class="panel">
+            <div class="table-toolbar">
+                <div class="formula-name-wrap">
+                    <label for="formulaNameEdit">Detergent file name</label>
+                    <input id="formulaNameEdit" class="formula-heading-input" type="text" value="Detergent">
+                </div>
+                <button type="button" class="choice-btn" onclick="addIngredient()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                    Add ingredient
+                </button>
+                <button type="button" class="action-btn" onclick="exportPagePdf()">Export PDF</button>
+                <button type="button" class="primary-btn" onclick="saveFormulaFile()">Save</button>
+            </div>
+            <p id="formulaSaveStatus" class="file-meta" style="margin: 0 0 12px;"></p>
+            <div class="toolbar" style="margin-bottom: 12px;">
+                <div class="field">
+                    <label for="formulaProductionEdit">Amount produced</label>
+                    <input id="formulaProductionEdit" type="number" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table" id="formulaTable">
+                    <thead>
+                        <tr>
+                            <th>Ingredient</th>
+                            <th>Unit</th>
+                            <th>Quantity</th>
+                            <th>Unit price</th>
+                            <th>Total cost</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="formulaBody"></tbody>
+                </table>
+            </div>
+            <p id="formulaEmpty">No ingredients yet. Click Add ingredient to add a row.</p>
+        </div>
+
+        <div class="rate-card">
+            <h3 id="rateTitle">Rate for detergent</h3>
+            <p class="rate-value" id="rateValue">�</p>
+            <p class="rate-note">Rate is total cost divided by total production.</p>
+        </div>
+    </main>
+    <script src="nav.js?v=6"></script>
+    <script src="qty-math.js"></script>
+    <script src="formulas.js"></script>
+    <script src="export-pdf.js?v=9"></script>
+</body>
+</html>

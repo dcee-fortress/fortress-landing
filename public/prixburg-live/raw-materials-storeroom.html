@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg - Raw materials storeroom</title>
+    <link rel="stylesheet" href="app.css?v=10">
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+</head>
+<body>
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="menu-wrap">
+                    <button type="button" class="dropdown-btn" onclick="toggleDropdown(event)" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+                    <div id="dropdownMenu" class="dropdown-content"></div>
+                </div>
+                <h2><a href="raw-materials.html" class="page-back">Raw materials</a></h2>
+            </div>
+            <div class="topbar-actions" id="topbarActions"></div>
+        </div>
+
+        <div class="panel">
+            <div class="formula-bar">
+                <span class="formula-fx">fx</span>
+                <span id="formulaRef" class="formula-ref"></span>
+                <input id="formulaBarInput" type="text" placeholder="Select a quantity cell, then type =10+5 or =D1*2">
+            </div>
+            <div class="table-toolbar">
+                <h3>Store room</h3>
+                <div class="table-toolbar-actions">
+                    <button type="button" class="action-btn" onclick="exportPagePdf()">Export PDF</button>
+                    <button type="button" class="primary-btn" onclick="addMaterial()">Add material</button>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table" id="storeroomTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Material</th>
+                            <th>Unit</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Total Cost</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="storeroomBody"></tbody>
+                </table>
+            </div>
+            <p id="storeroomEmpty">No materials yet. Click Add material to add a row.</p>
+            <p>Storeroom total: <strong id="storeroomTotal">$0.00</strong></p>
+        </div>
+    </main>
+    <script src="nav.js?v=6"></script>
+    <script src="search.js"></script>
+    <script src="qty-math.js"></script>
+    <script src="movements.js"></script>
+    <script src="storeroom.js"></script>
+    <script src="export-pdf.js?v=9"></script>
+</body>
+</html>

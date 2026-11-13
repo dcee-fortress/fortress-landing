@@ -1,0 +1,71 @@
+{
+  "version": 2,
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/login", "destination": "/login.html" },
+    { "source": "/settings", "destination": "/settings.html" },
+    { "source": "/access-login", "destination": "/access-login.html" },
+    { "source": "/login-details", "destination": "/login-details.html" },
+    { "source": "/reports", "destination": "/sales-finance.html" },
+    { "source": "/manufacturing-factory", "destination": "/manufacturing-factory.html" },
+    { "source": "/sales-finance", "destination": "/sales-finance.html" },
+    { "source": "/finished-products", "destination": "/finished-products.html" },
+    { "source": "/ceo-analysis", "destination": "/ceo-analysis.html" },
+    { "source": "/ceo-net-profit", "destination": "/ceo-net-profit.html" },
+    { "source": "/ceo-gross-profit", "destination": "/ceo-gross-profit.html" },
+    { "source": "/raw-materials", "destination": "/raw-materials.html" },
+    { "source": "/sales-reports", "destination": "/sales-finance.html" },
+    { "source": "/sales-entry-reports", "destination": "/sales-entry-reports.html" },
+    { "source": "/sales-analysis-reports", "destination": "/sales-analysis-reports.html" },
+    { "source": "/sales-analysis", "destination": "/sales-analysis.html" },
+    { "source": "/profit-expense-reports", "destination": "/profit-expense-reports.html" },
+    { "source": "/profit-expense", "destination": "/profit-expense.html" },
+    { "source": "/expenses-entry", "destination": "/expenses-entry.html" },
+    { "source": "/outstanding-credit", "destination": "/outstanding-credit.html" },
+    { "source": "/outstanding-credit-entry", "destination": "/outstanding-credit-entry.html" },
+    { "source": "/production-reports", "destination": "/production-reports.html" },
+    { "source": "/production", "destination": "/production.html" },
+    { "source": "/daily-reports", "destination": "/daily-reports.html" },
+    { "source": "/weekly-reports", "destination": "/weekly-reports.html" },
+    { "source": "/monthly-reports", "destination": "/monthly-reports.html" },
+    { "source": "/yearly-reports", "destination": "/yearly-reports.html" },
+    { "source": "/daily-report", "destination": "/daily-report.html" },
+    { "source": "/report-dashboard", "destination": "/report-dashboard.html" },
+    { "source": "/production-entry", "destination": "/production-entry.html" },
+    { "source": "/raw-materials-storeroom", "destination": "/raw-materials-storeroom.html" },
+    { "source": "/raw-material-movements", "destination": "/raw-material-movements.html" },
+    { "source": "/detergent-formulas", "destination": "/detergent-formulas.html" },
+    { "source": "/detergent-formula", "destination": "/detergent-formula.html" },
+    { "source": "/pricing", "destination": "/pricing.html" },
+    { "source": "/recycle-bin", "destination": "/recycle-bin.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*).css",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(.*).js",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(.*).html",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    }
+  ]
+}

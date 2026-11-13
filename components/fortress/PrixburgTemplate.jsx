@@ -105,6 +105,13 @@ export default function PrixburgTemplate({
   const productions = meta.productions || []
   const salesRows = meta.salesRows || []
   const expenses = meta.expenses || []
+  const credentials = {
+    mainUsername: 'CLEANZ',
+    mainPassword: 'CLEANZ123',
+    settingsUsername: 'PRIXBURG CHEMICALS',
+    settingsPassword: 'Prixburg',
+    ...(meta.credentials || {}),
+  }
 
   const ceoAnalysis = useMemo(() => computePrixburgCeoAnalysis(meta), [meta])
 
@@ -481,21 +488,6 @@ export default function PrixburgTemplate({
                     type="button"
                     className="pb-menu-btn"
                     onClick={() => {
-                      setView('settings')
-                      setMenuOpen(false)
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M9 3h6" />
-                      <path d="M10 3v7.5L5.2 18.2A2 2 0 0 0 6.9 21h10.2a2 2 0 0 0 1.7-2.8L14 10.5V3" />
-                      <path d="M8.5 14h7" />
-                    </svg>
-                    Product setup (Formulas &amp; Pricing)
-                  </button>
-                  <button
-                    type="button"
-                    className="pb-menu-btn"
-                    onClick={() => {
                       setView('ceo-analysis')
                       setMenuOpen(false)
                     }}
@@ -537,6 +529,8 @@ export default function PrixburgTemplate({
                       view === 'outstanding-credit'
                     ) {
                       setView('sales-finance')
+                    } else if (view === 'formulas' || view === 'pricing' || view === 'login-details') {
+                      setView('settings')
                     } else {
                       setView('home')
                     }
@@ -555,7 +549,9 @@ export default function PrixburgTemplate({
                             view === 'profit-expense-reports' ||
                             view === 'outstanding-credit'
                           ? 'Sales and finance'
-                          : 'Home'}
+                          : view === 'formulas' || view === 'pricing' || view === 'login-details'
+                            ? 'Settings'
+                            : 'Home'}
                 </button>
               </h2>
             )}
@@ -790,18 +786,6 @@ export default function PrixburgTemplate({
                   <path d="M8.5 12h7" />
                 </svg>
                 Finished products
-              </button>
-              <button
-                type="button"
-                className="pb-choice-btn"
-                onClick={() => setView('settings')}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M9 3h6" />
-                  <path d="M10 3v7.5L5.2 18.2A2 2 0 0 0 6.9 21h10.2a2 2 0 0 0 1.7-2.8L14 10.5V3" />
-                  <path d="M8.5 14h7" />
-                </svg>
-                Product setup (Detergent formulas &amp; Pricing)
               </button>
             </div>
           </div>
@@ -1377,11 +1361,86 @@ export default function PrixburgTemplate({
           </div>
         )}
 
-        {/* Settings (`settings.html`) */}
         {view === 'settings' && (
           <>
             <div className="pb-panel">
-              <h3>Formulas & Pricing</h3>
+              <h3>Account</h3>
+              <p className="tpl-muted-line">Signed in as <strong>{credentials.mainUsername || 'CLEANZ'}</strong></p>
+              <button type="button" className="pb-choice-btn" onClick={() => setView('login-details')}>
+                Login details
+              </button>
+              <form
+                className="tpl-inline-form"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  persistMeta({ ...meta, ceo: event.currentTarget.ceoName.value.trim() })
+                  setStatusNote('Saved.')
+                }}
+              >
+                <h4>CEO name</h4>
+                <div className="tpl-form-row">
+                  <input
+                    name="ceoName"
+                    type="text"
+                    placeholder="CEO name"
+                    defaultValue={meta.ceo || ''}
+                    key={meta.ceo || 'ceo'}
+                  />
+                  <button type="submit" className="tpl-primary-btn">Save</button>
+                </div>
+              </form>
+            </div>
+            <div className="pb-panel">
+              <h3>Formulas</h3>
+              <button type="button" className="pb-choice-btn" onClick={() => setView('formulas')}>
+                Detergent formulars
+              </button>
+              <button type="button" className="pb-choice-btn" onClick={() => setView('pricing')}>
+                Pricing files
+              </button>
+            </div>
+          </>
+        )}
+
+        {view === 'login-details' && (
+          <form
+            className="pb-panel"
+            onSubmit={(event) => {
+              event.preventDefault()
+              const form = new FormData(event.currentTarget)
+              persistMeta({
+                ...meta,
+                credentials: {
+                  ...credentials,
+                  mainUsername: String(form.get('mainUsername') || '').trim(),
+                  mainPassword: String(form.get('mainPassword') || ''),
+                  settingsUsername: String(form.get('settingsUsername') || '').trim(),
+                  settingsPassword: String(form.get('settingsPassword') || ''),
+                },
+              })
+              setStatusNote('Saved.')
+            }}
+          >
+            <h3>Main home page credentials</h3>
+            <p className="tpl-muted-line">Username and password for the main opening login page.</p>
+            <div className="tpl-form-row">
+              <input name="mainUsername" type="text" placeholder="Username" defaultValue={credentials.mainUsername || ''} required />
+              <input name="mainPassword" type="text" placeholder="Password" defaultValue={credentials.mainPassword || ''} required />
+            </div>
+            <h3>Settings credentials</h3>
+            <p className="tpl-muted-line">Username and password for settings and detergent files.</p>
+            <div className="tpl-form-row">
+              <input name="settingsUsername" type="text" placeholder="Username" defaultValue={credentials.settingsUsername || ''} required />
+              <input name="settingsPassword" type="text" placeholder="Password" defaultValue={credentials.settingsPassword || ''} required />
+              <button type="submit" className="tpl-primary-btn">Save</button>
+            </div>
+          </form>
+        )}
+
+        {view === 'formulas' && (
+          <>
+            <div className="pb-panel">
+              <h3>Detergent formulars</h3>
               <div className="tpl-head-pills" style={{ marginBottom: 12 }}>
                 {formulas.map((f) => (
                   <button
@@ -1487,6 +1546,10 @@ export default function PrixburgTemplate({
               </form>
             </div>
 
+          </>
+        )}
+
+        {view === 'pricing' && (
             <div className="pb-panel">
               <h3>Pricing files</h3>
               {pricing.length > 0 && (
@@ -1537,7 +1600,6 @@ export default function PrixburgTemplate({
                 </div>
               </form>
             </div>
-          </>
         )}
       </main>
     </div>

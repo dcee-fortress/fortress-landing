@@ -7,6 +7,19 @@ import {
   subdomainLabelFor,
 } from './fortressMetadata'
 import { fetchLiveChadcombeOverview } from './liveChadcombe'
+import { storage } from './storage'
+
+const FAB_PROJECTS_KEY = 'fortress-fab-projects-v1'
+
+const loadRecentFabProjects = () => {
+  if (typeof window === 'undefined') return []
+  try {
+    const rows = JSON.parse(storage.getItem(FAB_PROJECTS_KEY) || '[]')
+    return Array.isArray(rows) ? rows : []
+  } catch {
+    return []
+  }
+}
 
 const money = (value) =>
   `$${Number(value || 0).toLocaleString('en-US', {
@@ -51,6 +64,7 @@ export default function CeoProjectsOverview({
   activeSite = null,
   onSelectSite,
   onViewWebsite,
+  onOpenProject,
 }) {
   const [tick, setTick] = useState(0)
   // Sub-view for Prixburg CEO Analysis: 'menu' | 'net-profit' | 'gross-profit'
@@ -116,6 +130,7 @@ export default function CeoProjectsOverview({
   }
 
   if (targetSite.systemType === 'fabrication') {
+    const recentProjects = loadRecentFabProjects()
     return (
       <div className="ceo-overview-panel">
         <CommandBar
@@ -126,12 +141,28 @@ export default function CeoProjectsOverview({
         />
         <div className="ceo-overview-header-card">
           <div>
-            <p className="rc-eyebrow">Cumulative Dashboard</p>
+            <p className="rc-eyebrow">Recent projects</p>
             <h4>{targetSite.name}</h4>
             <p className="shop-copy">
-              Command center for {subdomainLabelFor(targetSite)}. Open the website to use the calculator the way the workshop sees it.
+              Open a saved project here. View My Website shows {subdomainLabelFor(targetSite)} the way the workshop uses it.
             </p>
           </div>
+        </div>
+        <div className="pb-panel">
+          <h3>Recent projects</h3>
+          {recentProjects.length ? (
+            <div className="fab-recent">
+              {recentProjects.map((item) => (
+                <button key={item.id} type="button" onClick={() => onOpenProject?.(item)}>
+                  <strong>{item.name || 'Project'}</strong>
+                  <small>{item.client || 'No client yet'}</small>
+                  <span>{money(item.quoteTotal)}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="empty-note">No projects yet. Use View My Website to create the first one.</p>
+          )}
         </div>
       </div>
     )

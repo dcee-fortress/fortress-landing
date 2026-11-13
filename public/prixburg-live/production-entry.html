@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg - Production entry</title>
+    <link rel="stylesheet" href="app.css?v=10">
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+</head>
+<body class="report-simple" data-report-type="daily">
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="menu-wrap">
+                    <button type="button" class="dropdown-btn" onclick="toggleDropdown(event)" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+                    <div id="dropdownMenu" class="dropdown-content"></div>
+                </div>
+                <h2><a id="productionBack" href="daily-reports.html" class="page-back">Daily file</a></h2>
+            </div>
+            <div class="topbar-actions" id="topbarActions"></div>
+        </div>
+
+        <div class="panel">
+            <h3>Production entry</h3>
+            <div class="toolbar">
+                <button type="button" class="primary-btn" onclick="produceDetergent()">Produce</button>
+                <div class="field">
+                    <label for="produceName">Detergent name</label>
+                    <input id="produceName" type="text" placeholder="e.g. dishwasher">
+                </div>
+                <div class="field">
+                    <label for="produceAmount">Amount</label>
+                    <input id="produceAmount" type="number" min="0" step="0.01" placeholder="100">
+                </div>
+                <div class="field">
+                    <label for="produceUnit">Unit</label>
+                    <select id="produceUnit">
+                        <option value="L">L</option>
+                        <option value="kg">kg</option>
+                        <option value="pcs">pcs</option>
+                    </select>
+                </div>
+            </div>
+            <p id="produceStatus"></p>
+        </div>
+    </main>
+    <script src="search.js" defer></script>
+    <script src="qty-math.js" defer></script>
+    <script src="formulas.js" defer></script>
+    <script src="pricing.js" defer></script>
+    <script src="movements.js" defer></script>
+    <script src="reports.js?v=17" defer></script>
+    <script src="nav.js?v=6" defer></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg - CEO Analysis</title>
+    <link rel="stylesheet" href="app.css?v=10">
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+</head>
+<body>
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="menu-wrap">
+                    <button type="button" class="dropdown-btn" onclick="toggleDropdown(event)" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+                    <div id="dropdownMenu" class="dropdown-content"></div>
+                </div>
+                <h2><a href="index.html" class="page-back">Home</a></h2>
+            </div>
+            <div class="topbar-actions" id="topbarActions"></div>
+        </div>
+
+        <div class="panel">
+            <h3>CEO Analysis</h3>
+            <div class="choice-grid">
+                <a class="choice-btn" href="ceo-net-profit.html">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+                    CEO Net Profit
+                </a>
+                <a class="choice-btn" href="ceo-gross-profit.html">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v7.5L5.2 18.2A2 2 0 0 0 6.9 21h10.2a2 2 0 0 0 1.7-2.8L14 10.5V3"/><path d="M8.5 14h7"/></svg>
+                    CEO Gross Profit
+                </a>
+            </div>
+        </div>
+    </main>
+    <script src="nav.js?v=6"></script>
+</body>
+</html>

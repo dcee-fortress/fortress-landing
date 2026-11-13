@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg - Outstanding credit entry</title>
+    <link rel="stylesheet" href="app.css?v=10">
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+</head>
+<body class="report-simple">
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="menu-wrap">
+                    <button type="button" class="dropdown-btn" onclick="toggleDropdown(event)" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+                    <div id="dropdownMenu" class="dropdown-content"></div>
+                </div>
+                <h2><a href="outstanding-credit.html" class="page-back">Outstanding credit report</a></h2>
+            </div>
+            <div class="topbar-actions" id="topbarActions"></div>
+        </div>
+
+        <div id="salesCards" class="sales-cards" style="display: none;"></div>
+
+        <div class="panel">
+            <div class="table-toolbar">
+                <div>
+                    <h3>Outstanding credit entry</h3>
+                    <p class="dashboard-range">Paid so far supports Excel-style formulas (e.g. =89+20). Each addition posts cash sales for that day.</p>
+                </div>
+                <div class="table-toolbar-actions">
+                    <button type="button" class="action-btn" onclick="exportPagePdf()">Export PDF</button>
+                </div>
+            </div>
+            <div class="app-search sales-entry-search">
+                <input id="creditSearch" type="search" placeholder="Search customer" autocomplete="off">
+            </div>
+            <div class="table-wrap">
+                <table class="data-table" id="creditEntryTable">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Credit sales $</th>
+                            <th>Paid so far $</th>
+                            <th>Balance owed $</th>
+                        </tr>
+                    </thead>
+                    <tbody id="creditEntryBody"></tbody>
+                </table>
+            </div>
+            <p id="creditEntryEmpty" style="display: none;">No credit customers yet. Credit sales from Sales entry appear here.</p>
+        </div>
+    </main>
+    <script src="qty-math.js" defer></script>
+    <script src="reports.js?v=17" defer></script>
+    <script src="nav.js?v=6" defer></script>
+    <script src="export-pdf.js?v=9" defer></script>
+</body>
+</html>

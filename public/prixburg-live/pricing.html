@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg - Pricing files</title>
+    <link rel="stylesheet" href="app.css?v=10">
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+    <script src="gates.js"></script>
+    <script>requireSettingsAccess();</script>
+</head>
+<body>
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="menu-wrap">
+                    <button type="button" class="dropdown-btn" onclick="toggleDropdown(event)" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+                    <div id="dropdownMenu" class="dropdown-content"></div>
+                </div>
+                <h2><a href="settings.html" class="page-back">Settings</a></h2>
+            </div>
+            <div class="topbar-actions" id="topbarActions"></div>
+        </div>
+
+        <div class="panel">
+            <div class="table-toolbar">
+                <h3>Pricing files</h3>
+                <div class="table-toolbar-actions">
+                    <button type="button" class="action-btn" onclick="exportPagePdf()">Export PDF</button>
+                    <button type="button" class="primary-btn" onclick="addPricingRow()">Add detergent</button>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table" id="pricingTable">
+                    <thead>
+                        <tr>
+                            <th>Detergent</th>
+                            <th>Unit</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Unit price</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="pricingBody"></tbody>
+                </table>
+            </div>
+            <p id="pricingEmpty">No pricing files yet. Add a detergent, then quantity divided into price becomes unit price.</p>
+        </div>
+    </main>
+    <script src="nav.js?v=6"></script>
+    <script src="search.js"></script>
+    <script src="file-select.js"></script>
+    <script src="recycle-bin.js"></script>
+    <script src="pricing.js"></script>
+    <script src="export-pdf.js?v=9"></script>
+</body>
+</html>

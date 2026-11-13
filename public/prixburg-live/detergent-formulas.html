@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg - Detergent formulars</title>
+    <link rel="stylesheet" href="app.css?v=10">
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+    <script src="gates.js"></script>
+    <script>requireFormulasAccess();</script>
+</head>
+<body>
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="menu-wrap">
+                    <button type="button" class="dropdown-btn" onclick="toggleDropdown(event)" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+                    <div id="dropdownMenu" class="dropdown-content"></div>
+                </div>
+                <h2>Detergent formulars</h2>
+            </div>
+            <div class="topbar-actions" id="topbarActions"></div>
+        </div>
+
+        <div class="panel">
+            <div class="table-toolbar">
+                <h3>Available files</h3>
+                <button type="button" class="action-btn" onclick="exportPagePdf()">Export PDF</button>
+            </div>
+            <p id="formulasEmpty">No detergent files yet. Use + to create one.</p>
+            <div id="formulasList"></div>
+        </div>
+    </main>
+
+    <button type="button" class="fab-btn" onclick="openCreateFormulaModal()" title="Create detergent file">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    </button>
+
+    <div class="modal-overlay" id="createFormulaModal">
+        <form class="modal-card" id="createFormulaForm" autocomplete="off">
+            <h3>Create detergent file</h3>
+            <div class="field">
+                <label for="formulaName">Detergent name</label>
+                <input id="formulaName" type="text" required placeholder="e.g. SuperWash">
+            </div>
+            <div class="field">
+                <label for="formulaProduction">Amount of detergent produced in formula</label>
+                <input id="formulaProduction" type="number" min="0" step="0.01" required placeholder="0">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="action-btn" onclick="closeCreateFormulaModal()">Cancel</button>
+                <button type="submit" class="primary-btn">Create file</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="nav.js?v=6"></script>
+    <script src="file-select.js"></script>
+    <script src="recycle-bin.js"></script>
+    <script src="formulas.js"></script>
+    <script src="export-pdf.js?v=9"></script>
+</body>
+</html>

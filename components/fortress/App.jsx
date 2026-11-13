@@ -84,6 +84,13 @@ const COMPANY_LOGINS = [
     password: 'Fieldnote2026',
     catalogId: 'fieldnote',
   },
+  {
+    accountId: 'account-ancel',
+    siteId: 'site-ancel',
+    email: 'ancel@fortress.com',
+    password: 'Ancel2026',
+    catalogId: 'ancel',
+  },
 ]
 
 const COMPANY_LIVE_SITES = {
@@ -108,10 +115,11 @@ const companyLiveSite = (site) => {
   if (COMPANY_LIVE_SITES[key]) return COMPANY_LIVE_SITES[key]
   if (!key) return null
   const label = subdomainLabelFor(key)
+  const home = label.startsWith('/') ? label : `https://${label}/`
   return {
-    home: `https://${label}/`,
-    ceo: `https://${label}/`,
-    label,
+    home,
+    ceo: home,
+    label: label.replace(/^https?:\/\//, ''),
   }
 }
 const PHASE1_COMPLETE = true
@@ -240,6 +248,33 @@ const catalog = [
         photo: MEDIA.prixburg5,
         testimonial:
           'For a factory like this, the calculating system that keeps formulas intact is the asset. Fortress holds the recipes while output keeps rising. — Tawanda Chitukutuku, CEO',
+      },
+    ],
+  },
+  {
+    id: 'ancel',
+    name: 'Ancel',
+    category: 'Fabrication',
+    systemType: 'fabrication',
+    shelf: 'Best selling',
+    rating: 4.9,
+    hue: '#3f3f46',
+    showOnGrid: true,
+    location: 'Zimbabwe',
+    ceo: '',
+    about: 'Ancel is a fabrication workshop. Recent projects open from the CEO page, and View My Website runs the Zantac template the workshop uses.',
+    slides: [
+      {
+        photo: pexel(277572),
+        testimonial: 'Ancel quotes gates from the same website the workshop opens.',
+      },
+      {
+        photo: pexel(206172),
+        testimonial: 'Saved projects stay on the phone so a quote can be opened again.',
+      },
+      {
+        photo: pexel(1115804),
+        testimonial: 'Width, height, and design rate turn into the quotation the customer sees.',
       },
     ],
   },
@@ -1258,6 +1293,11 @@ const withCompanyAccounts = (list) => {
     if (!catalogEntry) return
     const index = accounts.findIndex((account) => account.email?.toLowerCase() === login.email)
     const seededSite = websiteFromCatalog(catalogEntry, login)
+    if (catalogEntry.systemType === 'fabrication') {
+      seededSite.billingStatus = 'paid'
+      seededSite.fabPlan = 'month'
+      seededSite.paidUntil = Date.now() + 365 * 24 * 60 * 60 * 1000
+    }
     if (index < 0) {
       accounts.push({
         id: login.accountId,
@@ -1289,7 +1329,7 @@ const withCompanyAccounts = (list) => {
           id: site.id || login.siteId,
           catalogId: login.catalogId,
           slug: site.slug || login.catalogId,
-          name: site.name || catalogEntry.name,
+          name: site.nameEdited ? site.name : site.name || catalogEntry.name,
           type: catalogEntry.category || site.type,
           systemType: systemIdFromCompany(catalogEntry) || site.systemType,
           ceo:
@@ -1297,6 +1337,14 @@ const withCompanyAccounts = (list) => {
           ceoTestimonial: '',
           testimonial: '',
           link: site.link || companyLiveSite({ catalogId: login.catalogId })?.home || seededSite.link || '',
+          billingStatus: catalogEntry.systemType === 'fabrication' ? 'paid' : site.billingStatus,
+          fabPlan: catalogEntry.systemType === 'fabrication' ? site.fabPlan || 'month' : site.fabPlan,
+          paidUntil:
+            catalogEntry.systemType === 'fabrication'
+              ? Number(site.paidUntil) > Date.now()
+                ? site.paidUntil
+                : Date.now() + 365 * 24 * 60 * 60 * 1000
+              : site.paidUntil,
           profilePhoto: refreshMedia ? seededSite.profilePhoto : site.profilePhoto || seededSite.profilePhoto,
           slides: refreshMedia || !site.slides?.length ? seededSite.slides : site.slides,
           gallery: refreshMedia || !site.gallery?.length ? seededSite.gallery : site.gallery,
@@ -2950,6 +2998,7 @@ function FabricationCalculator({
   pricing,
   onSavePricing,
   routePanel = 'home',
+  initialProject = null,
   onNavigate,
   canHistoryBack = false,
   canHistoryForward = false,
@@ -3175,6 +3224,13 @@ function FabricationCalculator({
     setPathMode(item.drawing ? 'drawing' : 'plan_manual')
     goStep(5)
   }
+
+  const openedLaunchRef = useRef('')
+  useEffect(() => {
+    if (!initialProject?.id || openedLaunchRef.current === initialProject.id) return
+    openedLaunchRef.current = initialProject.id
+    openProject(initialProject)
+  }, [initialProject])
 
   const nextFromProject = (mode) => {
     if (!project.name.trim()) {
@@ -5413,44 +5469,28 @@ function PublicCompanyProfile({
   )
 }
 
+const seededAccountList = () =>
+  withCompanyAccounts([
+    makeAccount(OWNER_LOGIN.email, OWNER_LOGIN.password, '', { withWebsite: false }),
+  ])
+
 function App() {
-  const [accounts, setAccounts] = useState(() => {
-    if (typeof window === 'undefined') return []
-    const saved = storage.getItem(STORE_KEY)
-    if (!saved) {
-      return withCompanyAccounts([
-        makeAccount(OWNER_LOGIN.email, OWNER_LOGIN.password, '', { withWebsite: false }),
-      ])
-    }
-    try {
-      return withCompanyAccounts(JSON.parse(saved))
-    } catch {
-      return withCompanyAccounts([
-        makeAccount(OWNER_LOGIN.email, OWNER_LOGIN.password, '', { withWebsite: false }),
-      ])
-    }
-  })
-  const [signedInId, setSignedInId] = useState(() => {
-    if (typeof window === 'undefined') return ''
-    return storage.getItem(SESSION_KEY) || ''
-  })
+  const [accounts, setAccounts] = useState(seededAccountList)
+  const [signedInId, setSignedInId] = useState('')
+  const [storageReady, setStorageReady] = useState(false)
   const [activeProfileId, setActiveProfileId] = useState('')
+  const [browserHost, setBrowserHost] = useState('')
+  const [profileNameDraft, setProfileNameDraft] = useState({ id: '', name: null, ceo: null })
   const [tab, setTab] = useState('home')
   const [online, setOnline] = useState(true)
   const [offlineNotice, setOfflineNotice] = useState('')
-  const [liveFeedItems, setLiveFeedItems] = useState(() => loadLiveFeedCache())
+  const [liveFeedItems, setLiveFeedItems] = useState([])
   const [menuOpen, setMenuOpen] = useState(false)
   const [homeQuery, setHomeQuery] = useState('')
-  const [comments, setComments] = useState(() => {
-    if (typeof window === 'undefined') return { ...DEMO_COMMENTS }
-    try {
-      return withDemoComments(JSON.parse(storage.getItem(COMMENTS_KEY) || '{}'))
-    } catch {
-      return { ...DEMO_COMMENTS }
-    }
-  })
+  const [comments, setComments] = useState(() => ({ ...DEMO_COMMENTS }))
   const [profileTab, setProfileTab] = useState('gallery')
   const [profileWebsitePreview, setProfileWebsitePreview] = useState(false)
+  const [fabLaunchProject, setFabLaunchProject] = useState(null)
   const [ceoAppId, setCeoAppId] = useState('')
   const [compose, setCompose] = useState({
     mode: '',
@@ -5472,7 +5512,7 @@ function App() {
   const [fabPlan, setFabPlan] = useState('month')
   const [dashCursor, setDashCursor] = useState(0)
   const [drawingDraft, setDrawingDraft] = useState(emptyDrawingDraft)
-  const [fabPricing, setFabPricing] = useState(loadFabPricing)
+  const [fabPricing, setFabPricing] = useState(emptyFabPricing)
   const [ecocash, setEcocash] = useState({ number: '', password: '', name: '' })
   const [paymentNote, setPaymentNote] = useState('')
   const [websiteName, setWebsiteName] = useState('')
@@ -5485,11 +5525,7 @@ function App() {
   const [websiteProjectName, setWebsiteProjectName] = useState('')
   const [websiteAbout, setWebsiteAbout] = useState('')
   const [pendingSignup, setPendingSignup] = useState(null)
-  const [appRoute, setAppRoute] = useState(() => {
-    const sub = detectActiveSubdomain()
-    if (sub) return { kind: 'site', slug: sub, projectId: '', view: 'home' }
-    return parseHashPath(readHashPath(), () => null).route
-  })
+  const [appRoute, setAppRoute] = useState({ kind: '', slug: '', projectId: '', view: 'home' })
 
   const menuRef = useRef(null)
   const flowToken = useRef(0)
@@ -5510,11 +5546,46 @@ function App() {
   const lastPathRef = useRef(readHashPath())
   const navStackRef = useRef([readHashPath() || '/home'])
   const navIndexRef = useRef(0)
+  const previewFrameRef = useRef(null)
+  const siteStackRef = useRef([])
+  const siteIndexRef = useRef(0)
+  const [siteNavTick, setSiteNavTick] = useState(0)
   const [navTick, setNavTick] = useState(0)
   const findCompanyRef = useRef(() => null)
+  const savedAccountsRef = useRef('')
+  const profileSaveRef = useRef('')
 
   useEffect(() => {
     setAccounts((previous) => withOwnerLogin(previous))
+  }, [])
+
+  useEffect(() => {
+    try {
+      const savedAccounts = storage.getItem(STORE_KEY)
+      if (savedAccounts) {
+        const next = withCompanyAccounts(JSON.parse(savedAccounts))
+        savedAccountsRef.current = JSON.stringify(next)
+        setAccounts(next)
+      }
+    } catch {
+      /* Keep the seeded companies if saved accounts cannot be read. */
+    }
+    try {
+      const savedSession = storage.getItem(SESSION_KEY) || ''
+      if (savedSession) setSignedInId(savedSession)
+    } catch {
+      /* Stay signed out. */
+    }
+    try {
+      const savedComments = storage.getItem(COMMENTS_KEY)
+      if (savedComments) setComments(withDemoComments(JSON.parse(savedComments)))
+    } catch {
+      /* Keep the demo comments. */
+    }
+    const feed = loadLiveFeedCache()
+    if (feed.length) setLiveFeedItems(feed)
+    setFabPricing(loadFabPricing())
+    setStorageReady(true)
   }, [])
 
   useEffect(() => {
@@ -5522,24 +5593,40 @@ function App() {
   }, [profileTab])
 
   useEffect(() => {
+    setBrowserHost(window.location.host)
+  }, [])
+
+  useEffect(() => {
+    setProfileNameDraft({ id: activeProfileId, name: null, ceo: null })
+  }, [activeProfileId])
+
+  useEffect(() => {
     setProfileWebsitePreview(false)
   }, [activeProfileId, profileTab])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (!storageReady || typeof window === 'undefined') return
     try {
-      storage.setItem(STORE_KEY, JSON.stringify(accounts))
+      const serialized = JSON.stringify(accounts)
+      if (serialized === savedAccountsRef.current) return
+      savedAccountsRef.current = serialized
+      storage.setItem(STORE_KEY, serialized)
     } catch {
       /* Photos stay on this session if the phone storage is full. */
     }
-  }, [accounts])
+  }, [accounts, storageReady])
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
     const onStorage = (event) => {
       if (event.key !== STORE_KEY || !event.newValue) return
+      if (event.newValue === savedAccountsRef.current) return
       try {
-        setAccounts(withCompanyAccounts(JSON.parse(event.newValue)))
+        const next = withCompanyAccounts(JSON.parse(event.newValue))
+        const serialized = JSON.stringify(next)
+        if (serialized === savedAccountsRef.current) return
+        savedAccountsRef.current = serialized
+        setAccounts(next)
       } catch {
         /* Ignore bad storage sync payloads. */
       }
@@ -5549,16 +5636,15 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      storage.setItem(COMMENTS_KEY, JSON.stringify(comments))
-    }
-  }, [comments])
+    if (!storageReady || typeof window === 'undefined') return
+    storage.setItem(COMMENTS_KEY, JSON.stringify(comments))
+  }, [comments, storageReady])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (!storageReady || typeof window === 'undefined') return
     if (signedInId) storage.setItem(SESSION_KEY, signedInId)
     else storage.removeItem(SESSION_KEY)
-  }, [signedInId])
+  }, [signedInId, storageReady])
 
   const refreshLiveFeed = async () => {
     if (!readOnline()) {
@@ -5679,19 +5765,28 @@ function App() {
 
   useEffect(() => {
     const now = Date.now()
-    let changed = false
-    const next = accounts.map((account) => {
-      let siteChanged = false
-      const websites = (account.websites || []).map((site) => {
-        if (site.catalogId || site.billingStatus !== 'trial') return site
-        if (!(Number(site.trialUntil) > 0) || now <= Number(site.trialUntil)) return site
-        siteChanged = true
-        changed = true
-        return { ...site, billingStatus: 'paused' }
-      })
-      return siteChanged ? { ...account, websites } : account
-    })
-    if (changed) setAccounts(next)
+    const expired = accounts.some((account) =>
+      (account.websites || []).some(
+        (site) =>
+          !site.catalogId &&
+          site.billingStatus === 'trial' &&
+          Number(site.trialUntil) > 0 &&
+          now > Number(site.trialUntil),
+      ),
+    )
+    if (!expired) return
+    setAccounts((previous) =>
+      previous.map((account) => {
+        let siteChanged = false
+        const websites = (account.websites || []).map((site) => {
+          if (site.catalogId || site.billingStatus !== 'trial') return site
+          if (!(Number(site.trialUntil) > 0) || now <= Number(site.trialUntil)) return site
+          siteChanged = true
+          return { ...site, billingStatus: 'paused' }
+        })
+        return siteChanged ? { ...account, websites } : account
+      }),
+    )
   }, [accounts])
 
   useEffect(() => {
@@ -5717,6 +5812,12 @@ function App() {
     signedInAccount?.websites[0] ||
     null
 
+  const visibleSiteLabel = (site) => {
+    const label = subdomainLabelFor(site)
+    if (label.startsWith('/') && browserHost) return `${browserHost}${label}`
+    return label
+  }
+
   useEffect(() => {
     if (!signedInAccount || !currentProfile) return
     const slug = currentProfile.slug || uniqueSlug(currentProfile.name, accounts)
@@ -5728,7 +5829,7 @@ function App() {
   }, [signedInAccount, currentProfile, accounts])
 
   useEffect(() => {
-    if (signedInAccount) return
+    if (!storageReady || signedInAccount) return
     const accountOverlays = [
       'own-photo',
       'own-post',
@@ -5751,7 +5852,7 @@ function App() {
       setTab('login')
       pushPath('/login')
     }
-  }, [signedInAccount, tab, settingsView, overlay, pendingSignup])
+  }, [storageReady, signedInAccount, tab, settingsView, overlay, pendingSignup])
 
   useEffect(() => {
     if (PHASE1_COMPLETE) return
@@ -5896,9 +5997,89 @@ function App() {
     setNavTick((value) => value + 1)
   }
 
+  const noteSiteUrl = (href) => {
+    if (!href || href === 'about:blank') return
+    const stack = siteStackRef.current
+    const index = siteIndexRef.current
+    if (stack[index] === href) return
+    if (index > 0 && stack[index - 1] === href) {
+      siteIndexRef.current = index - 1
+    } else if (index < stack.length - 1 && stack[index + 1] === href) {
+      siteIndexRef.current = index + 1
+    } else {
+      const next = stack.slice(0, index + 1)
+      const previous = next[next.length - 1] || ''
+      if (/\/login\.html(?:\?|$)/.test(previous) && !/\/login\.html(?:\?|$)/.test(href)) {
+        next[next.length - 1] = href
+      } else {
+        next.push(href)
+      }
+      siteStackRef.current = next
+      siteIndexRef.current = next.length - 1
+    }
+    setSiteNavTick((value) => value + 1)
+  }
+
+  const hookSiteFrame = (frame) => {
+    const win = frame?.contentWindow
+    if (!win || win.__fortressSiteHistory) return
+    try {
+      win.__fortressSiteHistory = true
+      const { pushState, replaceState } = win.history
+      win.history.pushState = function (...args) {
+        const result = pushState.apply(this, args)
+        noteSiteUrl(win.location.href)
+        return result
+      }
+      win.history.replaceState = function (...args) {
+        const result = replaceState.apply(this, args)
+        const href = win.location.href
+        const current = siteStackRef.current[siteIndexRef.current]
+        if (current && current !== href) {
+          const next = siteStackRef.current.slice()
+          next[siteIndexRef.current] = href
+          siteStackRef.current = next
+          setSiteNavTick((value) => value + 1)
+        }
+        return result
+      }
+      win.addEventListener('hashchange', () => noteSiteUrl(win.location.href))
+      win.addEventListener('popstate', () => noteSiteUrl(win.location.href))
+    } catch {
+      /* The frame is not readable from this page. */
+    }
+  }
+
+  const onSiteFrameLoad = (event) => {
+    const frame = event.currentTarget
+    hookSiteFrame(frame)
+    try {
+      noteSiteUrl(frame.contentWindow?.location?.href || '')
+    } catch {
+      /* Cross-origin frame. */
+    }
+  }
+
+  const goSiteHistory = (delta) => {
+    const nextIndex = siteIndexRef.current + delta
+    const stack = siteStackRef.current
+    if (nextIndex < 0 || nextIndex >= stack.length) return
+    const href = stack[nextIndex]
+    siteIndexRef.current = nextIndex
+    setSiteNavTick((value) => value + 1)
+    const frame = previewFrameRef.current
+    if (!frame) return
+    try {
+      frame.contentWindow.location.href = href
+    } catch {
+      frame.src = href
+    }
+  }
+
   const canGoBack = navIndexRef.current > 0
   const canGoForward = navIndexRef.current < navStackRef.current.length - 1
   void navTick
+  void siteNavTick
 
   const historyNavProps = {
     canHistoryBack: canGoBack,
@@ -5938,6 +6119,13 @@ function App() {
   const ceoWebsitePreviewOpen =
     Boolean(profileWebsitePreview && ceoActiveSite && !siteTrialEnded(ceoActiveSite)) &&
     (ceoPreviewSlug === 'rodcroft' || ceoPreviewSlug === 'prixburg')
+
+  useEffect(() => {
+    if (ceoWebsitePreviewOpen) return
+    siteStackRef.current = []
+    siteIndexRef.current = 0
+    setSiteNavTick((value) => value + 1)
+  }, [ceoWebsitePreviewOpen])
   const switchAccounts = signedInAccount
     ? accounts.filter(
         (account) =>
@@ -6012,9 +6200,8 @@ function App() {
           websites: (account.websites || []).map((site) => {
             if (site.id !== profileId) return site
             const next = { ...site, ...updates }
-            if (Object.prototype.hasOwnProperty.call(updates, 'ceo')) {
-              next.ceoEdited = true
-            }
+            if (Object.prototype.hasOwnProperty.call(updates, 'ceo')) next.ceoEdited = true
+            if (Object.prototype.hasOwnProperty.call(updates, 'name')) next.nameEdited = true
             return next
           }),
         }
@@ -6031,6 +6218,22 @@ function App() {
       })
     }
   }
+
+  useEffect(() => {
+    if (!currentProfile || profileNameDraft.id !== currentProfile.id) return
+    const updates = {}
+    if (profileNameDraft.name != null && profileNameDraft.name !== (currentProfile.name || '')) {
+      updates.name = profileNameDraft.name
+    }
+    if (profileNameDraft.ceo != null && profileNameDraft.ceo !== (currentProfile.ceo || '')) {
+      updates.ceo = profileNameDraft.ceo
+    }
+    if (updates.name == null && updates.ceo == null) return
+    const signature = `${currentProfile.id}:${updates.name ?? ''}:${updates.ceo ?? ''}`
+    if (profileSaveRef.current === signature) return
+    profileSaveRef.current = signature
+    updateCurrentWebsite(updates)
+  }, [profileNameDraft, currentProfile])
 
   const openSettingsPage = (view = 'home') => {
     setTab('settings')
@@ -6732,6 +6935,10 @@ function App() {
   }
 
   const leavePublished = () => {
+    if (typeof window !== 'undefined' && /^\/site\/[^/]+/i.test(window.location.pathname || '')) {
+      window.location.assign('/#/home')
+      return
+    }
     setAppRoute({ kind: '', slug: '' })
     setTab('home')
     pushPath('/home')
@@ -7305,10 +7512,14 @@ function App() {
           <div className="title-row">
             <div className="title-lead">
               <HistoryNav
-                canBack={canGoBack}
-                canForward={canGoForward}
-                onBack={() => goAppHistory(-1)}
-                onForward={() => goAppHistory(1)}
+                canBack={ceoWebsitePreviewOpen ? siteIndexRef.current > 0 : canGoBack}
+                canForward={
+                  ceoWebsitePreviewOpen
+                    ? siteIndexRef.current < siteStackRef.current.length - 1
+                    : canGoForward
+                }
+                onBack={() => (ceoWebsitePreviewOpen ? goSiteHistory(-1) : goAppHistory(-1))}
+                onForward={() => (ceoWebsitePreviewOpen ? goSiteHistory(1) : goAppHistory(1))}
               />
               <div>
                 <p className="eyebrow">Run sites from phone{online ? '' : ' · offline'}</p>
@@ -7465,9 +7676,11 @@ function App() {
                 </button>
               </div>
               <iframe
+                ref={previewFrameRef}
                 className="ceo-live-site-frame"
                 title="Rodcroft website"
                 src={`/project/${RODCROFT_CHADCOMBE_PROJECT_ID}`}
+                onLoad={onSiteFrameLoad}
               />
             </section>
           )}
@@ -7479,20 +7692,13 @@ function App() {
                   ← Dashboard
                 </button>
               </div>
-              <div className="prixburg-live-site">
-                <PrixburgTemplate
-                  site={ceoActiveSite}
-                  initialView="home"
-                  onMetadataUpdated={(updatedMeta) => {
-                    if (ceoActiveSite?.id && signedInAccount) {
-                      updateWebsite(ceoActiveSite.id, {
-                        name: updatedMeta.companyName || ceoActiveSite.name,
-                        ceo: updatedMeta.ceo ?? ceoActiveSite.ceo,
-                      })
-                    }
-                  }}
-                />
-              </div>
+              <iframe
+                ref={previewFrameRef}
+                className="ceo-live-site-frame"
+                title="Prixburg website"
+                src="/prixburg-live/index.html"
+                onLoad={onSiteFrameLoad}
+              />
             </section>
           )}
 
@@ -7557,17 +7763,30 @@ function App() {
               </div>
 
               {privateSystems.length ? (
-                privateSystems.map((site, index) => (
-                  <button
-                    key={site.id}
-                    type="button"
-                    className="profile-live-link"
-                    onClick={() => openPrivateSystem(site)}
-                  >
-                    {index + 1}) {liveDomain(site)}
-                    {site.systemType === 'fabrication' ? ' — Fabrication website' : ''}
-                  </button>
-                ))
+                privateSystems.map((site, index) => {
+                  const slug = cleanSlug(site.slug || site.catalogId || site.name || '')
+                  const onAppPath = slug !== 'rodcroft' && slug !== 'prixburg'
+                  const label = `${index + 1}) ${visibleSiteLabel(site)}${
+                    site.systemType === 'fabrication' ? ' — Fabrication website' : ''
+                  }`
+                  if (onAppPath) {
+                    return (
+                      <a key={site.id} className="profile-live-link" href={`/site/${slug}`}>
+                        {label}
+                      </a>
+                    )
+                  }
+                  return (
+                    <button
+                      key={site.id}
+                      type="button"
+                      className="profile-live-link"
+                      onClick={() => openPrivateSystem(site)}
+                    >
+                      {label}
+                    </button>
+                  )
+                })
               ) : (
                 <p className="profile-live-link muted">
                   Your private system link appears here after you buy a website. Other people cannot see it.
@@ -7596,19 +7815,41 @@ function App() {
                     Company name
                     <input
                       type="text"
-                      value={currentProfile.name || ''}
-                      onChange={(event) =>
-                        updateCurrentWebsite({ name: event.target.value || 'My company' })
+                      value={
+                        profileNameDraft.id === currentProfile.id && profileNameDraft.name != null
+                          ? profileNameDraft.name
+                          : currentProfile.name || ''
                       }
+                      onChange={(event) => {
+                        const name = event.target.value
+                        setProfileNameDraft((draft) => ({
+                          id: currentProfile.id,
+                          name,
+                          ceo: draft.id === currentProfile.id ? draft.ceo : null,
+                        }))
+                        updateCurrentWebsite({ name })
+                      }}
                     />
                   </label>
                   <label>
                     CEO name
                     <input
                       type="text"
-                      value={currentProfile.ceo || ''}
+                      value={
+                        profileNameDraft.id === currentProfile.id && profileNameDraft.ceo != null
+                          ? profileNameDraft.ceo
+                          : currentProfile.ceo || ''
+                      }
                       placeholder="CEO name"
-                      onChange={(event) => updateCurrentWebsite({ ceo: event.target.value })}
+                      onChange={(event) => {
+                        const ceo = event.target.value
+                        setProfileNameDraft((draft) => ({
+                          id: currentProfile.id,
+                          name: draft.id === currentProfile.id ? draft.name : null,
+                          ceo,
+                        }))
+                        updateCurrentWebsite({ ceo })
+                      }}
                     />
                   </label>
                 </form>
@@ -7638,7 +7879,9 @@ function App() {
                   <span className="ig-tab-label">
                     {(dashSite || currentProfile)?.systemType === 'manufacturing'
                       ? 'CEO Analysis'
-                      : 'Engineering'}
+                      : (dashSite || currentProfile)?.systemType === 'fabrication'
+                        ? 'Projects'
+                        : 'Engineering'}
                   </span>
                 </button>
               </div>
@@ -7691,6 +7934,7 @@ function App() {
                           backLabel="Dashboard"
                           pricing={fabPricing}
                           routePanel="home"
+                          initialProject={fabLaunchProject}
                           onNavigate={() => {}}
                           {...historyNavProps}
                           onSavePricing={(next) => {
@@ -7741,7 +7985,14 @@ function App() {
                         setCeoAppId(selected.id)
                         setProfileWebsitePreview(false)
                       }}
-                      onViewWebsite={() => setProfileWebsitePreview(true)}
+                      onViewWebsite={() => {
+                        setFabLaunchProject(null)
+                        setProfileWebsitePreview(true)
+                      }}
+                      onOpenProject={(project) => {
+                        setFabLaunchProject(project)
+                        setProfileWebsitePreview(true)
+                      }}
                     />
                   )}
                   <input ref={drawingInputRef} type="file" accept="image/*" hidden onChange={handleDrawingFile} />
@@ -7979,13 +8230,13 @@ function App() {
               {signedInAccount?.websites?.length ? (
                 <div className="app-manage-list">
                   {signedInAccount.websites.map((site) => {
-                    const label = `${subdomainLabelFor(site)} - ${site.name || 'App'}`
+                    const label = `${visibleSiteLabel(site)} - ${site.name || 'App'}`
                     const confirming = deleteAppId === site.id
                     return (
                       <div key={site.id} className="app-manage-item">
                         <div className="app-manage-row">
                           <div>
-                            <strong>{subdomainLabelFor(site)}</strong>
+                            <strong>{visibleSiteLabel(site)}</strong>
                             <span>
                               {' '}
                               - {site.name || 'App'}
@@ -8306,7 +8557,7 @@ function App() {
                     {purchaseMode === 'trial' ? 'Temporary subdomain (edit the domain above)' : 'Tenant Subdomain (under Fortress)'}
                     <input
                       type="text"
-                      value={subdomainLabelFor(
+                      value={visibleSiteLabel(
                         purchaseMode === 'trial'
                           ? domainEdited
                             ? websiteDomain || websiteName || 'company'
@@ -8497,11 +8748,19 @@ function App() {
             <div className="lock-card live-link-card">
               <h2>Your system is live</h2>
               <p className="shop-copy">Fortress generated this website from the tailor-made name.</p>
-              <p className="live-link-url">{liveDomain(overlay.site || currentProfile)}</p>
+              <p className="live-link-url">{visibleSiteLabel(overlay.site || currentProfile)}</p>
               <button
                 type="button"
                 className="primary-button"
-                onClick={() => openPrivateSystem(overlay.site || currentProfile)}
+                onClick={() => {
+                  const site = overlay.site || currentProfile
+                  const slug = cleanSlug(site?.slug || site?.catalogId || site?.name || '')
+                  if (slug && slug !== 'rodcroft' && slug !== 'prixburg') {
+                    window.location.assign(`/site/${slug}`)
+                    return
+                  }
+                  openPrivateSystem(site)
+                }}
               >
                 Open
               </button>

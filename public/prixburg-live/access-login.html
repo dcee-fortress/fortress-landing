@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg - Access</title>
+    <link rel="stylesheet" href="app.css?v=10">
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+    <script src="gates.js"></script>
+</head>
+<body>
+    <main class="main">
+        <div class="topbar">
+            <div class="menu-wrap">
+                <button type="button" class="dropdown-btn" onclick="toggleDropdown(event)" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+                <div id="dropdownMenu" class="dropdown-content"></div>
+            </div>
+            <div class="topbar-actions" id="topbarActions"></div>
+        </div>
+
+        <div class="gate-stage">
+            <form class="gate-card" id="gateForm">
+                <h3 id="gateTitle">Settings access</h3>
+                <p id="gateCopy">Enter the Prixburg Chemicals credentials to continue.</p>
+                <div class="form-group">
+                    <label for="gateUsername">Username</label>
+                    <input type="text" id="gateUsername" name="username" autocomplete="off" required>
+                </div>
+                <div class="form-group">
+                    <label for="gatePassword">Password</label>
+                    <input type="password" id="gatePassword" name="password" autocomplete="off" required>
+                </div>
+                <button type="submit" class="primary-btn">Login</button>
+                <p class="gate-error" id="gateError">Invalid username or password.</p>
+            </form>
+        </div>
+    </main>
+    <script src="nav.js?v=6"></script>
+    <script>
+        const next = gateNextTarget();
+        if (next === 'formulas') {
+            document.getElementById('gateTitle').textContent = 'Detergent formulars access';
+            document.title = 'Prixburg - Detergent formulars access';
+            document.getElementById('gateForm').classList.add('gate-card-formulas');
+        } else {
+            document.title = 'Prixburg - Settings access';
+        }
+
+        document.getElementById('gateForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const username = document.getElementById('gateUsername').value;
+            const password = document.getElementById('gatePassword').value;
+            const error = document.getElementById('gateError');
+            const ready = typeof waitForDbReady === 'function'
+                ? waitForDbReady(2500)
+                : Promise.race([
+                    Promise.resolve(window.dbReady || null).catch(function () { return null; }),
+                    new Promise(function (resolve) { setTimeout(resolve, 2500); })
+                ]);
+
+            Promise.resolve(ready).then(function () {
+                if (!checkGateCredentials(username, password)) {
+                    error.style.display = 'block';
+                    return;
+                }
+
+                if (next === 'formulas') {
+                    grantFormulasAccess();
+                    const returnTo = new URLSearchParams(window.location.search).get('return');
+                    const allowed = returnTo && /^[a-z0-9.-]+\.html$/i.test(returnTo);
+                    window.location.href = allowed ? returnTo : 'detergent-formulas.html';
+                } else {
+                    grantSettingsAccess();
+                    window.location.href = 'settings.html';
+                }
+            });
+        });
+
+        document.querySelectorAll('#gateForm input').forEach(function (input) {
+            input.addEventListener('input', function () {
+                document.getElementById('gateError').style.display = 'none';
+            });
+        });
+        document.getElementById('gateUsername').focus();
+    </script>
+</body>
+</html>

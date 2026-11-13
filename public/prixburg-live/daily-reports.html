@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg - Daily files</title>
+    <link rel="stylesheet" href="app.css?v=10">
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+    <script src="gates.js"></script>
+</head>
+<body class="report-simple" data-report-type="daily">
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="menu-wrap">
+                    <button type="button" class="dropdown-btn" onclick="toggleDropdown(event)" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+                    <div id="dropdownMenu" class="dropdown-content"></div>
+                </div>
+                <h2><a href="sales-finance.html" class="page-back">Sales and finance</a></h2>
+            </div>
+            <div class="topbar-actions" id="topbarActions"></div>
+        </div>
+
+        <div class="files-panel">
+            <div class="files-section-title">
+                Daily Files
+                <div class="files-section-actions">
+                    <button type="button" class="action-btn" onclick="exportPagePdf()">Export PDF</button>
+                    <button type="button" class="primary-btn" onclick="openCreateDailyFileModal()">Create daily file</button>
+                </div>
+            </div>
+            <div class="app-search">
+                <input id="fileSearch" type="search" placeholder="Search files" autocomplete="off">
+            </div>
+            <p id="reportEmpty" class="app-file-sub" style="display: none; padding: 16px 24px;">No daily files yet.</p>
+            <div id="reportFiles" class="app-file-list"></div>
+        </div>
+    </main>
+    <div class="modal-overlay" id="createDailyModal">
+        <form class="modal-card" id="createDailyForm" autocomplete="off">
+            <h3>Create daily file</h3>
+            <div class="field">
+                <label for="reportPeriod">Report date</label>
+                <input id="reportPeriod" type="date" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="action-btn" onclick="closeCreateDailyFileModal()">Cancel</button>
+                <button type="submit" class="primary-btn">Create file</button>
+            </div>
+        </form>
+    </div>
+    <script src="report-boot.js?v=2"></script>
+    <script src="search.js" defer></script>
+    <script src="file-select.js" defer></script>
+    <script src="recycle-bin.js" defer></script>
+    <script src="reports.js?v=17" defer></script>
+    <script src="nav.js?v=6" defer></script>
+    <script src="export-pdf.js?v=9" defer></script>
+</body>
+</html>

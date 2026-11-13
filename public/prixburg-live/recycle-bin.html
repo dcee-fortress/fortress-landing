@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg - Recycle bin</title>
+    <link rel="stylesheet" href="app.css?v=10">
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+    <script src="gates.js"></script>
+    <script>requireSettingsAccess();</script>
+</head>
+<body>
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="menu-wrap">
+                    <button type="button" class="dropdown-btn" onclick="toggleDropdown(event)" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+                    <div id="dropdownMenu" class="dropdown-content"></div>
+                </div>
+                <h2><a href="settings.html" class="page-back">Settings</a></h2>
+            </div>
+            <div class="topbar-actions" id="topbarActions"></div>
+        </div>
+
+        <div class="files-panel">
+            <div class="files-section-title">Recycle bin</div>
+            <div class="app-search">
+                <input id="recycleSearch" type="search" placeholder="Search deleted files" autocomplete="off">
+            </div>
+            <p id="recycleEmpty" class="app-file-sub" style="display: none; padding: 16px 24px;">Recycle bin is empty. Deleted files stay here for 90 days.</p>
+            <div id="recycleList" class="app-file-list"></div>
+        </div>
+    </main>
+    <div id="recycleConfirm" class="modal-overlay">
+        <div class="modal-card">
+            <h3>Recycle bin</h3>
+            <p id="recycleConfirmText">Are you sure?</p>
+            <div class="modal-actions">
+                <button type="button" class="action-btn" id="recycleConfirmNo">No</button>
+                <button type="button" class="danger-btn" id="recycleConfirmYes">Yes</button>
+            </div>
+        </div>
+    </div>
+    <script src="nav.js?v=6"></script>
+    <script src="search.js"></script>
+    <script src="recycle-bin.js"></script>
+</body>
+</html>

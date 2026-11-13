@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg - Expenses entry</title>
+    <link rel="stylesheet" href="app.css?v=10">
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+</head>
+<body class="report-simple" data-report-type="daily">
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="menu-wrap">
+                    <button type="button" class="dropdown-btn" onclick="toggleDropdown(event)" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+                    <div id="dropdownMenu" class="dropdown-content"></div>
+                </div>
+                <h2><a id="expenseBack" href="profit-expense.html?type=daily" class="page-back">Daily profit and expense</a></h2>
+            </div>
+            <div class="topbar-actions" id="topbarActions"></div>
+        </div>
+
+        <div id="salesCards" class="sales-cards">
+            <div class="sales-card">
+                <h3 id="expenseTotalLabel">Total expenses $</h3>
+                <p class="rate-value" id="expenseTotalCard">$0.00</p>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="table-toolbar">
+                <div>
+                    <h3 id="expenseTitle">Expenses entry</h3>
+                    <p id="expenseDateLabel" class="dashboard-range"></p>
+                </div>
+                <div class="table-toolbar-actions">
+                    <button type="button" class="action-btn" onclick="exportPagePdf()">Export PDF</button>
+                </div>
+            </div>
+            <form id="expenseForm" class="expense-form" autocomplete="off">
+                <div class="expense-row">
+                    <div class="expense-label" id="expensePeriodLabel">Date</div>
+                    <input id="expenseDate" class="expense-date" type="date" readonly>
+                </div>
+                <div class="expense-row">
+                    <div class="expense-label">Cost of raw materials</div>
+                    <input id="expenseMaterials" class="expense-date" type="text" readonly aria-label="Cost of raw materials" placeholder="0.00">
+                </div>
+                <div class="expense-row">
+                    <div class="expense-label" id="expenseWagesLabel">Daily wages</div>
+                    <div>
+                        <div id="wageRows" class="wage-rows"></div>
+                        <button type="button" class="action-btn expense-add" id="addWorkerBtn">Add worker</button>
+                    </div>
+                </div>
+                <div class="expense-row">
+                    <div class="expense-label">Rent</div>
+                    <input id="expenseRent" data-expense-field="rent" type="text" inputmode="decimal" placeholder="Rent $ or formula">
+                </div>
+                <div class="expense-row">
+                    <div class="expense-label">Fuel delivery</div>
+                    <input id="expenseFuel" data-expense-field="fuel" type="text" inputmode="decimal" placeholder="Fuel / day $ or formula">
+                </div>
+                <div class="expense-row">
+                    <div class="expense-label">Transport allowance</div>
+                    <input id="expenseTransport" data-expense-field="transport" type="text" inputmode="decimal" placeholder="Transport allowance $ or formula">
+                </div>
+                <div class="expense-row">
+                    <div class="expense-label">Lunch cash</div>
+                    <input id="expenseLunch" data-expense-field="lunch" type="text" inputmode="decimal" placeholder="Lunch cash $ or formula">
+                </div>
+                <div class="expense-row">
+                    <div class="expense-label">Other expenses</div>
+                    <div>
+                        <div id="otherExpenseRows" class="wage-rows"></div>
+                        <button type="button" class="action-btn expense-add" id="addOtherExpenseBtn">Add expense</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </main>
+    <script src="qty-math.js" defer></script>
+    <script src="formulas.js" defer></script>
+    <script src="pricing.js" defer></script>
+    <script src="reports.js?v=19" defer></script>
+    <script src="nav.js?v=6" defer></script>
+    <script src="export-pdf.js?v=9" defer></script>
+</body>
+</html>

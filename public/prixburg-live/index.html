@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg</title>
+    <link rel="stylesheet" href="app.css?v=10">
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+</head>
+<body class="home-page">
+    <main class="main">
+        <div class="topbar">
+            <div class="menu-wrap">
+                <button type="button" class="dropdown-btn" onclick="toggleDropdown(event)" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+                <div id="dropdownMenu" class="dropdown-content"></div>
+            </div>
+            <div class="topbar-actions" id="topbarActions"></div>
+        </div>
+        <div class="home-stage">
+            <h1 class="home-logo">Prixburg<sup class="tm">&trade;</sup></h1>
+        </div>
+    </main>
+    <script src="nav.js?v=6"></script>
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg - Login</title>
+    <link rel="stylesheet" href="app.css?v=10">
+    <style>
+        html, body {
+            min-height: 100vh;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-header {
+            margin-bottom: 32px;
+        }
+
+        .login-header h1 {
+            margin: 0 0 8px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #09090b;
+        }
+
+        .login-header p {
+            margin: 0;
+            color: #3f3f46;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #3f3f46;
+            font-weight: 500;
+            font-size: 12px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d4d4d8;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            color: #09090b;
+            background: #ffffff;
+        }
+
+        .form-group input:focus {
+            outline: 2px solid #18181b;
+            outline-offset: 1px;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 8px 16px;
+            background: #18181b;
+            border: none;
+            color: #ffffff;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .login-btn:hover {
+            background: #27272a;
+        }
+
+        .login-btn:disabled {
+            background: #a1a1aa;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #e11d48;
+            font-size: 12px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .success-message {
+            color: #3f3f46;
+            font-size: 12px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .security-notice {
+            position: fixed;
+            inset: 0;
+            background: rgba(9, 9, 11, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .security-notice.show {
+            display: flex;
+        }
+
+        .security-notice h2 {
+            margin: 0 0 16px;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="security-notice" id="securityNotice">
+        <div>
+            <h2>🔒 Session Expired</h2>
+            <p>You have been logged out for security reasons. Please log in again to continue.</p>
+            <button onclick="clearSecurityNotice()" class="primary-btn">Continue to Login</button>
+        </div>
+    </div>
+
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Prixburg Stock Production System</h1>
+            <p>Secure Login Portal</p>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="login-btn" id="loginBtn">
+                <span id="btnText">Login</span>
+            </button>
+        </form>
+
+
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+
+    </div>
+
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+    <script>
+        // Security and authentication management
+        class AuthManager {
+            constructor() {
+                this.sessionTimeout = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+                this.checkInterval = 60 * 1000; // Check every minute
+                this.init();
+            }
+
+            init() {
+                if (this.isLoggedIn() && this.isSessionValid()) {
+                    const path = window.location.pathname;
+                    if (path !== '/' && path !== '/index.html') {
+                        window.location.replace('index.html');
+                    }
+                    return;
+                } else if (this.isLoggedIn()) {
+                    this.showSecurityNotice();
+                    this.logout();
+                }
+
+                // Start session monitoring
+                this.startSessionMonitoring();
+
+                // Prevent back button navigation to protected pages
+                this.preventBackNavigation();
+            }
+
+            isLoggedIn() {
+                return sessionStorage.getItem('isLoggedIn') === 'true';
+            }
+
+            isSessionValid() {
+                const loginTime = sessionStorage.getItem('loginTime');
+                if (!loginTime) return false;
+
+                const now = new Date().getTime();
+                const sessionAge = now - parseInt(loginTime);
+
+                return sessionAge < this.sessionTimeout;
+            }
+
+            login(username, password) {
+                const allowed = (typeof checkMainCredentials === 'function')
+                    ? checkMainCredentials(username, password)
+                    : (typeof PERMITTED_USERS !== 'undefined'
+                        && PERMITTED_USERS.some(function (user) {
+                            return user.username === username && user.password === password;
+                        }));
+
+                if (allowed) {
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('loginTime', new Date().getTime().toString());
+                    sessionStorage.setItem('currentUser', username);
+                    return true;
+                }
+
+                return false;
+            }
+
+            logout() {
+                sessionStorage.removeItem('isLoggedIn');
+                sessionStorage.removeItem('loginTime');
+                sessionStorage.removeItem('currentUser');
+            }
+
+            startSessionMonitoring() {
+                setInterval(() => {
+                    if (this.isLoggedIn() && !this.isSessionValid()) {
+                        this.showSecurityNotice();
+                        this.logout();
+                    }
+                }, this.checkInterval);
+            }
+
+            preventBackNavigation() {
+                // Prevent accessing protected pages via back button
+                if (window.history.replaceState) {
+                    window.history.replaceState(null, null, window.location.href);
+                }
+
+                window.addEventListener('popstate', function () {
+                    const page = window.location.pathname.split('/').pop();
+                    if (!this.isLoggedIn() && page !== 'login.html') {
+                        window.location.replace('login.html');
+                    }
+                }.bind(this));
+            }
+
+            showSecurityNotice() {
+                document.getElementById('securityNotice').classList.add('show');
+            }
+
+            hideSecurityNotice() {
+                document.getElementById('securityNotice').classList.remove('show');
+            }
+        }
+
+        const authManager = new AuthManager();
+
+        // Form handling
+        const loginForm = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginBtn');
+        const btnText = document.getElementById('btnText');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            successMessage.style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+        }
+
+        function hideMessages() {
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+        }
+
+        function setLoading(loading) {
+            loginBtn.disabled = loading;
+            if (loading) {
+                btnText.innerHTML = '<span class="loading"></span>Logging in...';
+            } else {
+                btnText.textContent = 'Login';
+            }
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessages();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showError('Please enter both username and password.');
+                return;
+            }
+
+            setLoading(true);
+
+            if (typeof waitForDbReady === 'function') {
+                await waitForDbReady(2500);
+            } else if (window.dbReady) {
+                try {
+                    await Promise.race([
+                        window.dbReady,
+                        new Promise(function (resolve) { setTimeout(resolve, 2500); })
+                    ]);
+                } catch (err) { /* use cached credentials */ }
+            }
+
+            if (authManager.login(username, password)) {
+                window.location.replace('index.html');
+            } else {
+                showError('Invalid username or password. Please try again.');
+                setLoading(false);
+            }
+        });
+
+        function clearSecurityNotice() {
+            authManager.hideSecurityNotice();
+        }
+
+
+
+        // Clear any existing session data on page load (for security)
+        if (window.location.search.includes('logout=true')) {
+            authManager.logout();
+            authManager.showSecurityNotice();
+        }
+
+        // Auto-focus username field
+        document.getElementById('username').focus();
+
+        // Add input validation feedback
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', () => {
+                if (errorMessage.style.display === 'block') {
+                    hideMessages();
+                }
+            });
+        });
+
+
+    </script>
+</body>
+</html>

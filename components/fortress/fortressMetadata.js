@@ -27,10 +27,22 @@ export const subdomainLabelFor = (slugOrSite) => {
       .replace(/\.vercel\.app$/i, ''),
   )
   if (slug === 'prixburg') return 'prixburg.vercel.app'
-  return `${slug}.${FORTRESS_SUBDOMAIN_ROOT}`
+  if (slug === 'rodcroft') return `${slug}.${FORTRESS_SUBDOMAIN_ROOT}`
+  // Nested names such as zantac.fortress.vercel.app never get a certificate, so the
+  // site opens on this app at /site/<slug> instead.
+  return `/site/${slug}`
 }
 
-export const subdomainUrlFor = (slugOrSite) => `https://${subdomainLabelFor(slugOrSite)}`
+export const subdomainUrlFor = (slugOrSite) => {
+  const label = subdomainLabelFor(slugOrSite)
+  if (label.startsWith('/')) {
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      return `${window.location.origin}${label}`
+    }
+    return label
+  }
+  return `https://${label}`
+}
 
 /**
  * Detects if the current browser request is on a tenant subdomain of Fortress
@@ -39,6 +51,13 @@ export const subdomainUrlFor = (slugOrSite) => `https://${subdomainLabelFor(slug
  */
 export const detectActiveSubdomain = () => {
   if (typeof window === 'undefined') return ''
+
+  try {
+    const sitePath = String(window.location.pathname || '').match(/^\/site\/([^/]+)/i)
+    if (sitePath?.[1]) return cleanSlug(decodeURIComponent(sitePath[1]))
+  } catch {
+    /* ignore */
+  }
 
   try {
     const params = new URLSearchParams(window.location.search)

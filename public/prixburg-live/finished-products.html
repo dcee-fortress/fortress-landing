@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg - Finished products</title>
+    <link rel="stylesheet" href="app.css?v=10">
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+</head>
+<body class="report-simple">
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="menu-wrap">
+                    <button type="button" class="dropdown-btn" onclick="toggleDropdown(event)" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+                    <div id="dropdownMenu" class="dropdown-content"></div>
+                </div>
+                <h2><a href="manufacturing-factory.html" class="page-back">Manufacturing factory</a></h2>
+            </div>
+            <div class="topbar-actions" id="topbarActions"></div>
+        </div>
+
+        <div class="panel">
+            <div class="table-toolbar">
+                <div>
+                    <h3>Finished products</h3>
+                    <p class="dashboard-range">Stock comes from production entry. Matching sales entry quantities are subtracted automatically.</p>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table" id="finishedTable">
+                    <thead>
+                        <tr>
+                            <th>Detergent name</th>
+                            <th>Unit</th>
+                            <th>Total detergent quantity in stock</th>
+                            <th>Total detergent in stock $</th>
+                        </tr>
+                    </thead>
+                    <tbody id="finishedBody"></tbody>
+                </table>
+            </div>
+            <p id="finishedEmpty" style="display: none;">No finished detergent in stock yet.</p>
+        </div>
+    </main>
+    <script src="formulas.js" defer></script>
+    <script src="pricing.js" defer></script>
+    <script src="reports.js?v=17" defer></script>
+    <script src="nav.js?v=6" defer></script>
+</body>
+</html>

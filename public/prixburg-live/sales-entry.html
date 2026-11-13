@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prixburg - Sales entry</title>
+    <link rel="stylesheet" href="app.css?v=12">
+    <script src="supabase-config.js"></script>
+    <script src="db.js?v=5"></script>
+    <script src="permitted_users.js"></script>
+    <script src="protect_user.js"></script>
+</head>
+<body class="report-simple" data-report-mode="sales-entry">
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="menu-wrap">
+                    <button type="button" class="dropdown-btn" onclick="toggleDropdown(event)" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+                    <div id="dropdownMenu" class="dropdown-content"></div>
+                </div>
+                <h2><a id="dashboardBack" href="sales-analysis.html" class="page-back">Sales analysis</a></h2>
+            </div>
+            <div class="topbar-actions" id="topbarActions"></div>
+        </div>
+
+        <div id="salesCards" class="sales-cards" style="display: none;"></div>
+
+        <div class="panel">
+            <div class="table-toolbar">
+                <div>
+                    <h3 id="dashboardTitle">Sales entry</h3>
+                    <p id="dashboardRange" class="dashboard-range" style="display: none;"></p>
+                </div>
+                <div class="table-toolbar-actions">
+                    <button type="button" class="action-btn" onclick="exportPagePdf()">Export PDF</button>
+                    <button type="button" class="primary-btn" id="addSalesRowBtn">Add row</button>
+                </div>
+            </div>
+            <div class="app-search sales-entry-search">
+                <input id="salesEntrySearch" type="search" placeholder="Search customer, detergent, or number" autocomplete="off">
+            </div>
+            <div class="table-wrap">
+                <table class="data-table" id="dashboardTable">
+                    <thead id="dashboardHead"></thead>
+                    <tbody id="dashboardBody"></tbody>
+                </table>
+            </div>
+            <p id="dashboardEmpty" style="display: none;">Click Add row to enter a sale.</p>
+        </div>
+    </main>
+    <script src="report-period.js"></script>
+    <script src="search.js" defer></script>
+    <script src="reports.js?v=19" defer></script>
+    <script src="nav.js?v=6" defer></script>
+    <script src="export-pdf.js?v=9" defer></script>
+</body>
+</html>
