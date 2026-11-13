@@ -40,6 +40,7 @@ data/*.sqlite
 
 # runtime shared project data (seed file stays committed)
 data/grove-shared-storage.local.json
+data/accounts-store.json
 
 # vercel
 .vercel

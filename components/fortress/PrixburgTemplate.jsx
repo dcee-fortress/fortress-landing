@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   computePrixburgCeoAnalysis,
   getSiteCeoMetadata,
@@ -24,6 +24,9 @@ export default function PrixburgTemplate({
   const [view, setView] = useState(() => initialView || 'home')
   const [selectedFormulaId, setSelectedFormulaId] = useState('')
   const [statusNote, setStatusNote] = useState('')
+  const [gate, setGate] = useState(null)
+  const metaRef = useRef(meta)
+  metaRef.current = meta
 
   // Form drafts
   const [rawDraft, setRawDraft] = useState({
@@ -96,6 +99,58 @@ export default function PrixburgTemplate({
     setMeta(saved)
     onMetadataUpdated?.(saved)
     return saved
+  }
+
+  const requestRowDelete = (label, apply) => {
+    setGate({ label, username: '', password: '', error: '', apply })
+  }
+
+  const credentialsAccepted = (username, password) => {
+    const savedUser = String(meta.credentials?.settingsUsername || '').trim()
+    const savedPass = String(meta.credentials?.settingsPassword || '')
+    const user = String(username || '').trim()
+    const pass = String(password || '')
+    if (user === 'PRIXBURG CHEMICALS' && pass === 'Prixburg') return true
+    return Boolean(savedUser) && user === savedUser && pass === savedPass
+  }
+
+  const submitGate = (event) => {
+    event.preventDefault()
+    if (!gate) return
+    if (!credentialsAccepted(gate.username, gate.password)) {
+      setGate({ ...gate, error: 'Those credentials do not match the detergent formula gate.' })
+      return
+    }
+    gate.apply()
+    setGate(null)
+    setStatusNote('Row deleted.')
+  }
+
+  const deleteListedRow = (label, key, id) => {
+    requestRowDelete(label, () => {
+      const current = metaRef.current
+      persistMeta({
+        ...current,
+        [key]: (current[key] || []).filter((row) => row.id !== id),
+      })
+    })
+  }
+
+  const deleteIngredientRow = (formulaId, ingredientId) => {
+    requestRowDelete('ingredient', () => {
+      const current = metaRef.current
+      persistMeta({
+        ...current,
+        detergentFormulas: (current.detergentFormulas || []).map((formula) =>
+          formula.id !== formulaId
+            ? formula
+            : {
+                ...formula,
+                ingredients: (formula.ingredients || []).filter((ingredient) => ingredient.id !== ingredientId),
+              },
+        ),
+      })
+    })
   }
 
   const rawMaterials = meta.rawMaterials || []
@@ -857,6 +912,7 @@ export default function PrixburgTemplate({
                       <th>Quantity</th>
                       <th>Unit Cost</th>
                       <th>Total Cost</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -884,12 +940,17 @@ export default function PrixburgTemplate({
                         </td>
                         <td>{money(row.unitCost)}</td>
                         <td>{money((Number(row.quantity) || 0) * (Number(row.unitCost) || 0))}</td>
+                        <td>
+                          <button type="button" className="tpl-danger-btn" onClick={() => deleteListedRow('raw material', 'rawMaterials', row.id)}>
+                            Delete
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr>
-                      <th colSpan="5">Storeroom Total</th>
+                      <th colSpan="6">Storeroom Total</th>
                       <th>{money(storeroomTotal)}</th>
                     </tr>
                   </tfoot>
@@ -1046,6 +1107,7 @@ export default function PrixburgTemplate({
                       <th>Cost of Raw Materials</th>
                       <th>Expected Sales</th>
                       <th>Expected Gross Profit</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1060,6 +1122,11 @@ export default function PrixburgTemplate({
                           <td>{money(prod.cost)}</td>
                           <td>{money(expected)}</td>
                           <td>{money(gross)}</td>
+                          <td>
+                            <button type="button" className="tpl-danger-btn" onClick={() => deleteListedRow('production batch', 'productions', prod.id)}>
+                              Delete
+                            </button>
+                          </td>
                         </tr>
                       )
                     })}
@@ -1174,6 +1241,7 @@ export default function PrixburgTemplate({
                       <th>Unit Price</th>
                       <th>Quantity</th>
                       <th>Total $</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1187,6 +1255,11 @@ export default function PrixburgTemplate({
                         <td>{money(row.unitPrice)}</td>
                         <td>{row.quantity}</td>
                         <td>{money((Number(row.quantity) || 0) * (Number(row.unitPrice) || 0))}</td>
+                        <td>
+                          <button type="button" className="tpl-danger-btn" onClick={() => deleteListedRow('sale', 'salesRows', row.id)}>
+                            Delete
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1269,6 +1342,7 @@ export default function PrixburgTemplate({
                       <th>Lunch</th>
                       <th>Other</th>
                       <th>Total</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1290,6 +1364,11 @@ export default function PrixburgTemplate({
                           <td>{money(e.lunch)}</td>
                           <td>{money(e.other)}</td>
                           <td><strong>{money(dayTotal)}</strong></td>
+                          <td>
+                            <button type="button" className="tpl-danger-btn" onClick={() => deleteListedRow('expense', 'expenses', e.id)}>
+                              Delete
+                            </button>
+                          </td>
                         </tr>
                       )
                     })}
@@ -1358,6 +1437,7 @@ export default function PrixburgTemplate({
                       <th>Paid so far $</th>
                       <th>Outstanding credit $</th>
                       <th>Date</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1368,6 +1448,11 @@ export default function PrixburgTemplate({
                         <td>{money(row.paid)}</td>
                         <td><strong>{money(row.balance)}</strong></td>
                         <td>{row.date}</td>
+                        <td>
+                          <button type="button" className="tpl-danger-btn" onClick={() => deleteListedRow('credit sale', 'salesRows', row.id)}>
+                            Delete
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1409,6 +1494,7 @@ export default function PrixburgTemplate({
                           <th>Amount</th>
                           <th>Unit Price</th>
                           <th>Total</th>
+                          <th></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1419,6 +1505,11 @@ export default function PrixburgTemplate({
                             <td>{ing.amount}</td>
                             <td>{money(ing.unitPrice)}</td>
                             <td>{money((Number(ing.amount) || 0) * (Number(ing.unitPrice) || 0))}</td>
+                            <td>
+                              <button type="button" className="tpl-danger-btn" onClick={() => deleteIngredientRow(activeFormula.id, ing.id)}>
+                                Delete
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1499,6 +1590,7 @@ export default function PrixburgTemplate({
                         <th>Quantity</th>
                         <th>Price</th>
                         <th>Unit Selling Price</th>
+                        <th></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1509,6 +1601,11 @@ export default function PrixburgTemplate({
                           <td>{p.quantity}</td>
                           <td>{money(p.price)}</td>
                           <td>{money((Number(p.price) || 0) / (Number(p.quantity) || 1))}</td>
+                          <td>
+                            <button type="button" className="tpl-danger-btn" onClick={() => deleteListedRow('price', 'pricing', p.id)}>
+                              Delete
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1540,6 +1637,43 @@ export default function PrixburgTemplate({
           </>
         )}
       </main>
+      {gate ? (
+        <div className="tpl-gate-backdrop" role="presentation" onClick={() => setGate(null)}>
+          <form
+            className="tpl-gate-card"
+            onClick={(event) => event.stopPropagation()}
+            onSubmit={submitGate}
+          >
+            <h3>Delete {gate.label}</h3>
+            <p>Enter the detergent formula username and password. The row is removed only after those credentials are accepted.</p>
+            <input
+              type="text"
+              autoComplete="username"
+              placeholder="Username"
+              value={gate.username}
+              onChange={(event) => setGate({ ...gate, username: event.target.value, error: '' })}
+              required
+            />
+            <input
+              type="password"
+              autoComplete="current-password"
+              placeholder="Password"
+              value={gate.password}
+              onChange={(event) => setGate({ ...gate, password: event.target.value, error: '' })}
+              required
+            />
+            {gate.error ? <p className="tpl-gate-error">{gate.error}</p> : null}
+            <div className="tpl-hero-btns">
+              <button type="button" className="tpl-secondary-btn" onClick={() => setGate(null)}>
+                Cancel
+              </button>
+              <button type="submit" className="tpl-danger-btn">
+                Delete
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </div>
   )
 }

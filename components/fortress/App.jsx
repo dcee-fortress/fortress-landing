@@ -39,6 +39,13 @@ import {
   subdomainUrlFor,
 } from './fortressMetadata'
 import {
+  deleteAccountOnServer,
+  deleteSiteOnServer,
+  fetchServerAccountsState,
+  loginViaServer,
+  syncAccountsAndTenantsToServer,
+} from './accountsSync'
+import {
   BURGLAR_TYPES,
   emptyBurglarDraft,
   emptyPalisadeDraft,
@@ -5515,6 +5522,42 @@ function App() {
 
   useEffect(() => {
     setAccounts((previous) => withOwnerLogin(previous))
+    let cancelled = false
+    fetchServerAccountsState().then((remote) => {
+      if (cancelled || !remote?.accounts) return
+      setAccounts((previous) => {
+        const byEmail = new Map()
+        ;(previous || []).forEach((account) => {
+          const key = String(account?.email || '').trim().toLowerCase()
+          if (key) byEmail.set(key, { ...account, websites: account.websites || [] })
+        })
+        ;(remote.accounts || []).forEach((remoteAccount) => {
+          const key = String(remoteAccount?.email || '').trim().toLowerCase()
+          if (!key) return
+          const localAccount = byEmail.get(key)
+          if (!localAccount) {
+            byEmail.set(key, { ...remoteAccount, websites: remoteAccount.websites || [] })
+            return
+          }
+          const siteMap = new Map()
+          ;(localAccount.websites || []).forEach((site) => siteMap.set(site.id || site.slug, site))
+          ;(remoteAccount.websites || []).forEach((site) => {
+            const siteKey = site.id || site.slug
+            if (!siteMap.has(siteKey)) siteMap.set(siteKey, site)
+          })
+          byEmail.set(key, {
+            ...remoteAccount,
+            ...localAccount,
+            password: localAccount.password || remoteAccount.password,
+            websites: [...siteMap.values()],
+          })
+        })
+        return withCompanyAccounts([...byEmail.values()])
+      })
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -5526,12 +5569,16 @@ function App() {
   }, [activeProfileId, profileTab])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined') return undefined
     try {
       storage.setItem(STORE_KEY, JSON.stringify(accounts))
     } catch {
       /* Photos stay on this session if the phone storage is full. */
     }
+    const timer = window.setTimeout(() => {
+      syncAccountsAndTenantsToServer(accounts)
+    }, 400)
+    return () => window.clearTimeout(timer)
   }, [accounts])
 
   useEffect(() => {
@@ -5765,14 +5812,30 @@ function App() {
 
   const builtCards = useMemo(
     () =>
-      accounts.flatMap((account, accountIndex) =>
-        account.websites.map((site) => {
+      accounts.flatMap((account, accountIndex) => {
+        const sites = Array.isArray(account.websites) && account.websites.length
+          ? account.websites
+          : [
+              {
+                id: `acct-${account.id}`,
+                name: String(account.email || 'Account').split('@')[0] || 'Account',
+                type: 'Account on Fortress',
+                systemType: '',
+                slug: cleanSlug(String(account.email || '').split('@')[0] || account.id),
+                link: '',
+                slides: [],
+                gallery: [],
+                ceo: '',
+              },
+            ]
+        return sites.map((site) => {
           const slides = slidesForSite(site)
           const latest = slides[0]
 
           return {
             id: site.id,
             name: site.name,
+            email: account.email || '',
             category: site.type || 'Business',
             shelf: site.shelf || 'New companies',
             rating: 5,
@@ -5796,15 +5859,15 @@ function App() {
             ownerId: account.id,
             kind: 'profile',
           }
-        }),
-      ),
+        })
+      }),
     [accounts],
   )
 
   const featureCards = useMemo(
     () =>
       accounts.flatMap((account, accountIndex) =>
-        account.websites.flatMap((site) =>
+        (account.websites || []).flatMap((site) =>
           (site.slides || []).map((slide, index) => ({
             id: `${site.id}-feat-${index}`,
             name: site.name,
@@ -5823,7 +5886,7 @@ function App() {
   const liveCatalog = useMemo(() => {
     const owned = new Map()
     accounts.forEach((account) => {
-      account.websites.forEach((site) => {
+      ;(account.websites || []).forEach((site) => {
         if (site.catalogId) owned.set(site.catalogId, site)
       })
     })
@@ -5951,6 +6014,9 @@ function App() {
     if (!needle) return true
     const text = [
       company.name,
+      company.email || '',
+      company.ceo || '',
+      company.slug || '',
       company.category,
       company.shelf,
       ...(company.slides || []).map((slide) => slide.testimonial || ''),
@@ -5966,9 +6032,10 @@ function App() {
   ].filter((company) => companyMatchesQuery(company, homeQuery))
 
   const homeGridCards = useMemo(() => {
+    const isSearching = Boolean(homeQuery.trim())
     const extras = builtCards.filter(
       (company) =>
-        company.featured &&
+        (company.featured || isSearching) &&
         !company.catalogId &&
         !liveCatalog.some((item) => item.id === company.id || item.name === company.name),
     )
@@ -6100,7 +6167,7 @@ function App() {
     pushPath('/home')
   }
 
-  const handleLogin = (event) => {
+  const handleLogin = async (event) => {
     event.preventDefault()
     const email = authForm.email.trim()
     const password = authForm.password
@@ -6109,11 +6176,22 @@ function App() {
       return
     }
     const existing = accounts.find((account) => account.email.toLowerCase() === email.toLowerCase())
-    if (!existing || existing.password !== password) {
-      setAuthError('That email or password does not match an account.')
+    if (existing && existing.password === password) {
+      finishLogin(existing)
       return
     }
-    finishLogin(existing)
+    const remote = await loginViaServer(email, password)
+    if (remote?.account) {
+      setAccounts((previous) => {
+        const filtered = previous.filter(
+          (account) => account.email?.toLowerCase() !== remote.account.email?.toLowerCase(),
+        )
+        return withCompanyAccounts([{ ...remote.account, websites: remote.account.websites || [] }, ...filtered])
+      })
+      finishLogin(remote.account)
+      return
+    }
+    setAuthError('That email or password does not match an account.')
   }
 
   const handleAddAccount = (event) => {
@@ -6192,6 +6270,7 @@ function App() {
       return
     }
     const siteId = deleteAppId
+    deleteSiteOnServer(site.slug || site.catalogId || site.name || '')
     setAccounts((previous) =>
       previous.map((account) => {
         if (account.id !== signedInAccount.id) return account
@@ -6381,6 +6460,7 @@ function App() {
     if (!signedInAccount) return
     if (!confirmDeleteTwice(`${signedInAccount.email} and the websites on this account`)) return
     const removedId = signedInAccount.id
+    deleteAccountOnServer(removedId)
     setAccounts((previous) => previous.filter((account) => account.id !== removedId))
     setSignedInId('')
     setActiveProfileId('')

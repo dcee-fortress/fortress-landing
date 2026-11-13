@@ -562,13 +562,18 @@ export const loadAllCeoMetadata = () => {
   }
 }
 
-export const saveAllCeoMetadata = (map) => {
+export const saveAllCeoMetadata = (map, { skipRemoteSync = false } = {}) => {
   if (typeof window === 'undefined') return
   try {
     storage.setItem(CEO_METADATA_STORAGE_KEY, JSON.stringify(map))
     window.dispatchEvent(new Event('fortress-ceo-metadata-change'))
   } catch {
     /* ignore quota */
+  }
+  if (!skipRemoteSync) {
+    import('./accountsSync')
+      .then(({ syncAccountsAndTenantsToServer }) => syncAccountsAndTenantsToServer([], map))
+      .catch(() => {})
   }
 }
 
