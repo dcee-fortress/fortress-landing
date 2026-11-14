@@ -617,7 +617,7 @@ export default function RodcroftTemplate({
                 </span>
                 <div>
                   <h2>Quantity Survey</h2>
-                  <p>Valuations, QS schedules, plant on site, and rate analysis</p>
+                  <p>Valuations, QS schedules, plant on site, and site reports</p>
                 </div>
               </button>
 
@@ -727,7 +727,7 @@ export default function RodcroftTemplate({
               </button>
               <p className="rc-eyebrow">Quantity Survey</p>
               <h1>{currentProject.name}</h1>
-              <p className="rc-sub">Valuations, QS schedules, plant on site, and rate analysis.</p>
+              <p className="rc-sub">Valuations, QS schedules, plant on site, and site reports.</p>
             </header>
 
             <div className="rc-choice-grid">

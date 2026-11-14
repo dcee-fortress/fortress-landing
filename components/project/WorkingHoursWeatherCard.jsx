@@ -26,6 +26,15 @@ export default function WorkingHoursWeatherCard({
   reportId,
 }) {
   const range = useMemo(() => {
+    if (reportType === "monthly" && /^\d{4}-\d{2}$/.test(String(reportId || ""))) {
+      const [year, month] = reportId.split("-").map(Number)
+      const lastDay = new Date(year, month, 0).getDate()
+      return {
+        start: `${reportId}-01`,
+        end: `${reportId}-${String(lastDay).padStart(2, "0")}`,
+      }
+    }
+
     if (reportType === "weekly" && reportId) {
       const { startDate, endDate } = getWeekDateRange(reportId)
       const pad = (value) => String(value).padStart(2, "0")
@@ -84,21 +93,37 @@ export default function WorkingHoursWeatherCard({
   }, [projectName, range.end, range.start])
 
   const isWeekly = reportType === "weekly"
+  const isMonthly = reportType === "monthly"
+  const isRange = isWeekly || isMonthly
   const selectedDay = data?.days?.find((day) => day.dayId === selectedDayId) || data?.days?.[0]
   const weekSummary = useMemo(() => summarizeWeekForecast(data?.days || []), [data?.days])
-  const headingCondition = isWeekly ? weekSummary?.condition : selectedDay?.condition
-  const high = isWeekly ? weekSummary?.high : selectedDay?.high
-  const low = isWeekly ? weekSummary?.low : selectedDay?.low
+  const headingCondition = isRange ? weekSummary?.condition : selectedDay?.condition
+  const high = isRange ? weekSummary?.high : selectedDay?.high
+  const low = isRange ? weekSummary?.low : selectedDay?.low
   const tone = weatherTonePalette(resolveWeatherCardTone(headingCondition?.tone, high))
   const locationName = data?.location?.name || projectName
   const weekRangeLabel = reportId && isWeekly ? formatWeekRange(reportId) : ""
+  const monthRangeLabel =
+    reportId && isMonthly
+      ? new Date(`${reportId}-01T00:00:00`).toLocaleDateString("en-GB", {
+          month: "long",
+          year: "numeric",
+        })
+      : ""
+  const now = new Date()
+  const todayId = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+  const showingToday = (selectedDay?.dayId || reportId) === todayId
   const conditionLabel = loading
     ? "Loading forecast"
     : headingCondition?.label || "Forecast"
   const placeLine = [
     locationName,
     data?.location?.country,
-    isWeekly ? weekRangeLabel : formatDayHeading(selectedDay?.dayId || reportId, { weekday: "long", withYear: true }),
+    isMonthly
+      ? monthRangeLabel
+      : isWeekly
+        ? weekRangeLabel
+        : formatDayHeading(selectedDay?.dayId || reportId, { weekday: "long", withYear: true }),
     "07:00 – 17:00",
   ]
     .filter(Boolean)
@@ -112,7 +137,13 @@ export default function WorkingHoursWeatherCard({
       <div className="flex flex-wrap items-end justify-between gap-4 px-5 py-5">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: tone.muted }}>
-            {isWeekly ? "Weekly site weather" : "Today's site weather"}
+            {isMonthly
+              ? "Monthly site weather"
+              : isWeekly
+                ? "Weekly site weather"
+                : showingToday
+                  ? "Today's site weather"
+                  : "Site weather"}
           </p>
           <div className="mt-2 flex items-center gap-3">
             <span
@@ -139,7 +170,7 @@ export default function WorkingHoursWeatherCard({
           <p className="mt-1 text-sm" style={{ color: tone.muted }}>
             Low {low != null ? `${low}°C` : "—"}
             {" · "}
-            {isWeekly
+            {isRange
               ? `${weekSummary?.peakRainChance ?? 0}% rain`
               : `${selectedDay?.peakRainChance ?? 0}% rain`}
           </p>
@@ -154,12 +185,12 @@ export default function WorkingHoursWeatherCard({
         ) : null}
 
         {loading ? (
-          <div className={isWeekly ? "grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7" : "grid grid-cols-4 gap-2 md:grid-cols-8"}>
-            {Array.from({ length: isWeekly ? 7 : 8 }).map((_, index) => (
+          <div className={isRange ? "grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7" : "grid grid-cols-4 gap-2 md:grid-cols-8"}>
+            {Array.from({ length: isRange ? 7 : 8 }).map((_, index) => (
               <div key={index} className="h-[7.5rem] rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.18)" }} />
             ))}
           </div>
-        ) : isWeekly ? (
+        ) : isRange ? (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
             {data?.days?.map((day) => {
               const active = day.dayId === selectedDay?.dayId

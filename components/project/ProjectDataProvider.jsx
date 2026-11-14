@@ -57,6 +57,9 @@ function isLightweightDashboardPath(pathname) {
   ) {
     return parts.length === 1
   }
+  if (root === "site-reports") {
+    return parts.length <= 2
+  }
   if (root === "safety-health") {
     if (parts.length === 1) return true
     // PPE hubs + PPE received/issued shells are list/table UIs.

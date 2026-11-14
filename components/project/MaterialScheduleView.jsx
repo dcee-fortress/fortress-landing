@@ -223,11 +223,11 @@ function MaterialScheduleEditor({
     try {
       await Promise.all([
         Promise.resolve(saveMaterialScheduleRows(projectId, dayId, slotId, scheduleType, rows)),
-        Promise.resolve(saveSlotsForDay(projectId, dayId, sortSlots(getSlotsForDay(dayId)))),
+        Promise.resolve(saveSlotsForDay(dayId, sortSlots(getSlotsForDay(dayId)))),
       ])
       hasEditedRef.current = false
       setSavedMessage(
-        `${schedule.label} saved. Valuations now roll to the dashboards, and this day becomes tomorrow's entry template.`
+        `${schedule.label} saved. Dashboards now include this day. Later days you have not edited show this exact entry.`
       )
     } catch (error) {
       setSavedMessage(
@@ -701,7 +701,7 @@ function MaterialScheduleEditor({
               <p className="text-sm font-medium text-emerald-700">{savedMessage}</p>
             ) : (
               <p className="text-sm text-zinc-500">
-                Entries save as you type and appear on every device using this website link.
+                This entry rolls onto later days you have not edited. Dashboards update when you press Save.
               </p>
             )}
             <ExportPdfButton onClick={exportToPdf} />
