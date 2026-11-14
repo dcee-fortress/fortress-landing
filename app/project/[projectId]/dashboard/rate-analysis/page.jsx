@@ -1,6 +1,6 @@
-import RateAnalysisPageClient from "@/components/project/RateAnalysisPageClient"
 import { isActiveProject } from "@/lib/projectList"
-import { notFound } from "next/navigation"
+import { getSiteReportsHref } from "@/lib/projectRoutes"
+import { notFound, redirect } from "next/navigation"
 
 export default async function RateAnalysisPage({ params }) {
   const { projectId } = await params
@@ -9,5 +9,5 @@ export default async function RateAnalysisPage({ params }) {
     notFound()
   }
 
-  return <RateAnalysisPageClient projectId={projectId} />
+  redirect(getSiteReportsHref(projectId))
 }
