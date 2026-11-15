@@ -53,7 +53,7 @@ export function handleSuggestionKeys(event, { count, highlighted, setActiveIndex
   return false
 }
 
-export function useEntrySuggestions(search, apply, { enterSelects = false, below = false } = {}) {
+export function useEntrySuggestions(search, apply, { enterSelects = false, below = false, title = "Previous entries" } = {}) {
   const [open, setOpen] = useState(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const suggestions = open && search ? search(open.query) : []
@@ -92,6 +92,7 @@ export function useEntrySuggestions(search, apply, { enterSelects = false, below
       onSelect={choose}
       onDismiss={close}
       below={below}
+      title={title}
     />
   )
 
@@ -232,14 +233,23 @@ export function SuggestionCard({
   return placement ? createPortal(card, document.body) : card
 }
 
-export default function EntrySuggestionMenu({ rect, suggestions, activeIndex, onHover, onSelect, onDismiss, below = false }) {
+export default function EntrySuggestionMenu({
+  rect,
+  suggestions,
+  activeIndex,
+  onHover,
+  onSelect,
+  onDismiss,
+  below = false,
+  title = "Previous entries",
+}) {
   if (!rect || !suggestions?.length) return null
 
   return (
     <SuggestionCard
       rect={rect}
       below={below}
-      title="Previous entries"
+      title={title}
       items={suggestions.map((item) => ({ key: item.value, value: item.value, hint: item.hint }))}
       activeIndex={activeIndex}
       onHover={onHover}

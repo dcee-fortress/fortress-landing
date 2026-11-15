@@ -5,8 +5,8 @@ import Icon from "@/components/icon/icon"
 import Link from "next/link"
 import BoqUploadPanel from "@/components/project/BoqUploadPanel"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
-import { getProjectHomeHref } from "@/lib/projectRoutes"
-import { getRateAnalysisPeriodHref, RATE_ANALYSIS_PERIODS } from "@/lib/rateAnalysis"
+import { getQsOverviewHref } from "@/lib/qsOverview"
+import { getActualCostAnalysisHref } from "@/lib/rateAnalysis"
 
 export default function RateAnalysisView({ projectId, projectName }) {
   const { version, refresh } = useProjectData()
@@ -15,33 +15,29 @@ export default function RateAnalysisView({ projectId, projectName }) {
     <div className="space-y-6">
       <header className="space-y-2">
         <Link
-          href={getProjectHomeHref(projectId)}
+          href={getQsOverviewHref(projectId)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to project home
+          Back to Head QS Overview
         </Link>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Rate Analysis</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">BOQ analysis</p>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
         <p className="max-w-2xl text-zinc-500">
-          Upload and manage Excel BOQs here, then open Daily, Weekly, Monthly, or Project to date to
-          compare valuation rates against each BOQ.
+          Upload a BOQ as PDF or Excel, then open Actual cost analysis to price each BOQ description.
         </p>
       </header>
 
       <BoqUploadPanel projectId={projectId} projectName={projectName} onUploaded={refresh} version={version} />
 
-      <div className="app-choice-grid app-choice-grid--4">
-        {RATE_ANALYSIS_PERIODS.map((item) => (
-          <ChoiceCard
-            key={item.period}
-            href={getRateAnalysisPeriodHref(projectId, item.period)}
-            icon={item.icon}
-            title={item.label}
-            description={item.description}
-            iconClassName="app-icon-tile--emerald"
-          />
-        ))}
+      <div className="app-choice-grid">
+        <ChoiceCard
+          href={getActualCostAnalysisHref(projectId)}
+          icon="calculator"
+          title="Actual cost analysis"
+          description="BOQ descriptions in the previous valuations layout. Enter quantities to build the actual cost rate."
+          iconClassName="app-icon-tile--emerald"
+        />
       </div>
     </div>
   )

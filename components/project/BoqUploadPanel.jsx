@@ -3,7 +3,14 @@
 import { useRef, useState } from "react"
 import Icon from "@/components/icon/icon"
 import BoqViewerModal from "@/components/project/BoqViewerModal"
-import { addProjectBoq, getProjectBoqs, parseBoqFile, removeProjectBoq, updateProjectBoqItems } from "@/lib/boqData"
+import {
+  addProjectBoq,
+  formatBoqRate,
+  getProjectBoqs,
+  parseBoqFile,
+  removeProjectBoq,
+  updateProjectBoqItems,
+} from "@/lib/boqData"
 
 function defaultBoqName(fileName) {
   return fileName?.replace(/\.[^.]+$/, "") ?? ""
@@ -53,9 +60,19 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
         return
       }
 
-      setPendingUpload({ fileName: file.name, items })
+      const nextUpload = { fileName: file.name, items }
+      setPendingUpload(nextUpload)
       setBoqName(defaultBoqName(file.name))
-      setStatus(`Found ${items.length} item${items.length === 1 ? "" : "s"} in ${file.name}. Name this BOQ to add it.`)
+      setViewBoq(
+        buildPreviewBoq({
+          name: defaultBoqName(file.name),
+          fileName: file.name,
+          items,
+        })
+      )
+      setStatus(
+        `Read ${items.length} item${items.length === 1 ? "" : "s"} with descriptions and rates from ${file.name}.`
+      )
     } catch (error) {
       setStatus(error.message || "Could not read BOQ file.")
       resetPending()
@@ -128,12 +145,11 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-emerald-200 px-6 py-4">
           <div className="min-w-0 flex-1">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-emerald-900">
-              Excel BOQ
+              Upload a BOQ
             </h2>
             <p className="mt-1 text-sm text-emerald-950/80">
-              Add Excel or CSV BOQ files from your PC or phone. Name each BOQ — a separate rate analysis
-              report is created for every BOQ you add. Actual measured rates update daily; BOQ rates stay
-              as your reference point.
+              Upload a bill of quantities as PDF or Excel. The app reads the descriptions and rates and
+              opens the BOQ template. Name each BOQ — a separate rate analysis is kept for every file.
             </p>
             {projectBoqs.length > 0 ? (
               <ul className="mt-3 space-y-2">
@@ -193,7 +209,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
             <input
               ref={inputRef}
               type="file"
-              accept=".xlsx,.xls,.csv"
+              accept=".pdf,.xlsx,.xls,.csv,application/pdf"
               className="hidden"
               onChange={handleFileSelect}
             />
@@ -204,13 +220,52 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
               className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:opacity-60"
             >
               <Icon name="file-down" size={16} />
-              {isUploading ? "Reading BOQ…" : "Add Excel BOQ"}
+              {isUploading ? "Reading BOQ…" : "Upload PDF or Excel"}
             </button>
           </div>
         </div>
 
         {pendingUpload ? (
           <div className="space-y-3 border-b border-emerald-200 px-6 py-4">
+            <div className="overflow-hidden rounded-lg border border-emerald-200 bg-white">
+              <div className="border-b border-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-950">
+                BOQ template — descriptions and rates
+              </div>
+              <div className="max-h-80 overflow-auto">
+                <table className="min-w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-emerald-50 text-left">
+                      <th className="border-b border-emerald-100 px-3 py-2 font-semibold text-emerald-950">
+                        Description
+                      </th>
+                      <th className="border-b border-emerald-100 px-3 py-2 font-semibold text-emerald-950">
+                        Unit
+                      </th>
+                      <th className="border-b border-emerald-100 px-3 py-2 text-right font-semibold text-emerald-950">
+                        Allowable rate
+                      </th>
+                      <th className="border-b border-emerald-100 px-3 py-2 text-right font-semibold text-emerald-950">
+                        Bill rate
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingUpload.items.map((item) => (
+                      <tr key={item.id}>
+                        <td className="border-b border-emerald-50 px-3 py-2 text-zinc-900">{item.itemName}</td>
+                        <td className="border-b border-emerald-50 px-3 py-2 text-zinc-700">{item.unit || "—"}</td>
+                        <td className="border-b border-emerald-50 px-3 py-2 text-right tabular-nums text-zinc-900">
+                          {formatBoqRate(item.allowableRate)}
+                        </td>
+                        <td className="border-b border-emerald-50 px-3 py-2 text-right tabular-nums text-zinc-900">
+                          {formatBoqRate(item.billRate ?? item.rate)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
             <label className="block space-y-1.5">
               <span className="text-sm font-medium text-emerald-950">BOQ name</span>
               <input

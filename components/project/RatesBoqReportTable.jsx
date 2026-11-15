@@ -42,7 +42,10 @@ export default function RatesBoqReportTable({ rows, period, emptyMessage }) {
               {ACTUAL_RATE_COLUMN_LABEL}
             </th>
             <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
-              BOQ rate
+              Allowable rate
+            </th>
+            <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
+              Bill rate
             </th>
             <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
               Variance
@@ -68,7 +71,10 @@ export default function RatesBoqReportTable({ rows, period, emptyMessage }) {
                 {formatBoqRate(row.actualRate)}
               </td>
               <td className="border border-zinc-200 px-3 py-2 text-right tabular-nums text-zinc-900">
-                {formatBoqRate(row.boqRate)}
+                {formatBoqRate(row.allowableRate)}
+              </td>
+              <td className="border border-zinc-200 px-3 py-2 text-right tabular-nums text-zinc-900">
+                {formatBoqRate(row.billRate ?? row.boqRate)}
               </td>
               <td
                 className={`border border-zinc-200 px-3 py-2 text-right font-semibold tabular-nums ${varianceClass(row.variance)}`}
@@ -80,9 +86,9 @@ export default function RatesBoqReportTable({ rows, period, emptyMessage }) {
         </tbody>
       </table>
       <p className="border-t border-zinc-200 bg-zinc-50 px-4 py-3 text-xs italic text-zinc-600">
-        Activity descriptions come from the valuations dashboard and are matched to BOQ descriptions.
+        Activity descriptions are matched to the uploaded BOQ. Allowable rate and bill rate come from that BOQ item.
         Actual rate = dashboard cost ÷ dashboard production for each activity in the period.
-        Variance = actual rate minus BOQ rate.
+        Variance = actual rate minus bill rate.
       </p>
     </div>
   )

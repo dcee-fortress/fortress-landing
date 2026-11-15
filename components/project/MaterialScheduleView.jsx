@@ -14,6 +14,8 @@ import { buildCellHistory, searchCellHistory } from "@/lib/cellHistory"
 import {
   MATERIAL_SCHEDULE_COLUMNS,
   MATERIAL_SCHEDULE_TYPES,
+  getMaterialScheduleColumns,
+  usesSimplifiedValuationEntry,
   createMaterialRow,
   formatMaterialScheduleDisplayValue,
   formatMaterialScheduleResolvedValue,
@@ -27,6 +29,7 @@ import {
   writeMaterialScheduleDraftRows,
   getActivityDescriptionsForSlot,
 } from "@/lib/materialSchedule"
+import { getValuationsVariationsEntryHref } from "@/lib/valuationVariations"
 import {
   commitFormulaInput,
   draftFormulaInput,
@@ -58,6 +61,8 @@ function MaterialScheduleEditor({
 }) {
   const { saveSlotsForDay, getSlotsForDay, version } = useProjectData()
   const schedule = MATERIAL_SCHEDULE_TYPES[scheduleType]
+  const simplifiedEntry = usesSimplifiedValuationEntry(dayId)
+  const scheduleColumns = getMaterialScheduleColumns(dayId)
   const hasEditedRef = useRef(false)
   const rowsRef = useRef([])
   const [rows, setRows] = useState(() =>
@@ -71,6 +76,7 @@ function MaterialScheduleEditor({
   const [formulaBarActiveIndex, setFormulaBarActiveIndex] = useState(0)
   const [formulaBarRect, setFormulaBarRect] = useState(null)
   const [hoverCard, setHoverCard] = useState(null)
+  const [ratesReady, setRatesReady] = useState(false)
   const closeHoverCard = useCallback(() => setHoverCard(null), [])
   rowsRef.current = rows
 
@@ -109,6 +115,10 @@ function MaterialScheduleEditor({
     },
     [projectId, dayId, slotId, scheduleType]
   )
+
+  useEffect(() => {
+    setRatesReady(true)
+  }, [])
 
   useEffect(() => {
     hasEditedRef.current = false
@@ -170,8 +180,14 @@ function MaterialScheduleEditor({
     hasEditedRef.current = true
   }
 
-  const resolvedRows = useMemo(() => normalizeMaterialScheduleRows(rows), [rows])
+  const resolvedRows = useMemo(
+    () => normalizeMaterialScheduleRows(rows, ratesReady ? projectId : null, dayId),
+    [rows, projectId, dayId, ratesReady]
+  )
   const grandTotal = resolvedRows.reduce((sum, row) => sum + (row.totalCost ?? 0), 0)
+  const allowableCostTotal = resolvedRows.reduce((sum, row) => sum + (row.allowableCost ?? 0), 0)
+  const billCostTotal = resolvedRows.reduce((sum, row) => sum + (row.billCost ?? 0), 0)
+  const actualCostTotal = resolvedRows.reduce((sum, row) => sum + (row.actualCost ?? 0), 0)
   const productionTotal = resolvedRows.reduce(
     (sum, row) => sum + (row.resolvedProduction ?? 0),
     0
@@ -519,10 +535,14 @@ function MaterialScheduleEditor({
         </div>
 
         <div className="overflow-x-auto px-6 py-6">
-          <table className="w-full min-w-[1400px] border-collapse text-sm">
+          <table
+            className={`w-full border-collapse text-sm ${
+              simplifiedEntry ? "min-w-[1180px]" : "min-w-[1400px]"
+            }`}
+          >
             <thead>
               <tr className="border-b-2 border-zinc-900 bg-zinc-900 text-left text-white">
-                {MATERIAL_SCHEDULE_COLUMNS.map((column) => (
+                {scheduleColumns.map((column) => (
                   <th
                     key={column.key}
                     className={`px-3 py-3 font-semibold ${
@@ -541,7 +561,7 @@ function MaterialScheduleEditor({
                   const resolvedRow = resolvedRows[rowIndex]
                   return (
                   <tr key={row.id} className="border-b border-zinc-200 align-top">
-                    {MATERIAL_SCHEDULE_COLUMNS.map((column) => {
+                    {scheduleColumns.map((column) => {
                       const fieldKey = getMaterialRawFieldKey(column.key)
                       const formulaKey = getMaterialFormulaFieldKey(fieldKey)
                       const rawValue = row[fieldKey] ?? ""
@@ -589,8 +609,26 @@ function MaterialScheduleEditor({
                               slotId={slotId}
                               value={rawValue}
                               extraDescriptions={activitySuggestions}
+                              boqOnly
                               onChange={(value) => updateRow(rowIndex, fieldKey, value)}
                             />
+                          ) : simplifiedEntry && column.computed ? (
+                            <div
+                              className="px-2 py-1.5 text-right text-sm font-medium tabular-nums text-zinc-900"
+                              title={
+                                column.key === "actualCost"
+                                  ? "Production × the rate from Actual cost analysis"
+                                  : column.key === "allowableCost"
+                                    ? "Production × allowable rate"
+                                    : column.key === "allowableRate"
+                                      ? "Allowable rate from the BOQ description"
+                                      : column.key === "billRate"
+                                        ? "Bill rate from the BOQ description"
+                                        : "Production × bill rate"
+                              }
+                            >
+                              {resolvedDisplay}
+                            </div>
                           ) : column.key === "details" ? (
                             <MemoryTextInput
                               multiline
@@ -662,7 +700,7 @@ function MaterialScheduleEditor({
               ) : (
                 <tr>
                   <td
-                    colSpan={MATERIAL_SCHEDULE_COLUMNS.length + 1}
+                    colSpan={scheduleColumns.length + 1}
                     className="px-4 py-10 text-center text-zinc-500"
                   >
                     No lines yet. Add a row and start typing — entries save automatically.
@@ -670,16 +708,30 @@ function MaterialScheduleEditor({
                 </tr>
               )}
               <tr className="border-t-2 border-zinc-900 bg-zinc-50 font-semibold">
-                <td colSpan={MATERIAL_SCHEDULE_COLUMNS.length - 2} className="px-3 py-4 text-zinc-900">
-                  Grand Total ({schedule.shortLabel})
-                </td>
-                <td className="px-3 py-4 text-right tabular-nums text-zinc-900">
-                  {formatMaterialCurrencyAmount(grandTotal)}
-                </td>
-                <td className="px-3 py-4 text-right tabular-nums text-zinc-900">
-                  {formatMaterialAmount(productionTotal)}
-                </td>
-                <td />
+                {simplifiedEntry ? (
+                  <>
+                    <td colSpan={3} className="px-3 py-4 text-zinc-900">
+                      Grand Total ({schedule.shortLabel})
+                    </td>
+                    <td className="px-3 py-4 text-right tabular-nums text-zinc-900">
+                      {formatMaterialAmount(productionTotal)}
+                    </td>
+                    <td />
+                  </>
+                ) : (
+                  <>
+                    <td colSpan={MATERIAL_SCHEDULE_COLUMNS.length - 2} className="px-3 py-4 text-zinc-900">
+                      Grand Total ({schedule.shortLabel})
+                    </td>
+                    <td className="px-3 py-4 text-right tabular-nums text-zinc-900">
+                      {formatMaterialCurrencyAmount(grandTotal)}
+                    </td>
+                    <td className="px-3 py-4 text-right tabular-nums text-zinc-900">
+                      {formatMaterialAmount(productionTotal)}
+                    </td>
+                    <td />
+                  </>
+                )}
               </tr>
             </tbody>
           </table>
@@ -701,7 +753,9 @@ function MaterialScheduleEditor({
               <p className="text-sm font-medium text-emerald-700">{savedMessage}</p>
             ) : (
               <p className="text-sm text-zinc-500">
-                This entry rolls onto later days you have not edited. Dashboards update when you press Save.
+                {simplifiedEntry
+                  ? "Pick the BOQ activity description, enter unit and production. QS Overview calculates allowable/bill/actual costs after Save."
+                  : "This entry rolls onto later days you have not edited. Dashboards update when you press Save."}
               </p>
             )}
             <ExportPdfButton onClick={exportToPdf} />
@@ -716,6 +770,17 @@ function MaterialScheduleEditor({
           </div>
         </div>
       </section>
+
+      {simplifiedEntry ? (
+        <div className="flex justify-start">
+          <Link
+            href={getValuationsVariationsEntryHref(projectId, dayId, slotId, scheduleType)}
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-800 transition hover:bg-zinc-100"
+          >
+            Variations
+          </Link>
+        </div>
+      ) : null}
     </div>
   )
 }

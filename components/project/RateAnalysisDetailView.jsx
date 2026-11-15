@@ -32,7 +32,7 @@ function BoqRateAnalysisSection({ boq, projectId, summary, period, periodLabel }
         <p className="mt-1 text-sm text-zinc-600">
           Reference BOQ: {boq.fileName || boq.name} · {boq.items.length} item
           {boq.items.length === 1 ? "" : "s"} · Valuations actual rates for this {periodLabel}{" "}
-          compared to BOQ · Actual rate = dashboard cost ÷ dashboard production
+          compared with the BOQ allowable rate and bill rate · Actual rate = dashboard cost ÷ dashboard production
         </p>
       </div>
       <div className="px-4 py-6 sm:px-6">
@@ -83,7 +83,7 @@ export default function RateAnalysisDetailView({
         >
           <Icon name="arrow-left" size={16} />
           {period === "project-to-date"
-            ? "Back to Rate Analysis"
+            ? "Back to BOQ analysis"
             : `Back to ${periodOption?.shortLabel.toLowerCase()} rates`}
         </Link>
         <header className="space-y-1">
@@ -109,7 +109,7 @@ export default function RateAnalysisDetailView({
           <p className="mt-1 text-sm text-zinc-500">
             Upload and name your BOQ from the{" "}
             <Link href={getRateAnalysisHubHref(projectId)} className="font-medium text-zinc-800 underline">
-              Rate Analysis home page
+              BOQ analysis home page
             </Link>
             . Each BOQ you add gets its own comparison report here.
           </p>

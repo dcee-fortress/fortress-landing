@@ -8,13 +8,17 @@ function draftFromBoq(boq) {
   return (boq?.items ?? []).map((item) => ({
     id: item.id,
     itemName: item.itemName ?? "",
-    rate: item.rate ?? "",
+    unit: item.unit ?? "",
+    itemNo: item.itemNo ?? "",
+    allowableRate: item.allowableRate ?? "",
+    billRate: item.billRate ?? item.rate ?? "",
+    rate: item.billRate ?? item.rate ?? "",
   }))
 }
 
 function boqDraftKey(boq) {
   return `${boq.id}-${(boq.items ?? [])
-    .map((item) => `${item.id}:${item.itemName}:${item.rate}`)
+    .map((item) => `${item.id}:${item.itemName}:${item.unit ?? ""}:${item.allowableRate ?? ""}:${item.billRate ?? item.rate}`)
     .join("|")}`
 }
 
@@ -34,7 +38,11 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
       .map((item) => ({
         id: item.id,
         itemName: item.itemName.trim(),
-        rate: parseBoqRateInput(item.rate),
+        unit: String(item.unit ?? "").trim(),
+        itemNo: String(item.itemNo ?? "").trim(),
+        allowableRate: parseBoqRateInput(item.allowableRate),
+        billRate: parseBoqRateInput(item.billRate),
+        rate: parseBoqRateInput(item.billRate) ?? parseBoqRateInput(item.allowableRate),
       }))
       .filter((item) => item.itemName && item.rate !== null)
 
@@ -53,7 +61,11 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
       (boq.items ?? []).map((item) => ({
         id: item.id,
         itemName: item.itemName ?? "",
-        rate: item.rate ?? "",
+        unit: item.unit ?? "",
+        itemNo: item.itemNo ?? "",
+        allowableRate: item.allowableRate ?? "",
+        billRate: item.billRate ?? item.rate ?? "",
+        rate: item.billRate ?? item.rate ?? "",
       }))
     )
 
@@ -99,8 +111,14 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
                 <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700">
                   Description
                 </th>
+                <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700">
+                  Unit
+                </th>
                 <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
-                  BOQ rate
+                  Allowable rate
+                </th>
+                <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
+                  Bill rate
                 </th>
               </tr>
             </thead>
@@ -123,14 +141,41 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
                     {editable ? (
                       <input
                         type="text"
+                        value={item.unit ?? ""}
+                        onChange={(event) => updateItem(item.id, "unit", event.target.value)}
+                        className="w-24 rounded border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 outline-none ring-emerald-600/20 focus:border-emerald-400 focus:ring-2"
+                      />
+                    ) : (
+                      <span className="px-1 text-zinc-900">{item.unit || "—"}</span>
+                    )}
+                  </td>
+                  <td className="border border-zinc-200 px-2 py-1.5">
+                    {editable ? (
+                      <input
+                        type="text"
                         inputMode="decimal"
-                        value={item.rate}
-                        onChange={(event) => updateItem(item.id, "rate", event.target.value)}
+                        value={item.allowableRate ?? ""}
+                        onChange={(event) => updateItem(item.id, "allowableRate", event.target.value)}
                         className="w-full rounded border border-zinc-200 bg-white px-2 py-1.5 text-right text-sm tabular-nums text-zinc-900 outline-none ring-emerald-600/20 focus:border-emerald-400 focus:ring-2"
                       />
                     ) : (
                       <span className="block px-1 text-right tabular-nums text-zinc-900">
-                        {formatBoqRate(item.rate)}
+                        {formatBoqRate(item.allowableRate)}
+                      </span>
+                    )}
+                  </td>
+                  <td className="border border-zinc-200 px-2 py-1.5">
+                    {editable ? (
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={item.billRate ?? ""}
+                        onChange={(event) => updateItem(item.id, "billRate", event.target.value)}
+                        className="w-full rounded border border-zinc-200 bg-white px-2 py-1.5 text-right text-sm tabular-nums text-zinc-900 outline-none ring-emerald-600/20 focus:border-emerald-400 focus:ring-2"
+                      />
+                    ) : (
+                      <span className="block px-1 text-right tabular-nums text-zinc-900">
+                        {formatBoqRate(item.billRate || item.rate)}
                       </span>
                     )}
                   </td>
