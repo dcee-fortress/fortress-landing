@@ -5,14 +5,7 @@ import Link from "next/link"
 import ChoiceCard from "@/components/project/ChoiceCard"
 import Icon from "@/components/icon/icon"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
-import {
-  formatQsOverviewCell,
-  getQsOverviewBackHref,
-  getQsOverviewHref,
-  getQsOverviewRowsForPeriod,
-  marginToneClass,
-  summarizeQsOverviewRows,
-} from "@/lib/qsOverview"
+import { getQsOverviewBackHref, getQsOverviewHref } from "@/lib/qsOverview"
 import { getRateAnalysisHubHref } from "@/lib/rateAnalysis"
 import {
   getMaterialAnalysisHref,
@@ -31,13 +24,6 @@ export default function QsOverviewView({ projectId, projectName }) {
     return listPendingValuationVariations(projectId)
   }, [projectId, version])
 
-  const projectTotals = useMemo(() => {
-    void version
-    return summarizeQsOverviewRows(
-      getQsOverviewRowsForPeriod(projectId, "project-to-date", "project")
-    )
-  }, [projectId, version])
-
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -53,27 +39,10 @@ export default function QsOverviewView({ projectId, projectName }) {
           {projectName}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Planned and actual margins roll from valuations entry after Save (project to date from 13
-          November). Open Rate Analysis or BOQ analysis below.
+          Margins roll from valuations entry after Save (project to date from 13 November). Open Rate
+          Analysis or BOQ analysis below.
         </p>
       </header>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-zinc-200 bg-white px-5 py-4 shadow-sm">
-          <p className="text-sm font-medium text-zinc-500">Planned Margin</p>
-          <p className={`mt-1 text-2xl font-semibold tabular-nums ${marginToneClass(projectTotals.plannedMargin)}`}>
-            {formatQsOverviewCell("plannedMargin", projectTotals.plannedMargin)}
-          </p>
-          <p className="mt-1 text-xs text-zinc-500">Bill cost − Allowed cost</p>
-        </div>
-        <div className="rounded-xl border border-zinc-200 bg-white px-5 py-4 shadow-sm">
-          <p className="text-sm font-medium text-zinc-500">Actual Margin</p>
-          <p className={`mt-1 text-2xl font-semibold tabular-nums ${marginToneClass(projectTotals.actualMargin)}`}>
-            {formatQsOverviewCell("actualMargin", projectTotals.actualMargin)}
-          </p>
-          <p className="mt-1 text-xs text-zinc-500">Bill cost − Actual cost</p>
-        </div>
-      </div>
 
       {pending.length > 0 ? (
         <section className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">

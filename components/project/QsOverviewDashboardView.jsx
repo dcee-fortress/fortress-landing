@@ -56,30 +56,17 @@ export default function QsOverviewDashboardView({
         </p>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-zinc-200 bg-white px-5 py-4 shadow-sm">
-          <p className="text-sm font-medium text-zinc-500">Planned Margin</p>
-          <p className={`mt-1 text-xl font-semibold tabular-nums ${marginToneClass(totals.plannedMargin)}`}>
-            {formatQsOverviewCell("plannedMargin", totals.plannedMargin)}
-          </p>
-        </div>
-        <div className="rounded-xl border border-zinc-200 bg-white px-5 py-4 shadow-sm">
-          <p className="text-sm font-medium text-zinc-500">Actual Margin</p>
-          <p className={`mt-1 text-xl font-semibold tabular-nums ${marginToneClass(totals.actualMargin)}`}>
-            {formatQsOverviewCell("actualMargin", totals.actualMargin)}
-          </p>
-        </div>
-      </div>
-
       <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
         <div className="overflow-x-auto px-4 py-4 sm:px-6">
           <table className="w-full min-w-[1200px] border-collapse text-sm">
             <thead>
-              <tr className="border-b-2 border-zinc-900 bg-zinc-900 text-white">
+              <tr className="bg-zinc-900 text-white">
                 {QS_OVERVIEW_COLUMNS.map((column) => (
                   <th
                     key={column.key}
-                    className={`px-3 py-3 font-semibold ${column.align === "left" ? "text-left" : "text-right"}`}
+                    className={`border border-zinc-300 px-3 py-3 font-semibold ${
+                      column.align === "left" ? "text-left" : "text-right"
+                    }`}
                   >
                     {column.label}
                   </th>
@@ -89,19 +76,22 @@ export default function QsOverviewDashboardView({
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={QS_OVERVIEW_COLUMNS.length} className="px-4 py-10 text-center text-zinc-500">
+                  <td
+                    colSpan={QS_OVERVIEW_COLUMNS.length}
+                    className="border border-zinc-200 px-4 py-10 text-center text-zinc-500"
+                  >
                     No saved valuations entry rows for this period yet.
                   </td>
                 </tr>
               ) : (
                 rows.map((row) => (
-                  <tr key={`${row.dayId}-${row.id}`} className="border-b border-zinc-200">
+                  <tr key={`${row.dayId}-${row.id}`}>
                     {QS_OVERVIEW_COLUMNS.map((column) => (
                       <td
                         key={column.key}
-                        className={`px-3 py-3 ${column.align === "right" ? "text-right tabular-nums" : "text-left"} ${
-                          column.key === "margin" ? marginToneClass(row.margin) : "text-zinc-900"
-                        }`}
+                        className={`border border-zinc-200 px-3 py-3 ${
+                          column.align === "right" ? "text-right tabular-nums" : "text-left"
+                        } ${column.key === "margin" ? marginToneClass(row.margin) : "text-zinc-900"}`}
                       >
                         {formatQsOverviewCell(column.key, row[column.key])}
                       </td>
@@ -112,26 +102,30 @@ export default function QsOverviewDashboardView({
             </tbody>
             {rows.length > 0 ? (
               <tfoot>
-                <tr className="border-t-2 border-zinc-900 bg-zinc-50 font-semibold">
-                  <td colSpan={3} className="px-3 py-3">
+                <tr className="bg-zinc-50 font-semibold">
+                  <td colSpan={3} className="border border-zinc-200 px-3 py-3">
                     Totals
                   </td>
-                  <td className="px-3 py-3 text-right tabular-nums">
+                  <td className="border border-zinc-200 px-3 py-3 text-right tabular-nums">
                     {formatQsOverviewCell("production", totals.production)}
                   </td>
-                  <td />
-                  <td className="px-3 py-3 text-right tabular-nums">
+                  <td className="border border-zinc-200 px-3 py-3" />
+                  <td className="border border-zinc-200 px-3 py-3 text-right tabular-nums">
                     {formatQsOverviewCell("allowableCost", totals.allowableCost)}
                   </td>
-                  <td />
-                  <td className="px-3 py-3 text-right tabular-nums">
+                  <td className="border border-zinc-200 px-3 py-3" />
+                  <td className="border border-zinc-200 px-3 py-3 text-right tabular-nums">
                     {formatQsOverviewCell("billCost", totals.billCost)}
                   </td>
-                  <td className="px-3 py-3 text-right tabular-nums">
+                  <td className="border border-zinc-200 px-3 py-3 text-right tabular-nums">
                     {formatQsOverviewCell("actualCost", totals.actualCost)}
                   </td>
-                  <td />
-                  <td className={`px-3 py-3 text-right tabular-nums ${marginToneClass(totals.actualMargin)}`}>
+                  <td className="border border-zinc-200 px-3 py-3" />
+                  <td
+                    className={`border border-zinc-200 px-3 py-3 text-right tabular-nums ${marginToneClass(
+                      totals.actualMargin
+                    )}`}
+                  >
                     {formatQsOverviewCell("margin", totals.actualMargin)}
                   </td>
                 </tr>

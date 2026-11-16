@@ -175,7 +175,7 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
                       />
                     ) : (
                       <span className="block px-1 text-right tabular-nums text-zinc-900">
-                        {formatBoqRate(item.billRate || item.rate)}
+                        {formatBoqRate(item.billRate ?? item.rate)}
                       </span>
                     )}
                   </td>
