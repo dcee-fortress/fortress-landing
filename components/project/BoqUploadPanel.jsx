@@ -55,7 +55,9 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
       const items = await parseBoqFile(file)
 
       if (items.length === 0) {
-        setStatus("No BOQ rows found. Include item name and rate columns in your file.")
+        setStatus(
+          "No BOQ rows found. The PDF needs text descriptions and rates. A scanned picture will not read — upload the Excel file instead."
+        )
         resetPending()
         return
       }
