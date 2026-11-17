@@ -35,25 +35,29 @@ function stickyStyle(index, background) {
   }
 }
 
-function AttendanceCell({ value, onCycle }) {
+function AttendanceCell({ day, value, onCycle }) {
   const label =
-    value === "present" ? "Present" : value === "absent" ? "Absent" : "Not marked"
+    value === "present" ? `Day ${day} present` : value === "absent" ? `Day ${day} absent` : `Day ${day} not marked`
 
   return (
     <button
       type="button"
+      data-day={day}
       aria-label={label}
-      title="Click once for a tick. Click again for an X. The next click is a tick again."
-      onClick={onCycle}
-      className={`flex h-9 w-9 items-center justify-center rounded-md border text-sm font-bold leading-none transition hover:border-zinc-400 ${
+      title={`Day ${day}. Click once for a tick. Click again for an X.`}
+      onClick={(event) => onCycle(Number(event.currentTarget.dataset.day))}
+      className={`flex h-12 w-full min-w-[2.75rem] flex-col items-center justify-center rounded-md border text-sm font-bold leading-none transition hover:border-zinc-400 ${
         value === "present"
           ? "border-emerald-300 bg-emerald-50 text-emerald-700"
           : value === "absent"
             ? "border-rose-300 bg-rose-50 text-rose-700"
-            : "border-zinc-200 bg-white text-zinc-300 hover:text-zinc-500"
+            : "border-zinc-200 bg-white text-zinc-400 hover:text-zinc-600"
       }`}
     >
-      {value === "present" ? "✓" : value === "absent" ? "X" : ""}
+      <span className="text-[10px] font-semibold leading-none text-zinc-500">{day}</span>
+      <span className="mt-1 text-base leading-none">
+        {value === "present" ? "✓" : value === "absent" ? "X" : ""}
+      </span>
     </button>
   )
 }
@@ -127,23 +131,25 @@ export default function PlantOperatorRegisterTable({ projectId, monthId }) {
     })
   }
 
-  const setAttendance = (rowId, day, nextValue) => {
+  const setAttendance = (rowId, day) => {
     const current = registerRef.current
+    const key = String(day)
     persist(
       {
         ...current,
         rows: current.rows.map((row) => {
           if (row.id !== rowId) return row
+          const nextValue = row.attendance?.[key] === "present" ? "absent" : "present"
           return {
             ...row,
             attendance: {
               ...row.attendance,
-              [String(day)]: nextValue,
+              [key]: nextValue,
             },
           }
         }),
       },
-      { refreshAfter: true, immediate: true }
+      { immediate: true }
     )
   }
 
@@ -251,19 +257,12 @@ export default function PlantOperatorRegisterTable({ projectId, monthId }) {
                     </td>
                   ))}
                   {dayNumbers.map((day) => (
-                    <td key={day} className="min-w-[2.75rem] border border-zinc-200 px-1 py-1 text-center">
-                      <div className="flex justify-center">
-                        <AttendanceCell
-                          value={row.attendance[String(day)]}
-                          onCycle={() =>
-                            setAttendance(
-                              row.id,
-                              day,
-                              row.attendance[String(day)] === "present" ? "absent" : "present"
-                            )
-                          }
-                        />
-                      </div>
+                    <td key={`${row.id}-day-${day}`} className="min-w-[2.75rem] border border-zinc-200 p-1 text-center">
+                      <AttendanceCell
+                        day={day}
+                        value={row.attendance?.[String(day)] ?? null}
+                        onCycle={(clickedDay) => setAttendance(row.id, clickedDay)}
+                      />
                     </td>
                   ))}
                   <td className="border border-zinc-200 px-2 py-2">

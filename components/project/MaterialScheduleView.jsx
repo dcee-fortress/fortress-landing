@@ -617,7 +617,7 @@ function MaterialScheduleEditor({
                               className="px-2 py-1.5 text-right text-sm font-medium tabular-nums text-zinc-900"
                               title={
                                 column.key === "actualCost"
-                                  ? "Production × the rate from Actual cost analysis"
+                                  ? "Production × the actual rate from Rate build up"
                                   : column.key === "allowableCost"
                                     ? "Production × allowable rate"
                                     : column.key === "allowableRate"

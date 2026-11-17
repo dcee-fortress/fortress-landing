@@ -37,7 +37,7 @@ export default function ValuationVariationReviewView({ projectId, projectName, v
       setMessage(
         updated
           ? status === "approved"
-            ? "Variation approved. This day’s actual rate/cost now use the variation table. Later days still use Actual cost analysis."
+            ? "Variation approved. This day’s actual rate/cost now use the variation table. Later days still use Rate build up."
             : "Variation disapproved."
           : "Could not update variation."
       )

@@ -83,7 +83,7 @@ export default function RateAnalysisDetailView({
         >
           <Icon name="arrow-left" size={16} />
           {period === "project-to-date"
-            ? "Back to BOQ analysis"
+            ? "Back to Rate analysis"
             : `Back to ${periodOption?.shortLabel.toLowerCase()} rates`}
         </Link>
         <header className="space-y-1">
@@ -109,7 +109,7 @@ export default function RateAnalysisDetailView({
           <p className="mt-1 text-sm text-zinc-500">
             Upload and name your BOQ from the{" "}
             <Link href={getRateAnalysisHubHref(projectId)} className="font-medium text-zinc-800 underline">
-              BOQ analysis home page
+              Rate analysis home page
             </Link>
             . Each BOQ you add gets its own comparison report here.
           </p>

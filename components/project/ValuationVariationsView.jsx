@@ -94,16 +94,15 @@ export default function ValuationVariationsView({
           {projectName}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500">
-          {dayLabel} · {slotLabel}. Edit this table like Actual cost analysis, then submit. If Head QS
-          approves it, that day’s actual rate/cost use these figures. Later days keep using BOQ analysis
-          actual cost analysis.
+          {dayLabel} · {slotLabel}. Edit this table like Rate build up, then submit. If Head QS
+          approves it, that day’s actual rate/cost use these figures. Later days keep using Rate build up.
         </p>
       </header>
 
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-6 py-12 text-center">
           <p className="text-sm font-medium text-zinc-700">No BOQ uploaded yet</p>
-          <p className="mt-1 text-sm text-zinc-500">Upload a BOQ on BOQ analysis first.</p>
+          <p className="mt-1 text-sm text-zinc-500">Upload a BOQ on Rate analysis first.</p>
         </div>
       ) : (
         <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">

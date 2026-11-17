@@ -4,13 +4,16 @@ import Link from "next/link"
 import { useCallback, useMemo, useState } from "react"
 import ExportPdfButton from "@/components/project/ExportPdfButton"
 import HoursFieldInput from "@/components/project/HoursFieldInput"
+import TableCellInput from "@/components/project/TableCellInput"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import {
+  createManualEquipmentRow,
   formatOperatingHours,
   getDailyEquipmentHoursData,
   getEquipmentOperatingHoursInputValue,
   resolveEquipmentOperatingHours,
   saveDailyEquipmentHoursData,
+  saveManualEquipmentRows,
 } from "@/lib/equipmentHoursData"
 import { getEquipmentInUseReport } from "@/lib/equipmentInUse"
 import { getPlantOperatorsHref } from "@/lib/plantOperatorRegisters"
@@ -36,14 +39,20 @@ function HoursCell({ value, onChange, placeholder }) {
 function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
   const { version } = useProjectData()
   const [hoursById, setHoursById] = useState(() => getDailyEquipmentHoursData(projectId, fileId).entries)
+  const [manualRows, setManualRows] = useState(
+    () => getDailyEquipmentHoursData(projectId, fileId).manualRows ?? []
+  )
 
   const [loadedVersion, setLoadedVersion] = useState(version)
 
   if (loadedVersion !== version) {
     setLoadedVersion(version)
-    const stored = getDailyEquipmentHoursData(projectId, fileId).entries
-    if (JSON.stringify(stored) !== JSON.stringify(hoursById)) {
-      setHoursById(stored)
+    const storedDay = getDailyEquipmentHoursData(projectId, fileId)
+    if (JSON.stringify(storedDay.entries) !== JSON.stringify(hoursById)) {
+      setHoursById(storedDay.entries)
+    }
+    if (JSON.stringify(storedDay.manualRows ?? []) !== JSON.stringify(manualRows)) {
+      setManualRows(storedDay.manualRows ?? [])
     }
   }
 
@@ -77,10 +86,21 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
     })
   }
 
+  const saveManualRows = (nextRows) => {
+    setManualRows(nextRows)
+    saveManualEquipmentRows(projectId, fileId, nextRows)
+  }
+
+  const updateManualRow = (rowId, updates) => {
+    saveManualRows(manualRows.map((row) => (row.id === rowId ? { ...row, ...updates } : row)))
+  }
+
   const rows = useMemo(() => {
     void version
+    const registerRows = report.equipment.filter((item) => !item.manual)
+    const addedRows = manualRows.map((row) => ({ ...row, manual: true }))
 
-    return report.equipment.map((item) => {
+    return [...registerRows, ...addedRows].map((item) => {
       const stored = hoursById[item.id] ?? {
         startHours: "",
         finishHours: "",
@@ -101,7 +121,7 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
         hoursOperatingEdited: stored.hoursOperatingEdited,
       }
     })
-  }, [report.equipment, hoursById, version])
+  }, [report.equipment, hoursById, manualRows, version])
 
   return (
     <div className="space-y-4">
@@ -118,15 +138,24 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
             >
               operator register
             </Link>
-            . Scroll sideways to enter Start hours, Finish hours, and Hours operating.
+            . Use Add row to enter extra equipment and fill the empty cells. Scroll sideways for hours.
           </p>
         </div>
 
-        <ExportPdfButton
-          onClick={() =>
-            exportEquipmentPdf(projectName, { ...report, equipment: rows }, "daily")
-          }
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => saveManualRows([...manualRows, createManualEquipmentRow()])}
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
+          >
+            Add row
+          </button>
+          <ExportPdfButton
+            onClick={() =>
+              exportEquipmentPdf(projectName, { ...report, equipment: rows, totalCount: rows.length }, "daily")
+            }
+          />
+        </div>
       </div>
 
       <div className="equipment-hours-scroll">
@@ -154,24 +183,60 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
               <th className="min-w-[10rem] border border-zinc-200 bg-zinc-100 px-3 py-2 text-right font-semibold text-zinc-800">
                 Hours operating
               </th>
+              <th className="border border-zinc-200 bg-zinc-50 px-3 py-2" />
             </tr>
           </thead>
           <tbody>
             {rows.length > 0 ? (
               rows.map((item) => (
                 <tr key={item.id} className="bg-white">
-                  <td className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-zinc-900">
-                    {item.supplier || "—"}
-                  </td>
-                  <td className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-zinc-900">
-                    {item.plant || "—"}
-                  </td>
-                  <td className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-zinc-900">
-                    {item.operatorName || "—"}
-                  </td>
-                  <td className="min-w-[9rem] border border-zinc-200 px-3 py-2 text-zinc-900">
-                    {item.plantNumber || "—"}
-                  </td>
+                  {item.manual ? (
+                    <>
+                      <td className="min-w-[10rem] border border-zinc-200 px-2 py-2">
+                        <TableCellInput
+                          value={item.supplier}
+                          placeholder="Supplier"
+                          onChange={(value) => updateManualRow(item.id, { supplier: value })}
+                        />
+                      </td>
+                      <td className="min-w-[10rem] border border-zinc-200 px-2 py-2">
+                        <TableCellInput
+                          value={item.plant}
+                          placeholder="Plant name"
+                          onChange={(value) => updateManualRow(item.id, { plant: value })}
+                        />
+                      </td>
+                      <td className="min-w-[10rem] border border-zinc-200 px-2 py-2">
+                        <TableCellInput
+                          value={item.operatorName}
+                          placeholder="Operator"
+                          onChange={(value) => updateManualRow(item.id, { operatorName: value })}
+                        />
+                      </td>
+                      <td className="min-w-[9rem] border border-zinc-200 px-2 py-2">
+                        <TableCellInput
+                          value={item.plantNumber}
+                          placeholder="Plant number"
+                          onChange={(value) => updateManualRow(item.id, { plantNumber: value })}
+                        />
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-zinc-900">
+                        {item.supplier || "—"}
+                      </td>
+                      <td className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-zinc-900">
+                        {item.plant || "—"}
+                      </td>
+                      <td className="min-w-[10rem] border border-zinc-200 px-3 py-2 text-zinc-900">
+                        {item.operatorName || "—"}
+                      </td>
+                      <td className="min-w-[9rem] border border-zinc-200 px-3 py-2 text-zinc-900">
+                        {item.plantNumber || "—"}
+                      </td>
+                    </>
+                  )}
                   <HoursCell
                     value={item.startHours}
                     onChange={(value) => updateEntry(item.id, { startHours: value })}
@@ -200,16 +265,27 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
                     }}
                     placeholder="Hours"
                   />
+                  <td className="border border-zinc-200 px-2 py-2">
+                    {item.manual ? (
+                      <button
+                        type="button"
+                        onClick={() => saveManualRows(manualRows.filter((row) => row.id !== item.id))}
+                        className="text-sm font-medium text-rose-600 transition hover:text-rose-800"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="border border-zinc-200 px-6 py-10 text-center text-zinc-500"
                 >
-                  No equipment marked present in the operator register for this date. Tick
-                  operators present in the register to add equipment to this list.
+                  No equipment yet. Tick operators present in the register, or use Add row to
+                  enter equipment on this day.
                 </td>
               </tr>
             )}

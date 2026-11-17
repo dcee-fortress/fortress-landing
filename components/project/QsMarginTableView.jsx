@@ -20,7 +20,7 @@ export default function QsMarginTableView({ projectId, projectName }) {
           <Icon name="arrow-left" size={16} />
           Back to Head QS Overview
         </Link>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Rate Analysis</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">QS margins</p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
           {projectName}
         </h1>

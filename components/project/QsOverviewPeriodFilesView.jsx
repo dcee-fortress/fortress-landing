@@ -35,7 +35,7 @@ export default function QsOverviewPeriodFilesView({ projectId, projectName, peri
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          Back to Rate Analysis
+          Back to QS margins
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">QS Overview</p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">

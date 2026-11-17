@@ -39,8 +39,8 @@ export default function QsOverviewView({ projectId, projectName }) {
           {projectName}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Margins roll from valuations entry after Save (project to date from 13 November). Open Rate
-          Analysis or BOQ analysis below.
+          Margins roll from valuations entry after Save (project to date from 13 November). Open QS
+          margins or Rate analysis below.
         </p>
       </header>
 
@@ -69,14 +69,14 @@ export default function QsOverviewView({ projectId, projectName }) {
         <ChoiceCard
           href={`${getQsOverviewHref(projectId)}/margin-table`}
           icon="table"
-          title="Rate Analysis"
+          title="QS margins"
           description="Daily, weekly, monthly, and project-to-date margin dashboards"
         />
         <ChoiceCard
           href={getRateAnalysisHubHref(projectId)}
           icon="chart-bar"
-          title="BOQ analysis"
-          description="Upload a BOQ and build actual cost from its descriptions"
+          title="Rate analysis"
+          description="Upload a BOQ, then open Rate build up for the rates used here"
         />
         <ChoiceCard
           href={getMaterialAnalysisHref(projectId)}

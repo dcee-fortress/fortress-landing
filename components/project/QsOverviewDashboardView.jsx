@@ -42,7 +42,7 @@ export default function QsOverviewDashboardView({
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
-          {period === "project-to-date" ? "Back to Rate Analysis" : "Back to period list"}
+          {period === "project-to-date" ? "Back to QS margins" : "Back to period list"}
         </Link>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
           QS Overview · {periodLabel}
@@ -51,8 +51,9 @@ export default function QsOverviewDashboardView({
           {projectName}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500">
-          Rolled from valuations entry. Bill cost = bill rate × production. Actual cost = actual rate ×
-          production. Margin = bill cost − actual cost (green positive, red negative).
+          Production comes from daily valuations. Allowable cost, bill cost, and actual cost use the
+          allowable rate, bill rate, and actual rate from Rate build up. Margin = bill cost − actual cost
+          (green positive, red negative).
         </p>
       </header>
 

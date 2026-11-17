@@ -21,10 +21,10 @@ export default function RateAnalysisView({ projectId, projectName }) {
           <Icon name="arrow-left" size={16} />
           Back to Head QS Overview
         </Link>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">BOQ analysis</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Rate analysis</p>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
         <p className="max-w-2xl text-zinc-500">
-          Upload a BOQ as PDF or Excel, then open Actual cost analysis to price each BOQ description.
+          Upload a BOQ as PDF or Excel, then open Rate build up to price each BOQ description.
         </p>
       </header>
 
@@ -34,8 +34,8 @@ export default function RateAnalysisView({ projectId, projectName }) {
         <ChoiceCard
           href={getActualCostAnalysisHref(projectId)}
           icon="calculator"
-          title="Actual cost analysis"
-          description="BOQ descriptions in the previous valuations layout. Enter quantities to build the actual cost rate."
+          title="Rate build up"
+          description="BOQ descriptions with materials, overheads, profit, and the rates used by Head QS Overview."
           iconClassName="app-icon-tile--emerald"
         />
       </div>
