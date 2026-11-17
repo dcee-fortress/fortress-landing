@@ -5,6 +5,7 @@ import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import MaterialScheduleFormulaCell from "@/components/project/MaterialScheduleFormulaCell"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
+import { subscribeGroveStore } from "@/lib/groveClientStore"
 import {
   listBoqAnalysisItems,
   mergeActualCostAnalysisWithBoq,
@@ -12,6 +13,7 @@ import {
   resolveActualCostAnalysisRow,
   saveActualCostAnalysisRows,
 } from "@/lib/actualCostAnalysis"
+import { BOQ_STORAGE_KEY } from "@/lib/boqData"
 import { formatMaterialScheduleDisplayValue } from "@/lib/materialSchedule"
 import { isFormula } from "@/lib/materialScheduleFormulas"
 import { formatMaterialCurrencyAmount, formatMaterialRate } from "@/lib/plantCostCalculations"
@@ -40,13 +42,20 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
   const [rows, setRows] = useState([])
 
   useEffect(() => {
-    if (listBoqAnalysisItems(projectId).length === 0) {
-      setRows([])
-      return
+    const load = () => {
+      if (listBoqAnalysisItems(projectId).length === 0) {
+        setRows([])
+        return
+      }
+      const merged = mergeActualCostAnalysisWithBoq(projectId)
+      setRows(merged)
+      saveActualCostAnalysisRows(projectId, merged)
     }
-    const merged = mergeActualCostAnalysisWithBoq(projectId)
-    setRows(merged)
-    saveActualCostAnalysisRows(projectId, merged)
+
+    load()
+    return subscribeGroveStore((key) => {
+      if (key === BOQ_STORAGE_KEY) load()
+    })
   }, [projectId, version])
 
   const resolvedRows = useMemo(() => rows.map(resolveActualCostAnalysisRow), [rows])

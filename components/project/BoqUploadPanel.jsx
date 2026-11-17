@@ -3,7 +3,7 @@
 import { useRef, useState } from "react"
 import Icon from "@/components/icon/icon"
 import BoqViewerModal from "@/components/project/BoqViewerModal"
-import { applyRateBuildUpRates } from "@/lib/actualCostAnalysis"
+import { applyRateBuildUpRates, syncRateBuildUpFromBoq } from "@/lib/actualCostAnalysis"
 import {
   addProjectBoq,
   formatBoqRate,
@@ -11,6 +11,7 @@ import {
   parseBoqFile,
   removeProjectBoq,
   updateProjectBoqItems,
+  updateProjectBoqName,
 } from "@/lib/boqData"
 
 function defaultBoqName(fileName) {
@@ -37,17 +38,30 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
   const [isUploading, setIsUploading] = useState(false)
   const [pendingUpload, setPendingUpload] = useState(null)
   const [boqName, setBoqName] = useState("")
-  const [viewBoq, setViewBoq] = useState(null)
+  const [savedBoqId, setSavedBoqId] = useState(null)
 
   void version
   const projectBoqs = getProjectBoqs(projectId)
 
   const resetPending = () => {
     setPendingUpload(null)
+    setSavedBoqId(null)
     setBoqName("")
     if (inputRef.current) {
       inputRef.current.value = ""
     }
+  }
+
+  const keepBoq = (fileName, items, name) => {
+    const saved = addProjectBoq(projectId, {
+      name: name || defaultBoqName(fileName),
+      fileName,
+      items,
+    })
+    syncRateBuildUpFromBoq(projectId)
+    setSavedBoqId(saved.id)
+    onUploaded?.()
+    return saved
   }
 
   const handleFileSelect = async (event) => {
@@ -69,20 +83,12 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
       }
 
       const nextUpload = { fileName: file.name, items }
+      const saved = keepBoq(file.name, items, defaultBoqName(file.name))
       setPendingUpload(nextUpload)
-      setBoqName(defaultBoqName(file.name))
-      setViewBoq(
-        templateBoq(
-          projectId,
-          buildPreviewBoq({
-            name: defaultBoqName(file.name),
-            fileName: file.name,
-            items,
-          })
-        )
-      )
+      setBoqName(saved.name)
+      setViewBoq(templateBoq(projectId, saved))
       setStatus(
-        `Read ${items.length} item${items.length === 1 ? "" : "s"} with descriptions and rates from ${file.name}.`
+        `Saved ${items.length} item${items.length === 1 ? "" : "s"} from ${file.name}. Rate build up now lists these descriptions, and each BOQ quantity is the production.`
       )
     } catch (error) {
       setStatus(error.message || "Could not read BOQ file.")
@@ -101,11 +107,22 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
       return
     }
 
+    if (savedBoqId) {
+      updateProjectBoqName(projectId, savedBoqId, trimmedName)
+      updateProjectBoqItems(projectId, savedBoqId, pendingUpload.items)
+      syncRateBuildUpFromBoq(projectId)
+      setStatus(`Saved "${trimmedName}". Rate build up uses these descriptions and quantities.`)
+      resetPending()
+      onUploaded?.()
+      return
+    }
+
     addProjectBoq(projectId, {
       name: trimmedName,
       fileName: pendingUpload.fileName,
       items: pendingUpload.items,
     })
+    syncRateBuildUpFromBoq(projectId)
 
     setStatus(`Added "${trimmedName}" with ${pendingUpload.items.length} BOQ items.`)
     resetPending()
@@ -118,11 +135,17 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
     if (viewBoq.id === "preview") {
       setPendingUpload((current) => (current ? { ...current, items } : current))
       setViewBoq((current) => (current ? { ...current, items } : null))
-      setStatus(`Updated parsed BOQ (${items.length} item${items.length === 1 ? "" : "s"}). Save when ready.`)
+      if (savedBoqId) {
+        updateProjectBoqItems(projectId, savedBoqId, items)
+        syncRateBuildUpFromBoq(projectId)
+        onUploaded?.()
+      }
+      setStatus(`Updated parsed BOQ (${items.length} item${items.length === 1 ? "" : "s"}).`)
       return
     }
 
     updateProjectBoqItems(projectId, viewBoq.id, items)
+    syncRateBuildUpFromBoq(projectId)
     setViewBoq((current) => (current ? { ...current, items } : null))
     setStatus(`Saved changes to "${viewBoq.name}".`)
     onUploaded?.()
@@ -136,6 +159,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
     if (!confirmed) return
 
     removeProjectBoq(projectId, boq.id)
+    syncRateBuildUpFromBoq(projectId)
 
     if (viewBoq?.id === boq.id) {
       setViewBoq(null)
@@ -350,7 +374,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
                 type="button"
                 onClick={() => {
                   resetPending()
-                  setStatus("")
+                  setStatus("The BOQ stays on this project. Use Remove BOQ if you do not want it.")
                 }}
                 className="rounded-lg px-4 py-2 text-sm font-medium text-emerald-900 transition hover:bg-emerald-100"
               >
