@@ -76,9 +76,8 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Rate build up</p>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
         <p className="max-w-3xl text-zinc-500">
-          Every BOQ description is listed here. Enter the quantities. Overheads, profit, and allowable
-          percentage take a percentage only. Head QS Overview uses these rates with the production from
-          daily valuations.
+          Every BOQ description is listed here, including from a PDF. Production is filled from the
+          quantity read on that BOQ. Overheads, profit, and allowable percentage take a percentage only.
         </p>
       </header>
 

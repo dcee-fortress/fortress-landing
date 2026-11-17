@@ -148,8 +148,8 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
               Upload a BOQ
             </h2>
             <p className="mt-1 text-sm text-emerald-950/80">
-              Upload a bill of quantities as PDF or Excel. The app reads the descriptions and rates and
-              opens the BOQ template. Name each BOQ — a separate rate analysis is kept for every file.
+              Upload a bill of quantities as PDF or Excel. The app reads the descriptions, quantities, and
+              rates. Rate build up uses each BOQ quantity as production.
             </p>
             {projectBoqs.length > 0 ? (
               <ul className="mt-3 space-y-2">
@@ -242,6 +242,9 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
                         Unit
                       </th>
                       <th className="border-b border-emerald-100 px-3 py-2 text-right font-semibold text-emerald-950">
+                        Quantity
+                      </th>
+                      <th className="border-b border-emerald-100 px-3 py-2 text-right font-semibold text-emerald-950">
                         Allowable rate
                       </th>
                       <th className="border-b border-emerald-100 px-3 py-2 text-right font-semibold text-emerald-950">
@@ -254,6 +257,9 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
                       <tr key={item.id}>
                         <td className="border-b border-emerald-50 px-3 py-2 text-zinc-900">{item.itemName}</td>
                         <td className="border-b border-emerald-50 px-3 py-2 text-zinc-700">{item.unit || "—"}</td>
+                        <td className="border-b border-emerald-50 px-3 py-2 text-right tabular-nums text-zinc-900">
+                          {item.quantity == null || item.quantity === "" ? "—" : item.quantity}
+                        </td>
                         <td className="border-b border-emerald-50 px-3 py-2 text-right tabular-nums text-zinc-900">
                           {formatBoqRate(item.allowableRate)}
                         </td>

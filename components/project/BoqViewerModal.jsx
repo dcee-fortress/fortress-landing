@@ -10,6 +10,7 @@ function draftFromBoq(boq) {
     itemName: item.itemName ?? "",
     unit: item.unit ?? "",
     itemNo: item.itemNo ?? "",
+    quantity: item.quantity ?? "",
     allowableRate: item.allowableRate ?? "",
     billRate: item.billRate ?? item.rate ?? "",
     rate: item.billRate ?? item.rate ?? "",
@@ -18,7 +19,7 @@ function draftFromBoq(boq) {
 
 function boqDraftKey(boq) {
   return `${boq.id}-${(boq.items ?? [])
-    .map((item) => `${item.id}:${item.itemName}:${item.unit ?? ""}:${item.allowableRate ?? ""}:${item.billRate ?? item.rate}`)
+    .map((item) => `${item.id}:${item.itemName}:${item.unit ?? ""}:${item.quantity ?? ""}:${item.allowableRate ?? ""}:${item.billRate ?? item.rate}`)
     .join("|")}`
 }
 
@@ -40,6 +41,7 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
         itemName: item.itemName.trim(),
         unit: String(item.unit ?? "").trim(),
         itemNo: String(item.itemNo ?? "").trim(),
+        quantity: parseBoqRateInput(item.quantity),
         allowableRate: parseBoqRateInput(item.allowableRate),
         billRate: parseBoqRateInput(item.billRate),
         rate: parseBoqRateInput(item.billRate) ?? parseBoqRateInput(item.allowableRate),
@@ -63,6 +65,7 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
         itemName: item.itemName ?? "",
         unit: item.unit ?? "",
         itemNo: item.itemNo ?? "",
+        quantity: item.quantity ?? "",
         allowableRate: item.allowableRate ?? "",
         billRate: item.billRate ?? item.rate ?? "",
         rate: item.billRate ?? item.rate ?? "",
@@ -115,6 +118,9 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
                   Unit
                 </th>
                 <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
+                  Quantity
+                </th>
+                <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
                   Allowable rate
                 </th>
                 <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
@@ -147,6 +153,21 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
                       />
                     ) : (
                       <span className="px-1 text-zinc-900">{item.unit || "—"}</span>
+                    )}
+                  </td>
+                  <td className="border border-zinc-200 px-2 py-1.5">
+                    {editable ? (
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={item.quantity ?? ""}
+                        onChange={(event) => updateItem(item.id, "quantity", event.target.value)}
+                        className="w-24 rounded border border-zinc-200 bg-white px-2 py-1.5 text-right text-sm tabular-nums text-zinc-900 outline-none ring-emerald-600/20 focus:border-emerald-400 focus:ring-2"
+                      />
+                    ) : (
+                      <span className="block px-1 text-right tabular-nums text-zinc-900">
+                        {item.quantity === "" || item.quantity == null ? "—" : item.quantity}
+                      </span>
                     )}
                   </td>
                   <td className="border border-zinc-200 px-2 py-1.5">
