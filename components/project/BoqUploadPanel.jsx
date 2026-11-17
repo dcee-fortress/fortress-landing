@@ -3,6 +3,7 @@
 import { useRef, useState } from "react"
 import Icon from "@/components/icon/icon"
 import BoqViewerModal from "@/components/project/BoqViewerModal"
+import { applyRateBuildUpRates } from "@/lib/actualCostAnalysis"
 import {
   addProjectBoq,
   formatBoqRate,
@@ -23,6 +24,11 @@ function buildPreviewBoq({ name, fileName, items }) {
     fileName,
     items,
   }
+}
+
+function templateBoq(projectId, boq) {
+  if (!boq) return null
+  return { ...boq, items: applyRateBuildUpRates(projectId, boq.items) }
 }
 
 export default function BoqUploadPanel({ projectId, projectName = "Project", onUploaded, version = 0 }) {
@@ -66,11 +72,14 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
       setPendingUpload(nextUpload)
       setBoqName(defaultBoqName(file.name))
       setViewBoq(
-        buildPreviewBoq({
-          name: defaultBoqName(file.name),
-          fileName: file.name,
-          items,
-        })
+        templateBoq(
+          projectId,
+          buildPreviewBoq({
+            name: defaultBoqName(file.name),
+            fileName: file.name,
+            items,
+          })
+        )
       )
       setStatus(
         `Read ${items.length} item${items.length === 1 ? "" : "s"} with descriptions and rates from ${file.name}.`
@@ -138,7 +147,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
 
   const handleViewBoqPdf = async (boq) => {
     const { openBoqPdf } = await import("@/lib/boqPdf")
-    openBoqPdf({ projectName, boq })
+    openBoqPdf({ projectName, boq: templateBoq(projectId, boq) })
   }
 
   return (
@@ -179,7 +188,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
                     <div className="flex shrink-0 flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() => setViewBoq(boq)}
+                        onClick={() => setViewBoq(templateBoq(projectId, boq))}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-900 transition hover:bg-emerald-50"
                       >
                         <Icon name="table" size={14} />
@@ -231,8 +240,12 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
           <div className="space-y-3 border-b border-emerald-200 px-6 py-4">
             <div className="overflow-hidden rounded-lg border border-emerald-200 bg-white">
               <div className="border-b border-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-950">
-                BOQ template — descriptions and rates
+                BOQ template
               </div>
+              <p className="border-b border-emerald-100 px-3 py-2 text-xs text-emerald-900/80">
+                Quantity is the quantity read from the file. Bill rate and allowable rate show the rates
+                from Rate build up once those have been calculated.
+              </p>
               <div className="max-h-80 overflow-auto">
                 <table className="min-w-full border-collapse text-sm">
                   <thead>
@@ -255,7 +268,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
                     </tr>
                   </thead>
                   <tbody>
-                    {pendingUpload.items.map((item) => (
+                    {applyRateBuildUpRates(projectId, pendingUpload.items).map((item) => (
                       <tr key={item.id}>
                         <td className="border-b border-emerald-50 px-3 py-2 text-zinc-900">{item.itemName}</td>
                         <td className="border-b border-emerald-50 px-3 py-2 text-zinc-700">{item.unit || "—"}</td>
@@ -295,11 +308,14 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
                 type="button"
                 onClick={() =>
                   setViewBoq(
-                    buildPreviewBoq({
-                      name: boqName,
-                      fileName: pendingUpload.fileName,
-                      items: pendingUpload.items,
-                    })
+                    templateBoq(
+                      projectId,
+                      buildPreviewBoq({
+                        name: boqName,
+                        fileName: pendingUpload.fileName,
+                        items: pendingUpload.items,
+                      })
+                    )
                   )
                 }
                 className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-900 transition hover:bg-emerald-50"
