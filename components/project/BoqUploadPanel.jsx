@@ -39,6 +39,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
   const [pendingUpload, setPendingUpload] = useState(null)
   const [boqName, setBoqName] = useState("")
   const [savedBoqId, setSavedBoqId] = useState(null)
+  const [viewBoq, setViewBoq] = useState(null)
 
   void version
   const projectBoqs = getProjectBoqs(projectId)
