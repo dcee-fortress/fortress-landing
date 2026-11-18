@@ -3,7 +3,9 @@
 import { useMemo } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
+import ExportPdfButton from "@/components/project/ExportPdfButton"
 import WorkingHoursWeatherCard from "@/components/project/WorkingHoursWeatherCard"
+import { exportSiteReportPdf } from "@/lib/siteReportPdf"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import { formatCurrency } from "@/lib/formatCurrency"
 import {
@@ -121,6 +123,121 @@ export default function SiteReportDocument({ projectId, projectName, period, fil
   const totals = report.summary.totals || { valueEarned: 0, production: 0 }
   const totalRate = resolveEarnedValueTotalRate(totals)
   const periodWord = period === "weekly" ? "week" : period === "monthly" ? "month" : "day"
+  const periodLabel = period === "weekly" ? "Weekly" : period === "monthly" ? "Monthly" : "Daily"
+
+  async function exportPdf() {
+    let weatherLines = []
+    let weatherHours = []
+    if (period === "daily") {
+      try {
+        const params = new URLSearchParams({
+          start: file.id,
+          end: file.id,
+          site: projectName || "",
+        })
+        const response = await fetch(`/api/site-weather?${params.toString()}`)
+        const payload = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(payload?.error || "Weather forecast is unavailable.")
+        const day = payload.days?.[0]
+        const place = [payload.location?.name, payload.location?.country].filter(Boolean).join(", ")
+        const condition = day?.condition?.label || "Forecast"
+        weatherLines = [
+          `${condition}. High ${day?.high ?? "—"}° · Low ${day?.low ?? "—"}°C · ${day?.peakRainChance ?? 0}% chance of rain.`,
+          [place, day?.windowLabel].filter(Boolean).join(" · "),
+        ]
+        weatherHours = (day?.hours || []).map((hour) => ({
+          time: hour.time,
+          temperature: hour.temperature != null ? `${Math.round(hour.temperature)}°` : "—",
+          label: hour.label || "",
+        }))
+      } catch (error) {
+        weatherLines = [error?.message || "Weather forecast is unavailable."]
+      }
+    }
+
+    exportSiteReportPdf({
+      projectName,
+      periodLabel,
+      fileLabel: file.label,
+      fileId: file.id,
+      intro: `Site report for this ${periodWord}. Figures roll from the same entries as the progress report.`,
+      weatherLines,
+      weatherHours,
+      sections: [
+        {
+          title: "Valuations",
+          note: "Rolled from the valuations entry for this period.",
+          headers: [...EARNED_VALUE_TABLE_HEADERS],
+          rows: valuationRows.length
+            ? [
+                ...valuationRows.map((row) => [
+                  row.description,
+                  formatCurrency(row.valueEarned),
+                  formatEarnedValueProduction(row.production),
+                  formatEarnedValueRate(resolveEarnedValueRowRate(row)),
+                ]),
+                [
+                  "Total",
+                  formatCurrency(totals.valueEarned),
+                  formatEarnedValueProduction(totals.production),
+                  formatEarnedValueRate(totalRate),
+                ],
+              ]
+            : [],
+          empty: `No valuations entry for this ${periodWord}.`,
+        },
+        {
+          title: "Materials on site",
+          note: "Rolled from materials on site for this period.",
+          headers: ["Description of good", "Goods on site", "Goods used on site", "Location used", "Goods left on site"],
+          rows: report.materials.map((row) => [
+            row.description,
+            quantityText(row.goodsOnSite, row.unit),
+            quantityText(row.goodsUsed, row.unit),
+            row.location || "—",
+            quantityText(row.goodsLeft, row.unit),
+          ]),
+          empty: `No materials on site for this ${periodWord}.`,
+        },
+        {
+          title: "Equipment in use",
+          note: "Equipment name, operator, and the hours written on daily equipment in use.",
+          headers: ["Equipment", "Operator", "Hours"],
+          rows: (report.equipment?.equipment || []).map((item) => [
+            item.plant || "Equipment",
+            item.operatorName || "—",
+            hoursText(item.hoursOperating),
+          ]),
+          empty: `No equipment in use for this ${periodWord}.`,
+        },
+        {
+          title: "Fuel allocations",
+          note: "Fuel consumed entered for this period.",
+          headers: ["Fuel", "Unit", "Quantity consumed", "Total cost"],
+          rows: (report.fuel || []).map((line) => [
+            line.description,
+            line.unit || "—",
+            formatMaterialAmount(line.quantity),
+            money(line.totalCost),
+          ]),
+          empty: `No fuel consumed for this ${periodWord}.`,
+        },
+        {
+          title: "Incidents",
+          note: "Rolled from the SHEQ incident report.",
+          headers: ["Date", "Type", "Person", "Location", "Description"],
+          rows: report.incidents.map((incident) => [
+            incident.dateLabel,
+            incident.type,
+            incident.person || "—",
+            incident.location || "—",
+            incident.description || "—",
+          ]),
+          empty: `No incidents for this ${periodWord}.`,
+        },
+      ],
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -132,9 +249,12 @@ export default function SiteReportDocument({ projectId, projectName, period, fil
           <Icon name="arrow-left" size={16} />
           Back to {periodWord} files
         </Link>
-        <header className="space-y-1">
-          <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Site reports</p>
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{file.label}</h1>
+        <header className="flex flex-wrap items-end justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Site reports</p>
+            <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{file.label}</h1>
+          </div>
+          <ExportPdfButton onClick={exportPdf} />
         </header>
       </div>
 

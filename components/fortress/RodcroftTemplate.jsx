@@ -8,6 +8,7 @@ import {
 } from './fortressMetadata'
 import { fetchLiveChadcombeOverview } from './liveChadcombe'
 import { ensureProjectFiles, entryBelongsToFile } from './rodcroftCalendar'
+import { exportSiteReportPdf } from '@/lib/siteReportPdf'
 
 const money = (value) =>
   `$${Number(value || 0).toLocaleString('en-US', {
@@ -214,6 +215,39 @@ function FortressSiteFileList({ project, period, query, activeQuery, onQuery, on
   )
 }
 
+const CURRENT_WEATHER_URL =
+  'https://api.open-meteo.com/v1/forecast?latitude=-17.8252&longitude=31.0335&current=temperature_2m,weather_code,wind_speed_10m,precipitation&timezone=Africa%2FHarare'
+
+function currentWeatherLabel(code) {
+  const value = Number(code)
+  if (value === 0) return 'Sunny'
+  if (value === 1 || value === 2) return 'Partly cloudy'
+  if (value >= 61) return 'Rainy'
+  return 'Cloudy'
+}
+
+async function loadCurrentWeatherLines() {
+  try {
+    const response = await fetch(CURRENT_WEATHER_URL)
+    if (!response.ok) throw new Error('Current weather is unavailable.')
+    const data = await response.json()
+    const current = data?.current
+    if (!current) return ['Current weather is unavailable.']
+    return [
+      currentWeatherLabel(current.weather_code),
+      `${Number(current.temperature_2m).toFixed(1)}°C · wind ${Number(current.wind_speed_10m).toFixed(0)} km/h · Chadcombe, Harare`,
+    ]
+  } catch {
+    return ['Current weather is unavailable.']
+  }
+}
+
+function sitePeriodLabel(file, isDaily) {
+  if (isDaily) return 'Daily'
+  if (/^\d{4}-\d{2}$/.test(file?.id || '')) return 'Monthly'
+  return 'Weekly'
+}
+
 function FortressSiteReport({ project, file }) {
   const valuations = (project?.valuations || []).filter((row) => siteRowInFile(row, file))
   const materials = (project?.materialAnalysis || []).filter((row) => siteRowInFile(row, file))
@@ -223,11 +257,100 @@ function FortressSiteReport({ project, file }) {
   const fuel = (project?.fuel?.entries || []).filter((row) => siteRowInFile(row, file))
   const incidents = (project?.sheqReports || []).filter((row) => siteRowInFile(row, file))
   const isDaily = /^\d{4}-\d{2}-\d{2}$/.test(file?.id || '') && !String(file?.label || '').startsWith('Week ')
+  const periodLabel = sitePeriodLabel(file, isDaily)
   const total = valuations.reduce((sum, row) => sum + (Number(row.valueEarned) || 0), 0)
   const production = valuations.reduce((sum, row) => sum + (Number(row.production) || 0), 0)
 
+  async function exportPdf() {
+    const weatherLines = isDaily ? await loadCurrentWeatherLines() : []
+    exportSiteReportPdf({
+      projectName: project?.name || 'Rodcroft',
+      periodLabel,
+      fileLabel: file?.label,
+      fileId: file?.id,
+      intro: 'Valuations, materials, equipment, fuel, and incidents for this period.',
+      weatherLines,
+      sections: [
+        {
+          title: 'Valuations',
+          note: 'Rolled from the valuations entry for this period.',
+          headers: ['Description', 'Actual Cost on Site', 'Production', 'Rate'],
+          rows: valuations.length
+            ? [
+                ...valuations.map((row) => [
+                  row.description,
+                  money(row.valueEarned),
+                  numFmt(row.production),
+                  rateMoney(row.production > 0 ? row.valueEarned / row.production : null),
+                ]),
+                [
+                  'Total',
+                  money(total),
+                  numFmt(production),
+                  rateMoney(production > 0 ? total / production : null),
+                ],
+              ]
+            : [],
+          empty: 'No valuations entry for this period.',
+        },
+        {
+          title: 'Materials on site',
+          note: 'Rolled from materials on site for this period.',
+          headers: ['Description of good', 'Goods on site', 'Goods used on site', 'Location used', 'Goods left on site'],
+          rows: materials.map((row) => [
+            row.description,
+            `${numFmt(row.broughtOnSite ?? row.receivedQuantity)} ${row.unit || ''}`.trim(),
+            `${numFmt(row.materialUsed)} ${row.unit || ''}`.trim(),
+            row.location || '—',
+            `${numFmt(row.onSiteLeft)} ${row.unit || ''}`.trim(),
+          ]),
+          empty: 'No materials on site for this period.',
+        },
+        {
+          title: 'Equipment in use',
+          note: 'Equipment name, operator, and the hours written.',
+          headers: ['Equipment', 'Operator', 'Hours'],
+          rows: equipment.map((row) => [
+            row.plant || 'Equipment',
+            row.name || '—',
+            String(row.hours ?? row.hoursOperating ?? '—'),
+          ]),
+          empty: 'No equipment in use for this period.',
+        },
+        {
+          title: 'Fuel allocations',
+          note: 'Fuel consumed entered for this period.',
+          headers: ['Fuel', 'Unit', 'Quantity consumed', 'Total cost'],
+          rows: fuel.map((row) => [
+            row.description || 'Diesel',
+            row.unit || 'L',
+            numFmt(row.quantity),
+            money(row.totalCost),
+          ]),
+          empty: 'No fuel consumed for this period.',
+        },
+        {
+          title: 'Incidents',
+          note: 'Rolled from the SHEQ incident report.',
+          headers: ['Date', 'Type', 'Description'],
+          rows: incidents.map((row) => [
+            row.date || file.label,
+            row.type || 'Incident',
+            row.highlight || row.description || '—',
+          ]),
+          empty: 'No incidents for this period.',
+        },
+      ],
+    })
+  }
+
   return (
     <div>
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <button type="button" className="tpl-primary-btn" onClick={exportPdf}>
+          Export PDF
+        </button>
+      </div>
       {isDaily ? <FortressSiteWeather /> : null}
       <article className="rc-report-card">
         <div className="rc-report-banner">
