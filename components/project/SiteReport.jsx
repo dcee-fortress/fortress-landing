@@ -31,13 +31,22 @@ export default function SiteReport({ projectName, projectId, period, file }) {
   const [notesReady, setNotesReady] = useState(false)
   const [isExportingPdf, setIsExportingPdf] = useState(false)
   const saveTimer = useRef(null)
-  const weatherRef = useRef(null)
 
   useEffect(() => {
     setNotesReady(false)
     setNotes(getSiteReportNotes(projectId, period, fileId))
     setNotesReady(true)
   }, [fileId, period, projectId])
+
+  useEffect(() => {
+    document.querySelectorAll("[data-site-report-pdf]").forEach((node) => {
+      try {
+        node.remove()
+      } catch {
+        // Ignore leftover export hosts from a previous failed export.
+      }
+    })
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -73,21 +82,12 @@ export default function SiteReport({ projectName, projectId, period, file }) {
     if (isExportingPdf) return
     setIsExportingPdf(true)
     try {
-      const weatherWaitStarted = Date.now()
-      while (
-        weatherRef.current &&
-        Date.now() - weatherWaitStarted < 8000 &&
-        /Loading forecast/i.test(weatherRef.current.textContent || "")
-      ) {
-        await new Promise((resolve) => window.setTimeout(resolve, 250))
-      }
-
       await exportSiteReportPdf({
         projectName,
         period,
         fileLabel: reportHeading(period, file),
+        fileId,
         documentHtml,
-        weatherElement: weatherRef.current,
       })
     } catch (error) {
       window.alert(
@@ -127,9 +127,7 @@ export default function SiteReport({ projectName, projectId, period, file }) {
         </p>
       </header>
 
-      <div ref={weatherRef}>
-        <WorkingHoursWeatherCard projectName={projectName} reportType={period} reportId={fileId} />
-      </div>
+      <WorkingHoursWeatherCard projectName={projectName} reportType={period} reportId={fileId} />
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-3 md:px-6">
