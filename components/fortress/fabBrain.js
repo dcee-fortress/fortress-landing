@@ -27,10 +27,21 @@ export const askFabBrain = async ({ mode = 'explain', question = '', context = {
 export const looksLikeCalculationQuestion = (text = '') => {
   const t = String(text).toLowerCase()
   return (
-    /\bwhy\b|\breason\b|\bexplain\b|\bhow (did|do|does)\b|\bwhere (did|does)\b|\bisn'?t it|\bshould(n'?t)? it\b|\b3\s*[x×]\s*|middle vertical|formula|calculation|calc\b/.test(
+    /\bwhy\b|\breason\b|\bexplain\b|\bhow\b|\bwhere\b.+\b(from|get|got|come|came)\b|\bwhere (did|does|it|you)\b|\bisn'?t it|\bshould(n'?t)? it\b|\b3\s*[x×]\s*|middle vertical|formula|calculation|calc\b/.test(
       t,
     )
   )
+}
+
+/** A question is answered as a question. It is not treated as a new instruction. */
+export const looksLikeUserQuestion = (text = '') => {
+  const t = String(text || '').trim()
+  if (!t) return false
+  if (/\b(y\s*\d+|[a-z0-9×x.\- ]{1,24})\s*(=|is|:)\s*[\d.]+\s*kg\s*\/\s*m\b/i.test(t) && !/\?/.test(t)) {
+    return false
+  }
+  if (/\?\s*$/.test(t)) return true
+  return /^(how|why|what|where|which|when|who|explain|show me|can you|could you)\b/i.test(t) || looksLikeCalculationQuestion(t)
 }
 
 export const looksLikeFormulaCorrection = (text = '') => {

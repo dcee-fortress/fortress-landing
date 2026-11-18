@@ -560,6 +560,191 @@ export const formatWeightProductsSummary = (weightRows = []) => {
   return weightRows.map((row) => `${row.material}: ${row.productLabel}`).join('\n')
 }
 
+const showNum = (n, places = 1) => {
+  const text = round(n, places).toFixed(places)
+  return text.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '')
+}
+
+const askedKg = (text = '') => {
+  const match = String(text).match(/(\d[\d,]*(?:\.\d+)?)\s*kg(?!\s*\/)/i)
+  if (!match) return null
+  const value = Number(match[1].replace(/,/g, ''))
+  return Number.isFinite(value) ? value : null
+}
+
+const askedMetres = (text = '') => {
+  if (/\bkg\b/i.test(text) && !/\bmetres?\b|\bm\b/i.test(text.replace(/\bkg\/m\b/gi, ''))) return null
+  const match = String(text).match(/(\d[\d,]*(?:\.\d+)?)\s*m(?!m|\s*²|2)\b/i)
+  if (!match) return null
+  const value = Number(match[1].replace(/,/g, ''))
+  return Number.isFinite(value) ? value : null
+}
+
+const sameFigure = (a, b) => Math.abs(money(a) - money(b)) <= 0.2
+
+const materialToken = (value = '') => {
+  const rebar = normalizeRebarSize(value)
+  return rebar || String(value || '').trim()
+}
+
+const findAskedRow = (text, rows = []) => {
+  const size = text.match(/\bY\s*(\d{1,2})\b/i)
+  if (size) {
+    const key = `Y${size[1]}`.toLowerCase()
+    const hit = rows.find((row) => materialToken(row.material).toLowerCase() === key)
+    if (hit) return hit
+  }
+  const lower = String(text).toLowerCase()
+  const named = rows
+    .filter((row) => {
+      const name = String(row.material || '').trim()
+      return name.length > 1 && lower.includes(name.toLowerCase())
+    })
+    .sort((a, b) => String(b.material).length - String(a.material).length)[0]
+  if (named) return named
+  const kg = askedKg(text)
+  if (kg != null) {
+    const byWeight = rows.find((row) => sameFigure(row.totalKg ?? row.weightKg ?? row.quantity, kg))
+    if (byWeight) return byWeight
+  }
+  return null
+}
+
+const floorPiecesFor = (project, material) => {
+  const key = materialToken(material).toLowerCase()
+  const pieces = []
+  ;(project?.rcStoreys || []).forEach((storey) => {
+    ;(storey.rebar || []).forEach((bar) => {
+      if (materialToken(bar.size).toLowerCase() !== key) return
+      const lengthM = money(bar.totalLengthM ?? bar.total_length_m)
+      const kgPerM = money(bar.unitWeight ?? bar.unit_weight) || unitWeightForSize(material)
+      const weightKg = money(bar.weightKg ?? bar.weight_kg) || round(lengthM * kgPerM, 1)
+      if (!(weightKg > 0) && !(lengthM > 0)) return
+      pieces.push({
+        label: storey.label || storey.id || 'Floor',
+        lengthM,
+        kgPerM,
+        weightKg,
+      })
+    })
+  })
+  return pieces
+}
+
+/**
+ * Answer only the figure the user asked about, from the quantities already read on the drawing.
+ */
+export const answerDrawingQuestion = (text, { project = {}, derived = {} } = {}) => {
+  const rows = derived.weightRows?.length
+    ? derived.weightRows
+    : derived.priceRows?.length
+      ? derived.priceRows
+      : derived.totals || derived.lines || []
+  const row = findAskedRow(text, rows)
+  const kg = askedKg(text)
+
+  if (!row && kg != null) {
+    const grand = round(
+      (derived.weightRows || []).reduce((sum, item) => sum + money(item.totalKg), 0),
+      1,
+    )
+    if (derived.weightRows?.length && sameFigure(grand, kg)) {
+      const lines = derived.weightRows.map(
+        (item) =>
+          `${item.material}: ${showNum(item.lengthM, 1)} m × ${showNum(item.kgPerM, 3)} kg/m = ${showNum(item.totalKg, 1)} kg`,
+      )
+      const sum = derived.weightRows.map((item) => showNum(item.totalKg, 1)).join(' + ')
+      return [
+        `${showNum(kg, 1)} kg is the steel total on this drawing. It is each bar size added together.`,
+        '',
+        ...lines,
+        '',
+        `${sum} = ${showNum(grand, 1)} kg`,
+      ].join('\n')
+    }
+  }
+
+  if (!row) {
+    const names = rows.map((item) => item.material).filter(Boolean)
+    const hint = names.length ? ` I have ${names.join(', ')}.` : ''
+    return `Which figure do you mean? Ask it the way it appears, for example “how did you get Y8 as 1789.1 kg”, and I will show the quantity from each material that adds up to it.${hint}`
+  }
+
+  const material = materialToken(row.material) || row.material
+  const floorPieces = floorPiecesFor(project, material)
+  const floorSum = round(
+    floorPieces.reduce((total, piece) => total + money(piece.weightKg), 0),
+    1,
+  )
+  const kgPerM = money(row.kgPerM) || unitWeightForSize(material)
+  const lengthM = money(row.lengthM)
+  const totalKg = money(row.totalKg ?? row.weightKg) || round(lengthM * kgPerM, 1)
+  const floorsMatchSheet =
+    floorPieces.length > 1 && Math.abs(floorSum - totalKg) <= Math.max(1, totalKg * 0.01)
+  const pieces = floorsMatchSheet ? floorPieces : []
+  const explainedKg = pieces.length ? floorSum : totalKg
+  const stated = kg
+  const statedMatches = stated != null && Math.abs(stated - explainedKg) <= Math.max(0.2, explainedKg * 0.002)
+  const opening = stated != null && !statedMatches
+    ? `${material} on this drawing is ${showNum(explainedKg, 1)} kg, not ${showNum(stated, 1)} kg. Here is where ${showNum(explainedKg, 1)} kg comes from.`
+    : `${material} is ${showNum(explainedKg, 1)} kg. That is the sum of the ${material} quantities read on the drawing.`
+
+  if (pieces.length > 1) {
+    const detail = pieces.map((piece) => {
+      const pieceKg = money(piece.weightKg) || round(piece.lengthM * (piece.kgPerM || kgPerM), 1)
+      return `${piece.label}: ${showNum(piece.lengthM, 1)} m × ${showNum(piece.kgPerM || kgPerM, 3)} kg/m = ${showNum(pieceKg, 1)} kg`
+    })
+    const sum = pieces
+      .map((piece) => showNum(money(piece.weightKg) || round(piece.lengthM * (piece.kgPerM || kgPerM), 1), 1))
+      .join(' + ')
+    const added = round(
+      pieces.reduce((total, piece) => total + (money(piece.weightKg) || piece.lengthM * (piece.kgPerM || kgPerM)), 0),
+      1,
+    )
+    return [opening, '', ...detail, '', `${sum} = ${showNum(added, 1)} kg`].join('\n')
+  }
+
+  const parts = (row.parts || []).filter((part) => money(part.lengthM) > 0)
+  if (parts.length > 1 && kgPerM > 0) {
+    const detail = parts.map((part) => {
+      const partKg = round(money(part.lengthM) * kgPerM, 1)
+      return `${part.label || material}: ${showNum(part.lengthM, 1)} m × ${showNum(kgPerM, 3)} kg/m = ${showNum(partKg, 1)} kg`
+    })
+    const sum = parts.map((part) => showNum(round(money(part.lengthM) * kgPerM, 1), 1)).join(' + ')
+    return [
+      opening,
+      '',
+      ...detail,
+      '',
+      `${sum} = ${showNum(totalKg, 1)} kg`,
+    ].join('\n')
+  }
+
+  if (kgPerM > 0 && lengthM > 0) {
+    return [
+      opening,
+      '',
+      `${showNum(lengthM, 1)} m × ${showNum(kgPerM, 3)} kg/m = ${showNum(totalKg, 1)} kg`,
+      '',
+      `The ${showNum(lengthM, 1)} m is the ${material} length taken from the drawing, and ${showNum(kgPerM, 3)} kg/m is its unit weight.`,
+    ].join('\n')
+  }
+
+  const metres = askedMetres(text)
+  if (parts.length > 1) {
+    const bits = parts.map((part) => `${part.label || material}: ${showNum(part.lengthM, 1)} m`)
+    const sum = parts.map((part) => showNum(part.lengthM, 1)).join(' + ')
+    const total = round(parts.reduce((acc, part) => acc + money(part.lengthM), 0), 1)
+    const lead =
+      metres != null && !sameFigure(metres, total)
+        ? `${material} is ${showNum(total, 1)} m on this drawing, not ${showNum(metres, 1)} m.`
+        : `${material} is ${showNum(metres != null ? metres : total, 1)} m. That length is the quantities of ${material} added together.`
+    return [lead, '', ...bits, '', `${sum} = ${showNum(total, 1)} m`].join('\n')
+  }
+
+  return `${material} is ${row.quantityLabel || row.productLabel || `${showNum(lengthM || totalKg, 1)}`} on this drawing.`
+}
+
 export const formatCostSummary = (priceRows = []) => {
   if (!priceRows.length) return 'No material costs yet.'
   return priceRows

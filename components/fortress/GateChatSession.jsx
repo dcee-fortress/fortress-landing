@@ -247,8 +247,6 @@ export default function GateChatSession({
           } else {
             reply += `\n\nI did not change the default method yet.\nReason: ${brain.reason || local.reason}\nYou can still edit the formula box and tap Apply & remember, or rephrase the correction.`
           }
-        } else if (!wantsCorrection) {
-          reply += '\n\nType next when you accept this method, or send a correction (e.g. “should be 8.4×2 + 6×2 + 8.4”).'
         }
         pushMessages(makeMsg('assistant', reply))
       } catch {

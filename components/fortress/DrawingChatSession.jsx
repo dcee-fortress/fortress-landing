@@ -4,6 +4,7 @@ import DrawingExplainPane from './DrawingExplainPane'
 import EditableMaterialTable from './EditableMaterialTable'
 import BoqSummary from './BoqSummary'
 import {
+  answerDrawingQuestion,
   buildDrawingExplanation,
   createEmptyDrawingSession,
   deriveSessionViews,
@@ -20,6 +21,7 @@ import {
   syncScheduleFromLines,
   usesWeightPath,
 } from './drawingSession'
+import { looksLikeUserQuestion } from './fabBrain'
 import { safeEvalFormula } from './gateSession'
 import { extractSteelSchedule } from './steelVision'
 
@@ -441,6 +443,14 @@ export default function DrawingChatSession({
     if (isNextCommand(text)) {
       pushMessages(makeMsg('user', text))
       advancePhase()
+      return
+    }
+    if (looksLikeUserQuestion(text)) {
+      const derived = deriveSessionViews(session, project, pricing)
+      pushMessages(
+        makeMsg('user', text),
+        makeMsg('assistant', answerDrawingQuestion(text, { project, derived })),
+      )
       return
     }
     await handleCorrection(text)

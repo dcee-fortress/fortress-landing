@@ -199,9 +199,7 @@ export default function PlanChatSession({
           context: { planKind: kind, draft, lines: views.lines },
         })
         let reply = String(brain?.reply || localExplain).trim() || localExplain
-        if (!wantsCorrection) {
-          reply += '\n\nType next when you accept this method, or send a correction.'
-        } else if (brain?.adopt === false) {
+        if (wantsCorrection && brain?.adopt === false) {
           reply += `\n\nI did not change the default method yet.\nReason: ${brain.reason || 'Need a clearer formula.'}`
         }
         pushMessages(makeMsg('assistant', reply))
