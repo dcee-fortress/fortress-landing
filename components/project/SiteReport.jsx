@@ -68,12 +68,20 @@ export default function SiteReport({ projectName, projectId, period, file }) {
   }
 
   const handleExportPdf = () => {
-    exportSiteReportPdf({
-      projectName,
-      period,
-      fileLabel: reportHeading(period, file),
-      documentHtml,
-    })
+    try {
+      exportSiteReportPdf({
+        projectName,
+        period,
+        fileLabel: reportHeading(period, file),
+        documentHtml,
+      })
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Could not export the site report PDF. Try again."
+      )
+    }
   }
 
   return (
