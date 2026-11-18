@@ -25,7 +25,7 @@ import {
 import { getRateAnalysisHubHref } from "@/lib/rateAnalysis"
 
 function computedDisplay(row, key) {
-  if (key === "fuelCost" || key === "totalCost") {
+  if (key === "fuelCost" || key === "plantCost" || key === "totalCost") {
     if (row[key] === null || row[key] === undefined) return "—"
     return formatMaterialCurrencyAmount(row[key])
   }
@@ -182,10 +182,10 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
             </table>
           </div>
           <p className="border-t border-zinc-200 bg-zinc-50 px-6 py-3 text-sm text-zinc-600">
-            Total cost = labor cost + plant cost + material cost + plant hire + fuel cost. Actual rate = total
-            cost ÷ production. Overheads and profit are that percentage of total cost. Bill rate = (total cost
-            + overheads + profit) ÷ production. Allowable rate = bill rate × allowable percentage + bill rate.
-            Head QS Overview multiplies these rates by the production from daily valuations.
+            Plant cost = fuel cost + plant hire. Total cost = labor cost + plant cost + material cost. Actual
+            rate = total cost ÷ production. Overheads and profit are that percentage of total cost. Bill rate =
+            (total cost + overheads + profit) ÷ production. Allowable rate = bill rate × allowable percentage +
+            bill rate. Head QS Overview multiplies these rates by the production from daily valuations.
           </p>
         </section>
       )}

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
+import ExportPdfButton from "@/components/project/ExportPdfButton"
 import Icon from "@/components/icon/icon"
 import RichTextEditor, { countPlainText } from "@/components/project/RichTextEditor"
 import WorkingHoursWeatherCard from "@/components/project/WorkingHoursWeatherCard"
@@ -11,6 +12,7 @@ import { getSiteReportsPeriodHref } from "@/lib/projectRoutes"
 import {
   buildSiteReportBody,
   composeSiteReportDocument,
+  exportSiteReportPdf,
   extractSiteReportNotes,
   getSiteReportNotes,
   saveSiteReportNotes,
@@ -65,16 +67,28 @@ export default function SiteReport({ projectName, projectId, period, file }) {
     }, 400)
   }
 
+  const handleExportPdf = () => {
+    exportSiteReportPdf({
+      projectName,
+      period,
+      fileLabel: reportHeading(period, file),
+      documentHtml,
+    })
+  }
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <Link
-          href={getSiteReportsPeriodHref(projectId, period)}
-          className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
-        >
-          <Icon name="arrow-left" size={16} />
-          Back to {period} site reports
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href={getSiteReportsPeriodHref(projectId, period)}
+            className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
+          >
+            <Icon name="arrow-left" size={16} />
+            Back to {period} site reports
+          </Link>
+          {notesReady ? <ExportPdfButton onClick={handleExportPdf} /> : null}
+        </div>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Site report</p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
           {reportHeading(period, file)}
@@ -87,8 +101,9 @@ export default function SiteReport({ projectName, projectId, period, file }) {
       <WorkingHoursWeatherCard projectName={projectName} reportType={period} reportId={fileId} />
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 md:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-3 md:px-6">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Site report document</h2>
+          {notesReady ? <ExportPdfButton onClick={handleExportPdf} /> : null}
         </div>
         <div className="p-4 md:p-6">
           {notesReady ? (

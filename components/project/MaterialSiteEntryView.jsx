@@ -151,8 +151,8 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
           {projectName || "Project"}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
-          {dayLabel} · Material brought on site starts from material received for this date and can
-          be edited. Material left is material brought on site minus material used.
+          {dayLabel} · Material on site starts from yesterday&apos;s leftover plus material received
+          today. Enter material used and material left updates automatically as on site minus used.
         </p>
       </header>
 
@@ -163,7 +163,7 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
             <TableExportButtons
               columns={[
                 { key: "description", label: "Description", align: "left", kind: "text" },
-                { key: "broughtOnSite", label: "Material brought on site", align: "right", kind: "number", total: false },
+                { key: "broughtOnSite", label: "Material on site", align: "right", kind: "number", total: false },
                 { key: "materialUsed", label: "Material used", align: "right", kind: "number", total: false },
                 { key: "materialLeft", label: "Material left", align: "right", kind: "number", total: false },
               ]}
@@ -190,7 +190,7 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
             <thead>
               <tr className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 <th className="border-b border-zinc-200 px-3 py-3">Description</th>
-                <th className="border-b border-zinc-200 px-3 py-3 text-right">Material brought on site</th>
+                <th className="border-b border-zinc-200 px-3 py-3 text-right">Material on site</th>
                 <th className="border-b border-zinc-200 px-3 py-3 text-right">Material used</th>
                 <th className="border-b border-zinc-200 px-3 py-3 text-right">Material left</th>
                 <th className="border-b border-zinc-200 px-3 py-3" />
@@ -215,7 +215,7 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
                     <FormulaAmountInput
                       value={row.broughtOnSite}
                       formula={row.broughtOnSiteFormula || ""}
-                      ariaLabel="Material brought on site"
+                      ariaLabel="Material on site"
                       onChange={(value, formula) =>
                         updateRow(row.id, {
                           broughtOnSite: value,

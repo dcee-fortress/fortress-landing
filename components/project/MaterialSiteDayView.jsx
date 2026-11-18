@@ -20,9 +20,9 @@ import {
 
 const COLUMNS = [
   { key: "description", label: "Description", align: "left", kind: "text" },
-  { key: "broughtOnSite", label: "Material brought on site", align: "right", kind: "number", total: false },
+  { key: "broughtOnSite", label: "Material on site", align: "right", kind: "number", total: false },
   { key: "materialUsed", label: "Material used", align: "right", kind: "number", total: false },
-  { key: "materialLeft", label: "Material left in storeroom", align: "right", kind: "number", total: false },
+  { key: "materialLeft", label: "Material left on site", align: "right", kind: "number", total: false },
 ]
 
 export default function MaterialSiteDayView({ projectId, projectName, dayId }) {
@@ -78,8 +78,9 @@ export default function MaterialSiteDayView({ projectId, projectName, dayId }) {
           {dayLabel}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500 sm:text-base">
-          {projectName || "Project"} · Material brought on site can be edited in the entry. Material
-          left is material brought on site minus material used. Similar descriptions are one line.
+          {projectName || "Project"} · Material on site starts from yesterday&apos;s leftover plus
+          material received today. Enter material used in the entry; material left is on site minus
+          used and rolls to the next day.
         </p>
         <label className="flex w-fit flex-col gap-1 pt-1 text-sm font-medium text-zinc-700">
           File date
@@ -117,7 +118,7 @@ export default function MaterialSiteDayView({ projectId, projectName, dayId }) {
         <MaterialRegisterTable
           columns={COLUMNS}
           lines={lines}
-          emptyMessage="Nothing brought on site this day. Material received for this date, or a quantity entered in the entry, appears here."
+          emptyMessage="Nothing on site this day. Leftover from yesterday, material received today, or an entry quantity appears here."
         />
       </section>
     </div>

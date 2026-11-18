@@ -28,8 +28,8 @@ export default function MaterialSiteHubView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Open a daily file to edit material brought on site and enter material used. Material left
-          is material brought on site minus material used, and it rolls to project to date.
+          Daily material on site files are created automatically. Leftover stock rolls to the next
+          day. Enter material used and material left is on site minus used.
         </p>
       </header>
 
@@ -45,7 +45,7 @@ export default function MaterialSiteHubView({ projectId, projectName }) {
           href={getMaterialSiteDailyHref(projectId)}
           icon="clock"
           title="Daily material on site"
-          description="Press + to create a daily file, then set its date inside the file"
+          description="Automatic daily files. Yesterday’s left rolls forward; enter used to see what is left."
           prefetch={false}
         />
       </div>

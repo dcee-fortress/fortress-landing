@@ -1,6 +1,6 @@
 "use client"
 
-import { memo, useMemo, useState } from "react"
+import { memo, useEffect, useMemo, useState } from "react"
 import Icon from "@/components/icon/icon"
 import Link from "next/link"
 import ReportFileSearchBar, { useReportFileSearch } from "@/components/project/ReportFileSearch"
@@ -12,6 +12,7 @@ import { unlockFinanceEntry, validateFinanceEntryCredentials } from "@/lib/finan
 import {
   createMaterialSiteFileForToday,
   deleteMaterialSiteFile,
+  ensureMaterialSiteAutoDailyFiles,
   getMaterialSiteDailyFiles,
   getMaterialSiteEntryStatus,
 } from "@/lib/materialSiteStock"
@@ -69,19 +70,37 @@ export default function MaterialSiteDailyListView({ projectId, projectName }) {
   const { version, refresh } = useProjects()
   const [deletingDayId, setDeletingDayId] = useState("")
   const [creating, setCreating] = useState(false)
+  const [autoReady, setAutoReady] = useState(false)
   const deleteAuth = useFileDeleteAuth()
+
+  useEffect(() => {
+    if (!hasHydrated || !projectId) return
+    let cancelled = false
+    void ensureMaterialSiteAutoDailyFiles(projectId)
+      .then((changed) => {
+        if (cancelled) return
+        if (changed) refresh()
+      })
+      .finally(() => {
+        if (!cancelled) setAutoReady(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [hasHydrated, projectId, refresh, version])
 
   const dailyFiles = useMemo(() => {
     if (!hasHydrated) return []
     void version
+    void autoReady
     return getMaterialSiteDailyFiles(projectId)
-  }, [hasHydrated, projectId, version])
+  }, [autoReady, hasHydrated, projectId, version])
 
   const search = useReportFileSearch(dailyFiles)
 
   async function performDelete(file) {
     const confirmed = window.confirm(
-      `Delete "${file.label}" from daily material on site?\n\nThis removes that day's material brought on site and material used from the dashboards.`
+      `Delete "${file.label}" from daily material on site?\n\nThis removes that day's material on site and material used from the dashboards.`
     )
     if (!confirmed) return
     setDeletingDayId(file.id)
@@ -135,8 +154,8 @@ export default function MaterialSiteDailyListView({ projectId, projectName }) {
           {projectName || "Project"}
         </h1>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">
-          Press + to create today&apos;s file. Open the file to change its date, edit material brought
-          on site, and enter material used. Material left is brought on site minus material used.
+          Daily files are created automatically. Yesterday&apos;s material left rolls into today.
+          Enter material used and material left updates as on site minus used.
         </p>
       </header>
 
@@ -147,8 +166,8 @@ export default function MaterialSiteDailyListView({ projectId, projectName }) {
             type="button"
             onClick={() => void handleCreateToday()}
             disabled={!hasHydrated || creating}
-            aria-label="Create today's material on site file"
-            title="Create today's material on site file"
+            aria-label="Ensure today's material on site file"
+            title="Ensure today's material on site file"
             className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Icon name="plus" size={22} />
@@ -160,13 +179,13 @@ export default function MaterialSiteDailyListView({ projectId, projectName }) {
           getFileHref={(id, dayId) => getMaterialSiteDailyFileHref(id, dayId)}
           placeholder="Search daily material on site files"
         />
-        {!hasHydrated ? (
+        {!hasHydrated || !autoReady ? (
           <p className="px-6 py-8 text-sm text-zinc-500">Loading daily files…</p>
         ) : search.filteredFiles.length === 0 ? (
           <p className="px-6 py-8 text-sm text-zinc-500">
             {search.activeQuery
               ? "No daily material on site files match your search."
-              : "No daily files yet. Press + to create today's material on site file."}
+              : "Daily material on site files will appear here automatically."}
           </p>
         ) : (
           <ul className="divide-y divide-zinc-200">
