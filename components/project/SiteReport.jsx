@@ -29,7 +29,9 @@ export default function SiteReport({ projectName, projectId, period, file }) {
   const fileId = file?.id
   const [notes, setNotes] = useState("")
   const [notesReady, setNotesReady] = useState(false)
+  const [isExportingPdf, setIsExportingPdf] = useState(false)
   const saveTimer = useRef(null)
+  const weatherRef = useRef(null)
 
   useEffect(() => {
     setNotesReady(false)
@@ -67,13 +69,25 @@ export default function SiteReport({ projectName, projectId, period, file }) {
     }, 400)
   }
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
+    if (isExportingPdf) return
+    setIsExportingPdf(true)
     try {
-      exportSiteReportPdf({
+      const weatherWaitStarted = Date.now()
+      while (
+        weatherRef.current &&
+        Date.now() - weatherWaitStarted < 8000 &&
+        /Loading forecast/i.test(weatherRef.current.textContent || "")
+      ) {
+        await new Promise((resolve) => window.setTimeout(resolve, 250))
+      }
+
+      await exportSiteReportPdf({
         projectName,
         period,
         fileLabel: reportHeading(period, file),
         documentHtml,
+        weatherElement: weatherRef.current,
       })
     } catch (error) {
       window.alert(
@@ -81,6 +95,8 @@ export default function SiteReport({ projectName, projectId, period, file }) {
           ? error.message
           : "Could not export the site report PDF. Try again."
       )
+    } finally {
+      setIsExportingPdf(false)
     }
   }
 
@@ -95,7 +111,12 @@ export default function SiteReport({ projectName, projectId, period, file }) {
             <Icon name="arrow-left" size={16} />
             Back to {period} site reports
           </Link>
-          {notesReady ? <ExportPdfButton onClick={handleExportPdf} /> : null}
+          {notesReady ? (
+            <ExportPdfButton
+              onClick={() => void handleExportPdf()}
+              className={isExportingPdf ? "opacity-60" : ""}
+            />
+          ) : null}
         </div>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Site report</p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
@@ -106,12 +127,19 @@ export default function SiteReport({ projectName, projectId, period, file }) {
         </p>
       </header>
 
-      <WorkingHoursWeatherCard projectName={projectName} reportType={period} reportId={fileId} />
+      <div ref={weatherRef}>
+        <WorkingHoursWeatherCard projectName={projectName} reportType={period} reportId={fileId} />
+      </div>
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-3 md:px-6">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Site report document</h2>
-          {notesReady ? <ExportPdfButton onClick={handleExportPdf} /> : null}
+          {notesReady ? (
+            <ExportPdfButton
+              onClick={() => void handleExportPdf()}
+              className={isExportingPdf ? "opacity-60" : ""}
+            />
+          ) : null}
         </div>
         <div className="p-4 md:p-6">
           {notesReady ? (
