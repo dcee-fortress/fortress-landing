@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import ExportPdfButton from "@/components/project/ExportPdfButton"
 import Icon from "@/components/icon/icon"
 import MaterialScheduleFormulaCell from "@/components/project/MaterialScheduleFormulaCell"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
@@ -14,9 +15,13 @@ import {
   saveActualCostAnalysisRows,
 } from "@/lib/actualCostAnalysis"
 import { BOQ_STORAGE_KEY } from "@/lib/boqData"
-import { formatMaterialScheduleDisplayValue } from "@/lib/materialSchedule"
 import { isFormula } from "@/lib/materialScheduleFormulas"
-import { formatMaterialCurrencyAmount, formatMaterialRate } from "@/lib/plantCostCalculations"
+import {
+  formatMaterialAmount,
+  formatMaterialCurrencyAmount,
+  formatMaterialRate,
+  parsePlantCostAmount,
+} from "@/lib/plantCostCalculations"
 import { getRateAnalysisHubHref } from "@/lib/rateAnalysis"
 
 function computedDisplay(row, key) {
@@ -26,6 +31,16 @@ function computedDisplay(row, key) {
   }
   if (key === "rate" || key === "billRate" || key === "allowableRate") return formatMaterialRate(row[key])
   return "—"
+}
+
+function formatEntryDisplay(columnKey, value) {
+  if (isFormula(value)) return String(value)
+  const numeric = parsePlantCostAmount(value)
+  if (numeric === null) return String(value ?? "")
+  if (columnKey === "production" || columnKey === "fuelAllocated" || columnKey === "materialQty") {
+    return formatMaterialAmount(numeric)
+  }
+  return formatMaterialCurrencyAmount(numeric)
 }
 
 function acceptPercentEntry(value, formula) {
@@ -60,6 +75,11 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
 
   const resolvedRows = useMemo(() => rows.map(resolveActualCostAnalysisRow), [rows])
 
+  const exportToPdf = async () => {
+    const { exportRateBuildUpPdf } = await import("@/lib/rateBuildUpPdf")
+    exportRateBuildUpPdf({ projectName, rows })
+  }
+
   const updateRow = (rowIndex, field, value, formula = "", percentOnly = false) => {
     const entry = percentOnly ? acceptPercentEntry(value, formula) : { value, formula }
     if (!entry) return
@@ -75,13 +95,16 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <Link
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
           href={getRateAnalysisHubHref(projectId)}
           className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
         >
           <Icon name="arrow-left" size={16} />
           Back to Rate analysis
-        </Link>
+          </Link>
+          {rows.length > 0 ? <ExportPdfButton onClick={exportToPdf} /> : null}
+        </div>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Rate build up</p>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
         <p className="max-w-3xl text-zinc-500">
@@ -142,7 +165,7 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
                                 column.percent
                                   ? (value) => (String(value ?? "").trim() === "" ? "" : `${String(value).replace("%", "").trim()}%`)
                                   : column.numeric
-                                    ? (value) => formatMaterialScheduleDisplayValue(column.key, value)
+                                    ? (value) => formatEntryDisplay(column.key, value)
                                     : undefined
                               }
                               onChange={(value, formula) =>
