@@ -15,7 +15,7 @@
 ## Data vs code
 - Project data is the live shared database. Localhost in Cursor must read and write that same live store so entries from the public link match what you see locally.
 - Code, layout, debugging, and decoding stay on the local site first. Never git push, never deploy to Vercel, and never publish those changes to the live website unless the user explicitly asks.
-- When the user asks to push live / push for Rodcroft: push to **`main` as well as the current branch**. Production Rodcroft deploys from `main`; feature-branch-only pushes do not update the live site.
+- When the user asks to push live / push for Rodcroft: push the current branch and also `git push origin HEAD:main`. Production Rodcroft deploys from `main` via Vercel (`fortress-landing` project → `fortress-zw.vercel.app` / `rodcroft-fortress.vercel.app`). A GitHub Action also syncs the Cursor feature branch to `main` on every push.
 
 ## Code conventions
 - Keep components focused and reusable.

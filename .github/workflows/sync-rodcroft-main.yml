@@ -1,0 +1,29 @@
+name: Sync Rodcroft production (main)
+
+# Rodcroft Vercel production deploys from `main`.
+# This repo's day-to-day work lands on the Cursor feature branch first.
+# Every push there fast-forwards `main` so fortress-zw / rodcroft-fortress update automatically.
+
+on:
+  push:
+    branches:
+      - cursor/unified-fortress-platform-50e6
+
+permissions:
+  contents: write
+
+jobs:
+  sync-main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fast-forward main to this commit
+        run: |
+          set -euo pipefail
+          echo "Syncing $(git rev-parse --short HEAD) -> origin/main"
+          git push origin "HEAD:main"
+          echo "main now at $(git rev-parse HEAD)"
