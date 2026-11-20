@@ -77,7 +77,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
 
       if (items.length === 0) {
         setStatus(
-          "No BOQ rows found. The PDF needs text descriptions and rates. A scanned picture will not read — upload the Excel file instead."
+          "No BOQ rows found. The PDF needs selectable text lines. A scanned picture will not read — upload the Excel file instead."
         )
         resetPending()
         return

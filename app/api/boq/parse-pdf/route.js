@@ -16,7 +16,7 @@ export async function POST(request) {
       return Response.json(
         {
           error:
-            "No BOQ rows were found in that PDF. It needs selectable text with descriptions and rates. A scanned picture cannot be read — upload the Excel file instead.",
+            "No BOQ rows were found in that PDF. It needs selectable text lines. A scanned picture cannot be read — upload the Excel file instead.",
         },
         { status: 422 }
       )

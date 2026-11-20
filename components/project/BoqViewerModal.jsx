@@ -68,17 +68,10 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
           cost,
         }
       })
-      .filter((item) => {
-        if (!item.itemName) return false
-        return (
-          parseBoqRateInput(item.billRate) !== null ||
-          parseBoqRateInput(item.allowableRate) !== null ||
-          parseBoqRateInput(item.quantity) !== null
-        )
-      })
+      .filter((item) => Boolean(item.itemName))
 
     if (normalized.length === 0) {
-      setSaveError("Add at least one row with a description and rate.")
+      setSaveError("Add at least one row with a description.")
       return
     }
 
