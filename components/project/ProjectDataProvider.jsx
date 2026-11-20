@@ -51,11 +51,14 @@ function isLightweightDashboardPath(pathname) {
     root === "engineering" ||
     root === "finance" ||
     root === "valuations" ||
-    root === "rate-analysis" ||
     root === "ceo-dashboards" ||
     root === "plant-on-site"
   ) {
     return parts.length === 1
+  }
+  // Rate analysis hub + Rate build up template — skip valuation calendar bootstrap.
+  if (root === "rate-analysis") {
+    return parts.length === 1 || parts[1] === "actual-cost"
   }
   if (root === "site-reports") {
     return parts.length <= 2
@@ -166,15 +169,9 @@ export function ProjectDataProvider({ children }) {
   useEffect(() => {
     if (lightweight) return
 
-    const syncCalendarFiles = () => {
-      void import("@/lib/dailyFileSync").then(
-        ({ ensureAllActiveProjectsDailyFiles, ensureDailyFilesThroughToday }) => {
-          return projectId
-            ? ensureDailyFilesThroughToday(projectId)
-            : ensureAllActiveProjectsDailyFiles()
-        }
-      )
-    }
+    let sharedRefreshTimer = 0
+    let focusRefreshTimer = 0
+    let lastFocusRefreshAt = 0
 
     const refreshIfFilesChanged = () => {
       void import("@/lib/dailyFileSync").then(
@@ -196,9 +193,24 @@ export function ProjectDataProvider({ children }) {
     }
 
     const onSharedStorageChange = () => {
-      startTransition(() => {
-        refresh()
-      })
+      // Debounce so a storage write storm does not remount every dashboard consumer.
+      window.clearTimeout(sharedRefreshTimer)
+      sharedRefreshTimer = window.setTimeout(() => {
+        startTransition(() => {
+          refresh()
+        })
+      }, 500)
+    }
+
+    const onFocusOrVisible = () => {
+      if (document.visibilityState === "hidden") return
+      const now = Date.now()
+      if (now - lastFocusRefreshAt < 30_000) return
+      window.clearTimeout(focusRefreshTimer)
+      focusRefreshTimer = window.setTimeout(() => {
+        lastFocusRefreshAt = Date.now()
+        refreshIfFilesChanged()
+      }, 800)
     }
 
     const msUntilMidnight = () => {
@@ -218,22 +230,22 @@ export function ProjectDataProvider({ children }) {
 
     const onStorage = (event) => {
       if (!event.key || !String(event.key).startsWith("grove-")) return
-      startTransition(() => {
-        refresh()
-      })
+      onSharedStorageChange()
     }
 
     window.addEventListener("grove-shared-storage-change", onSharedStorageChange)
     window.addEventListener("storage", onStorage)
-    window.addEventListener("focus", refreshIfFilesChanged)
-    document.addEventListener("visibilitychange", refreshIfFilesChanged)
+    window.addEventListener("focus", onFocusOrVisible)
+    document.addEventListener("visibilitychange", onFocusOrVisible)
 
     return () => {
       window.clearTimeout(midnightId)
+      window.clearTimeout(sharedRefreshTimer)
+      window.clearTimeout(focusRefreshTimer)
       window.removeEventListener("grove-shared-storage-change", onSharedStorageChange)
       window.removeEventListener("storage", onStorage)
-      window.removeEventListener("focus", refreshIfFilesChanged)
-      document.removeEventListener("visibilitychange", refreshIfFilesChanged)
+      window.removeEventListener("focus", onFocusOrVisible)
+      document.removeEventListener("visibilitychange", onFocusOrVisible)
     }
   }, [lightweight, projectId, refresh])
 

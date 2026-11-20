@@ -1,12 +1,11 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import EntryUndoButton from "@/components/project/EntryUndoButton"
 import ExportPdfButton from "@/components/project/ExportPdfButton"
 import Icon from "@/components/icon/icon"
 import MaterialScheduleFormulaCell from "@/components/project/MaterialScheduleFormulaCell"
-import { useProjectData } from "@/components/project/ProjectDataProvider"
 import { subscribeGroveStore } from "@/lib/groveClientStore"
 import { useEntryUndo } from "@/lib/useEntryUndo"
 import {
@@ -17,6 +16,7 @@ import {
   RATE_BUILD_UP_COLUMNS,
   resolveActualCostAnalysisRow,
   saveActualCostAnalysisRows,
+  syncBoqRatesFromBuildUp,
 } from "@/lib/actualCostAnalysis"
 import {
   BOQ_STORAGE_KEY,
@@ -62,10 +62,6 @@ function acceptPercentEntry(value, formula) {
   return { value: text.replace("%", "").trim(), formula: "" }
 }
 
-function persistRows(projectId, next) {
-  saveActualCostAnalysisRows(projectId, next, { remember: true, syncBoq: true })
-}
-
 function insertIndexAfterPlantGroup(rows, parentIndex) {
   const parent = rows[parentIndex]
   if (!parent) return parentIndex + 1
@@ -77,10 +73,35 @@ function insertIndexAfterPlantGroup(rows, parentIndex) {
 }
 
 export default function ActualCostAnalysisView({ projectId, projectName, onClose }) {
-  const { version } = useProjectData()
   const [rows, setRows] = useState([])
   const { canUndo, trackBeforeChange, undo, clear: clearUndo } = useEntryUndo()
   const exitHref = getRateAnalysisHubHref(projectId)
+  const persistTimerRef = useRef(0)
+  const syncBoqTimerRef = useRef(0)
+  const rowsRef = useRef(rows)
+  rowsRef.current = rows
+
+  const flushPersist = (next, { syncBoq = false, remember = true } = {}) => {
+    saveActualCostAnalysisRows(projectId, next, { remember, syncBoq })
+    if (syncBoq) return
+    window.clearTimeout(syncBoqTimerRef.current)
+    syncBoqTimerRef.current = window.setTimeout(() => {
+      syncBoqRatesFromBuildUp(projectId)
+    }, 900)
+  }
+
+  const persistRows = (next, { immediate = false } = {}) => {
+    window.clearTimeout(persistTimerRef.current)
+    if (immediate) {
+      flushPersist(next, { syncBoq: true, remember: true })
+      return
+    }
+    // Keep typing snappy: save locally first, push BOQ rates after idle.
+    flushPersist(next, { syncBoq: false, remember: true })
+    persistTimerRef.current = window.setTimeout(() => {
+      flushPersist(rowsRef.current, { syncBoq: true, remember: true })
+    }, 700)
+  }
 
   // Lock page scroll while the Rate build up template is open.
   useEffect(() => {
@@ -91,6 +112,8 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
     return () => {
       document.body.style.overflow = previousOverflow
       document.documentElement.style.overflow = previousHtmlOverflow
+      window.clearTimeout(persistTimerRef.current)
+      window.clearTimeout(syncBoqTimerRef.current)
     }
   }, [])
 
@@ -107,10 +130,11 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
     }
 
     load()
+    // Only reload when the BOQ itself changes — not on every shared-storage version bump.
     return subscribeGroveStore((key) => {
       if (key === BOQ_STORAGE_KEY) load()
     })
-  }, [projectId, version, clearUndo])
+  }, [projectId, clearUndo])
 
   const resolvedRows = useMemo(() => rows.map(resolveActualCostAnalysisRow), [rows])
 
@@ -127,7 +151,7 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
       const next = current.map((row, index) =>
         index === rowIndex ? { ...row, [field]: entry.value, [`${field}Formula`]: entry.formula } : row
       )
-      persistRows(projectId, next)
+      persistRows(next)
       return next
     })
   }
@@ -143,7 +167,7 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
         createPlantSubRow(parent),
         ...current.slice(insertAt),
       ]
-      persistRows(projectId, next)
+      persistRows(next)
       return next
     })
   }
@@ -154,7 +178,7 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
       if (!target || !isPlantSubRow(target)) return current
       trackBeforeChange(current)
       const next = current.filter((_, index) => index !== rowIndex)
-      persistRows(projectId, next)
+      persistRows(next)
       return next
     })
   }
@@ -182,7 +206,7 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
       const next = current.filter(
         (row) => row.id !== target.id && row.parentId !== target.id
       )
-      persistRows(projectId, next)
+      persistRows(next)
       return next
     })
 
@@ -205,7 +229,7 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
         if (index !== rowIndex) return row
         return applyZimBuildSuggestionToRow(row, row.zimBuildSuggestion)
       })
-      persistRows(projectId, next)
+      persistRows(next)
       return next
     })
   }
@@ -214,7 +238,7 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
     const previous = undo()
     if (!previous) return
     setRows(previous)
-    persistRows(projectId, previous)
+    persistRows(previous, { immediate: true })
   }
 
   const exitControl =

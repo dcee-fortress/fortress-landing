@@ -7,6 +7,12 @@ import FortressApp from "@/components/fortress/App"
 import { RODCROFT_CHADCOMBE_PROJECT_ID } from "@/components/fortress/fortressMetadata"
 
 const RODCROFT_HOSTS = new Set([
+  "fortress-zw.vercel.app",
+  "www.fortress-zw.vercel.app",
+  "fortress-zw.com",
+  "www.fortress-zw.com",
+  "fortress-zw.co.zw",
+  "www.fortress-zw.co.zw",
   "rodcroft-fortress.vercel.app",
   "rodcroft.fortress.vercel.app",
   "rodcroft.vercel.app",

@@ -520,7 +520,13 @@ body {
 }
 
 .brand-wordmark--pulse {
-    animation: brand-wordmark-fade 2s ease-in-out infinite;
+    animation: brand-wordmark-fade 1.2s ease-in-out 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .brand-wordmark--pulse {
+        animation: none;
+    }
 }
 
 .app-page-frame {
