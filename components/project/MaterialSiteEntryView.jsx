@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
+import EntryUndoButton from "@/components/project/EntryUndoButton"
 import FormulaAmountInput from "@/components/project/FormulaAmountInput"
 import TableExportButtons from "@/components/project/TableExportButtons"
 import MemoryTextInput from "@/components/project/MemoryTextInput"
 import { useProjects } from "@/components/project/ProjectsProvider"
+import { useEntryUndo } from "@/lib/useEntryUndo"
 import { buildCellHistory, searchCellHistory } from "@/lib/cellHistory"
 import { formatMaterialAmount, parsePlantCostAmount, roundMaterialAmount } from "@/lib/plantCostCalculations"
 import {
@@ -44,6 +46,7 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
   const saveTimerRef = useRef(0)
   const rowsRef = useRef([])
   const loadedDayRef = useRef("")
+  const { canUndo, trackBeforeChange, undo, clear: clearUndo } = useEntryUndo()
 
   const loaded = useMemo(() => {
     void version
@@ -51,6 +54,7 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
   }, [dayId, projectId, version])
 
   useEffect(() => {
+    clearUndo()
     setRows((current) => {
       const blank =
         current.length === 0 ||
@@ -73,7 +77,7 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
       )
       return extras.length > 0 ? [...current, ...extras] : current
     })
-  }, [dayId, loaded])
+  }, [dayId, loaded, clearUndo])
 
   useEffect(() => {
     rowsRef.current = rows
@@ -119,8 +123,9 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
     }
   }, [dayId, projectId])
 
-  function commitRows(updater, { immediate = false } = {}) {
+  function commitRows(updater, { immediate = false, sessionKey = null } = {}) {
     setRows((current) => {
+      trackBeforeChange(current, sessionKey)
       const next = typeof updater === "function" ? updater(current) : updater
       if (immediate) void persist(next)
       else schedulePersist(next)
@@ -130,7 +135,18 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
   }
 
   function updateRow(rowId, patch) {
-    commitRows((current) => current.map((row) => (row.id === rowId ? { ...row, ...patch } : row)))
+    const sessionKey = `${rowId}:${Object.keys(patch).sort().join(",")}`
+    commitRows(
+      (current) => current.map((row) => (row.id === rowId ? { ...row, ...patch } : row)),
+      { sessionKey }
+    )
+  }
+
+  function handleUndo() {
+    const previous = undo()
+    if (!previous) return
+    setRows(previous)
+    void persist(previous)
   }
 
   return (
@@ -160,6 +176,7 @@ export default function MaterialSiteEntryView({ projectId, projectName, dayId })
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
           <h2 className="text-base font-semibold text-zinc-900">Material on site entry table</h2>
           <div className="flex flex-wrap items-center gap-3">
+            <EntryUndoButton canUndo={canUndo} onUndo={handleUndo} />
             <TableExportButtons
               columns={[
                 { key: "description", label: "Description", align: "left", kind: "text" },

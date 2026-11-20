@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import EntryUndoButton from "@/components/project/EntryUndoButton"
 import ExportPdfButton from "@/components/project/ExportPdfButton"
 import Icon from "@/components/icon/icon"
 import MaterialScheduleFormulaCell from "@/components/project/MaterialScheduleFormulaCell"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import { subscribeGroveStore } from "@/lib/groveClientStore"
+import { useEntryUndo } from "@/lib/useEntryUndo"
 import {
   listBoqAnalysisItems,
   mergeActualCostAnalysisWithBoq,
@@ -60,9 +62,11 @@ function persistRows(projectId, next) {
 export default function ActualCostAnalysisView({ projectId, projectName }) {
   const { version } = useProjectData()
   const [rows, setRows] = useState([])
+  const { canUndo, trackBeforeChange, undo, clear: clearUndo } = useEntryUndo()
 
   useEffect(() => {
     const load = () => {
+      clearUndo()
       if (listBoqAnalysisItems(projectId).length === 0) {
         setRows([])
         return
@@ -76,7 +80,7 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
     return subscribeGroveStore((key) => {
       if (key === BOQ_STORAGE_KEY) load()
     })
-  }, [projectId, version])
+  }, [projectId, version, clearUndo])
 
   const resolvedRows = useMemo(() => rows.map(resolveActualCostAnalysisRow), [rows])
 
@@ -89,6 +93,7 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
     const entry = percentOnly ? acceptPercentEntry(value, formula) : { value, formula }
     if (!entry) return
     setRows((current) => {
+      trackBeforeChange(current, `${rowIndex}:${field}`)
       const next = current.map((row, index) =>
         index === rowIndex ? { ...row, [field]: entry.value, [`${field}Formula`]: entry.formula } : row
       )
@@ -99,6 +104,7 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
 
   const applyZimBuild = (rowIndex) => {
     setRows((current) => {
+      trackBeforeChange(current)
       const next = current.map((row, index) => {
         if (index !== rowIndex) return row
         return applyZimBuildSuggestionToRow(row, row.zimBuildSuggestion)
@@ -106,6 +112,13 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
       persistRows(projectId, next)
       return next
     })
+  }
+
+  const handleUndo = () => {
+    const previous = undo()
+    if (!previous) return
+    setRows(previous)
+    persistRows(projectId, previous)
   }
 
   return (
@@ -119,7 +132,12 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
             <Icon name="arrow-left" size={16} />
             Back to Rate analysis
           </Link>
-          {rows.length > 0 ? <ExportPdfButton onClick={exportToPdf} /> : null}
+          {rows.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <EntryUndoButton canUndo={canUndo} onUndo={handleUndo} />
+              <ExportPdfButton onClick={exportToPdf} />
+            </div>
+          ) : null}
         </div>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Rate build up</p>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>

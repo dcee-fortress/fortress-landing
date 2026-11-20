@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import CellHoverCard, { useCellHoverCard } from "@/components/project/CellHoverCard"
+import EntryUndoButton from "@/components/project/EntryUndoButton"
 import FormulaAmountInput, { resolveFormulaAmount } from "@/components/project/FormulaAmountInput"
 import MemoryTextInput from "@/components/project/MemoryTextInput"
 import { useProjects } from "@/components/project/ProjectsProvider"
+import { useEntryUndo } from "@/lib/useEntryUndo"
 import { buildCellHistory, searchCellHistory } from "@/lib/cellHistory"
 import SiteCameraCapture from "@/components/project/SiteCameraCapture"
 import {
@@ -78,6 +80,7 @@ export default function CashBookEntryView({ projectId, projectName, dayId, bookI
   const rowsRef = useRef([])
   const hover = useCellHoverCard()
   const { version } = useProjects()
+  const { canUndo, trackBeforeChange, undo, clear: clearUndo } = useEntryUndo()
 
   const savedHistoryRows = useMemo(() => {
     void version
@@ -101,6 +104,7 @@ export default function CashBookEntryView({ projectId, projectName, dayId, bookI
   const photoInputRef = useRef(null)
 
   const loadRows = useCallback(() => {
+    clearUndo()
     const opening = getOpeningBalanceForDay(projectId, dayId)
     const nextRows = getRows(projectId, dayId)
     setOpeningBalance(opening)
@@ -109,7 +113,7 @@ export default function CashBookEntryView({ projectId, projectName, dayId, bookI
         ? nextRows
         : prepareRows([createRow(dayId)], dayId, opening)
     )
-  }, [createRow, dayId, getOpeningBalanceForDay, getRows, prepareRows, projectId])
+  }, [clearUndo, createRow, dayId, getOpeningBalanceForDay, getRows, prepareRows, projectId])
 
   const loadReceipts = useCallback(async () => {
     const meta = getReceipts(projectId, dayId)
@@ -263,8 +267,9 @@ export default function CashBookEntryView({ projectId, projectName, dayId, bookI
     }
   }, [dayId, projectId, saveRows])
 
-  function commitRows(updater, { immediate = false } = {}) {
+  function commitRows(updater, { immediate = false, sessionKey = null } = {}) {
     setRows((current) => {
+      trackBeforeChange(current, sessionKey)
       const draft = typeof updater === "function" ? updater(current) : updater
       const next = prepareRows(draft, dayId, openingBalance)
       if (immediate) {
@@ -278,47 +283,60 @@ export default function CashBookEntryView({ projectId, projectName, dayId, bookI
   }
 
   function updateRow(rowId, key, value) {
-    commitRows((current) =>
-      current.map((row) => {
-        if (row.id !== rowId) return row
+    commitRows(
+      (current) =>
+        current.map((row) => {
+          if (row.id !== rowId) return row
 
-        if (isVatRow(row)) {
-          if (key === "description" || key === "vatRate") {
-            const rate =
-              key === "vatRate"
-                ? Number(value)
-                : parseVatRate({ ...row, description: value, vatRate: null })
-            const safeRate = Number.isFinite(rate) && rate >= 0 ? rate : DEFAULT_VAT_RATE
-            return {
-              ...row,
-              isVat: true,
-              vatRate: safeRate,
-              description: formatVatDescription(safeRate),
-              cashIssuedTo: "",
-              cashReceived: "",
-              date: formatCashBookDate(dayId),
+          if (isVatRow(row)) {
+            if (key === "description" || key === "vatRate") {
+              const rate =
+                key === "vatRate"
+                  ? Number(value)
+                  : parseVatRate({ ...row, description: value, vatRate: null })
+              const safeRate = Number.isFinite(rate) && rate >= 0 ? rate : DEFAULT_VAT_RATE
+              return {
+                ...row,
+                isVat: true,
+                vatRate: safeRate,
+                description: formatVatDescription(safeRate),
+                cashIssuedTo: "",
+                cashReceived: "",
+                date: formatCashBookDate(dayId),
+              }
             }
+            return row
           }
-          return row
-        }
 
-        return {
-          ...row,
-          [key]: value,
-          date: formatCashBookDate(dayId),
-        }
-      })
+          return {
+            ...row,
+            [key]: value,
+            date: formatCashBookDate(dayId),
+          }
+        }),
+      { sessionKey: `${rowId}:${key}` }
     )
   }
 
   function updateAmountFields(rowId, patch) {
-    commitRows((current) =>
-      current.map((row) =>
-        row.id !== rowId || isVatRow(row)
-          ? row
-          : { ...row, ...patch, date: formatCashBookDate(dayId) }
-      )
+    const sessionKey = `${rowId}:${Object.keys(patch).sort().join(",")}`
+    commitRows(
+      (current) =>
+        current.map((row) =>
+          row.id !== rowId || isVatRow(row)
+            ? row
+            : { ...row, ...patch, date: formatCashBookDate(dayId) }
+        ),
+      { sessionKey }
     )
+  }
+
+  function handleUndo() {
+    const previous = undo()
+    if (!previous) return
+    const next = prepareRows(previous, dayId, openingBalance)
+    setRows(next)
+    void persist(next)
   }
 
   function addRow() {
@@ -407,15 +425,18 @@ export default function CashBookEntryView({ projectId, projectName, dayId, bookI
                 : ""}
             </p>
           </div>
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-            {saveState === "saving"
-              ? "Saving…"
-              : saveState === "pending"
-                ? "Editing…"
-                : saveState === "error"
-                  ? "Save failed"
-                  : "Saved"}
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <EntryUndoButton canUndo={canUndo} onUndo={handleUndo} />
+            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              {saveState === "saving"
+                ? "Saving…"
+                : saveState === "pending"
+                  ? "Editing…"
+                  : saveState === "error"
+                    ? "Save failed"
+                    : "Saved"}
+            </p>
+          </div>
         </div>
 
         <div className="border-b border-zinc-200 bg-white px-4 py-3 sm:px-5">

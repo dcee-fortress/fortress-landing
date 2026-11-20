@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import CellHoverCard, { useCellHoverCard } from "@/components/project/CellHoverCard"
+import EntryUndoButton from "@/components/project/EntryUndoButton"
 import FormulaAmountInput from "@/components/project/FormulaAmountInput"
 import TableExportButtons from "@/components/project/TableExportButtons"
 import MemoryTextInput from "@/components/project/MemoryTextInput"
 import { useProjects } from "@/components/project/ProjectsProvider"
+import { useEntryUndo } from "@/lib/useEntryUndo"
 import { buildCellHistory, searchCellHistory } from "@/lib/cellHistory"
 import {
   GOODS_ACQUIRED_COLUMNS,
@@ -56,6 +58,7 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
   const rowsRef = useRef([])
   const hover = useCellHoverCard()
   const { version } = useProjects()
+  const { canUndo, trackBeforeChange, undo, clear: clearUndo } = useEntryUndo()
 
   const savedHistoryRows = useMemo(() => {
     void version
@@ -77,8 +80,9 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
     })
 
   const loadRows = useCallback(() => {
+    clearUndo()
     setRows(getGoodsAcquiredRows(projectId, dayId))
-  }, [dayId, projectId])
+  }, [dayId, projectId, clearUndo])
 
   useEffect(() => {
     loadRows()
@@ -128,8 +132,9 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
     }
   }, [dayId, projectId])
 
-  function commitRows(updater, { immediate = false } = {}) {
+  function commitRows(updater, { immediate = false, sessionKey = null } = {}) {
     setRows((current) => {
+      trackBeforeChange(current, sessionKey)
       const draft = typeof updater === "function" ? updater(current) : updater
       const next = withGoodsAcquiredTotals(draft)
       if (immediate) {
@@ -143,8 +148,10 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
   }
 
   function updateRowFields(rowId, patch) {
-    commitRows((current) =>
-      current.map((row) => (row.id === rowId ? { ...row, ...patch } : row))
+    const sessionKey = `${rowId}:${Object.keys(patch).sort().join(",")}`
+    commitRows(
+      (current) => current.map((row) => (row.id === rowId ? { ...row, ...patch } : row)),
+      { sessionKey }
     )
   }
 
@@ -161,6 +168,14 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
       const next = current.filter((row) => row.id !== rowId)
       return next.length > 0 ? next : [createGoodsAcquiredRow()]
     }, { immediate: true })
+  }
+
+  function handleUndo() {
+    const previous = undo()
+    if (!previous) return
+    const next = withGoodsAcquiredTotals(previous)
+    setRows(next)
+    void persist(next)
   }
 
   const dayTotal = rows.reduce((sum, row) => sum + (Number(row.totalCost) || 0), 0)
@@ -199,6 +214,7 @@ export default function GoodsAcquiredEntryView({ projectId, projectName, dayId }
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <EntryUndoButton canUndo={canUndo} onUndo={handleUndo} />
             <TableExportButtons
               columns={GOODS_ACQUIRED_COLUMNS}
               rows={rows}

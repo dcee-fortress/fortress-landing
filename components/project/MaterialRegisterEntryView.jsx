@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
+import EntryUndoButton from "@/components/project/EntryUndoButton"
 import FormulaAmountInput from "@/components/project/FormulaAmountInput"
 import TableExportButtons from "@/components/project/TableExportButtons"
 import MemoryTextInput from "@/components/project/MemoryTextInput"
 import { useProjects } from "@/components/project/ProjectsProvider"
+import { useEntryUndo } from "@/lib/useEntryUndo"
 import { buildCellHistory, searchCellHistory } from "@/lib/cellHistory"
 import { formatMaterialUnitPriceAmount } from "@/lib/plantCostCalculations"
 import { getMaterialRegister } from "@/lib/materialRegister"
@@ -21,6 +23,7 @@ export default function MaterialRegisterEntryView({ projectId, projectName, dayI
   const saveTimerRef = useRef(0)
   const rowsRef = useRef([])
   const { version } = useProjects()
+  const { canUndo, trackBeforeChange, undo, clear: clearUndo } = useEntryUndo()
 
   const memoryKeys = register.entryColumns
     .filter((column) => column.kind === "text" || column.kind === "number" || column.kind === "money")
@@ -35,8 +38,9 @@ export default function MaterialRegisterEntryView({ projectId, projectName, dayI
   }, [dayId, memoryKeys, projectId, register, rows, version])
 
   const loadRows = useCallback(() => {
+    clearUndo()
     setRows(register.getRows(projectId, dayId))
-  }, [dayId, projectId, register])
+  }, [dayId, projectId, register, clearUndo])
 
   useEffect(() => {
     loadRows()
@@ -81,8 +85,9 @@ export default function MaterialRegisterEntryView({ projectId, projectName, dayI
     }
   }, [dayId, projectId, register])
 
-  function commitRows(updater, { immediate = false } = {}) {
+  function commitRows(updater, { immediate = false, sessionKey = null } = {}) {
     setRows((current) => {
+      trackBeforeChange(current, sessionKey)
       const draft = typeof updater === "function" ? updater(current) : updater
       const next = draft.map((row) => register.prepareRow(row, dayId))
       if (immediate) void persist(next)
@@ -93,7 +98,19 @@ export default function MaterialRegisterEntryView({ projectId, projectName, dayI
   }
 
   function updateRow(rowId, patch) {
-    commitRows((current) => current.map((row) => (row.id === rowId ? { ...row, ...patch } : row)))
+    const sessionKey = `${rowId}:${Object.keys(patch).sort().join(",")}`
+    commitRows(
+      (current) => current.map((row) => (row.id === rowId ? { ...row, ...patch } : row)),
+      { sessionKey }
+    )
+  }
+
+  function handleUndo() {
+    const previous = undo()
+    if (!previous) return
+    const next = previous.map((row) => register.prepareRow(row, dayId))
+    setRows(next)
+    void persist(next)
   }
 
   const dayQuantity = rows.reduce((sum, row) => sum + (Number(row.quantity) || 0), 0)
@@ -135,6 +152,7 @@ export default function MaterialRegisterEntryView({ projectId, projectName, dayI
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <EntryUndoButton canUndo={canUndo} onUndo={handleUndo} />
             <TableExportButtons
               columns={register.entryColumns.map((column) =>
                 column.key === "quantity" ? { ...column, total: false } : column

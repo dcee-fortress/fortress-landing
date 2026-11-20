@@ -5,6 +5,7 @@ import Link from "next/link"
 import Icon from "@/components/icon/icon"
 import ActivityDescriptionInput from "@/components/project/ActivityDescriptionInput"
 import CellHoverCard from "@/components/project/CellHoverCard"
+import EntryUndoButton from "@/components/project/EntryUndoButton"
 import ExportPdfButton from "@/components/project/ExportPdfButton"
 import FormulaSuggestionMenu from "@/components/project/FormulaSuggestionMenu"
 import MaterialScheduleFormulaCell from "@/components/project/MaterialScheduleFormulaCell"
@@ -43,6 +44,7 @@ import {
 import { sortSlots } from "@/lib/dailySlots"
 import { formatMaterialCurrencyAmount, formatMaterialAmount } from "@/lib/plantCostCalculations"
 import { getAllBoqItemNames } from "@/lib/boqData"
+import { useEntryUndo } from "@/lib/useEntryUndo"
 
 const MATERIAL_MEMORY_KEYS = ["details", "plantName", "unit"]
 
@@ -78,6 +80,7 @@ function MaterialScheduleEditor({
   const [hoverCard, setHoverCard] = useState(null)
   const [ratesReady, setRatesReady] = useState(false)
   const closeHoverCard = useCallback(() => setHoverCard(null), [])
+  const { canUndo, trackBeforeChange, endEditSession, undo, clear: clearUndo } = useEntryUndo()
   rowsRef.current = rows
 
   const savedHistoryRows = useMemo(() => {
@@ -128,13 +131,14 @@ function MaterialScheduleEditor({
     setSelectedCell(null)
     setFormulaBarMenuOpen(false)
     setFormulaBarDismissed(false)
+    clearUndo()
 
     harvestMaterialFormulasFromRows(
       projectId,
       [...getMaterialScheduleHistoryRows(projectId), ...loaded],
       MATERIAL_SCHEDULE_COLUMNS
     )
-  }, [projectId, dayId, slotId, scheduleType])
+  }, [projectId, dayId, slotId, scheduleType, clearUndo])
 
   useEffect(() => {
     if (hasEditedRef.current) return
@@ -198,6 +202,7 @@ function MaterialScheduleEditor({
     setSavedMessage("")
     const formulaField = getMaterialFormulaFieldKey(field)
     setRows((current) => {
+      trackBeforeChange(current, `${rowIndex}:${field}`)
       const next = current.map((row, index) => {
         if (index !== rowIndex) return row
         return {
@@ -209,12 +214,13 @@ function MaterialScheduleEditor({
       rowsRef.current = next
       return next
     })
-  }, [])
+  }, [trackBeforeChange])
 
   const addRow = () => {
     markEdited()
     setSavedMessage("")
     setRows((current) => {
+      trackBeforeChange(current)
       const next = [...current, createMaterialRow("", dayId)]
       rowsRef.current = next
       persistDraft(next)
@@ -226,6 +232,7 @@ function MaterialScheduleEditor({
     markEdited()
     setSavedMessage("")
     setRows((current) => {
+      trackBeforeChange(current)
       const next = current.filter((row) => row.id !== rowId)
       rowsRef.current = next
       persistDraft(next)
@@ -234,6 +241,19 @@ function MaterialScheduleEditor({
     setSelectedCell(null)
     setLiveDraft(null)
   }
+
+  const handleUndo = useCallback(() => {
+    const previous = undo()
+    if (!previous) return
+    hasEditedRef.current = true
+    setSavedMessage("")
+    endEditSession()
+    rowsRef.current = previous
+    setRows(previous)
+    persistDraft(previous)
+    setSelectedCell(null)
+    setLiveDraft(null)
+  }, [undo, persistDraft, endEditSession])
 
   const handleSave = async () => {
     try {
@@ -416,9 +436,12 @@ function MaterialScheduleEditor({
       </div>
 
       <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-4">
-          <h2 className="text-lg font-semibold text-zinc-900">{schedule.label} Valuations entry</h2>
-          <p className="mt-1 text-sm text-zinc-500">{getMaterialFormulaHelpText()}</p>
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-6 py-4">
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-900">{schedule.label} Valuations entry</h2>
+            <p className="mt-1 text-sm text-zinc-500">{getMaterialFormulaHelpText()}</p>
+          </div>
+          <EntryUndoButton canUndo={canUndo} onUndo={handleUndo} />
         </div>
 
         <div className="border-b border-zinc-200 bg-white px-6 py-3">

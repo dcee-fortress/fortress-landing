@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import Icon from "@/components/icon/icon"
 import Link from "next/link"
+import EntryUndoButton from "@/components/project/EntryUndoButton"
 import TableCellInput from "@/components/project/TableCellInput"
 import ExportPdfButton from "@/components/project/ExportPdfButton"
 import { useProjects } from "@/components/project/ProjectsProvider"
+import { useEntryUndo } from "@/lib/useEntryUndo"
 import {
   SHEQ_ALERT_KIND_INSPECTION,
   canTriggerSheqHomeAlert,
@@ -47,18 +49,20 @@ export default function SheqSiteInspectionEntryView({
   const [weekUsage, setWeekUsage] = useState(() =>
     getSheqAlertWeekUsage(projectId, SHEQ_ALERT_KIND_INSPECTION)
   )
+  const { canUndo, trackBeforeChange, undo, clear: clearUndo } = useEntryUndo()
   const reportRef = useRef(report)
   const saveTimerRef = useRef(0)
   const dirtyRef = useRef(false)
 
   useEffect(() => {
+    clearUndo()
     const next = getSheqSiteInspectionReport(projectId, period, periodId, { projectName })
     if (!next.projectName && projectName) next.projectName = projectName
     reportRef.current = next
     dirtyRef.current = false
     setReport(next)
     setWeekUsage(getSheqAlertWeekUsage(projectId, SHEQ_ALERT_KIND_INSPECTION))
-  }, [period, periodId, projectId, projectName])
+  }, [clearUndo, period, periodId, projectId, projectName])
 
   useEffect(() => {
     reportRef.current = report
@@ -119,7 +123,8 @@ export default function SheqSiteInspectionEntryView({
   }, [period, periodId, projectId, projectName])
 
   const schedulePersist = useCallback(
-    (nextReport) => {
+    (nextReport, sessionKey = null) => {
+      trackBeforeChange(reportRef.current, sessionKey)
       reportRef.current = nextReport
       dirtyRef.current = true
       setReport(nextReport)
@@ -129,11 +134,11 @@ export default function SheqSiteInspectionEntryView({
         void persist(nextReport)
       }, 400)
     },
-    [persist]
+    [persist, trackBeforeChange]
   )
 
   const updateHeader = (field, value) => {
-    schedulePersist({ ...reportRef.current, [field]: value })
+    schedulePersist({ ...reportRef.current, [field]: value }, `header:${field}`)
   }
 
   const updateRow = (rowId, field, value) => {
@@ -141,11 +146,12 @@ export default function SheqSiteInspectionEntryView({
     const rows = current.rows.map((row) =>
       row.id === rowId ? { ...row, [field]: value } : row
     )
-    schedulePersist({ ...current, rows })
+    schedulePersist({ ...current, rows }, `${rowId}:${field}`)
   }
 
   const addRow = () => {
     const current = reportRef.current
+    trackBeforeChange(current)
     const nextNumber = (current.rows?.length || 0) + 1
     const next = {
       ...current,
@@ -159,6 +165,7 @@ export default function SheqSiteInspectionEntryView({
 
   const removeRow = (rowId) => {
     const current = reportRef.current
+    trackBeforeChange(current)
     const rows = renumberInspectionItems(current.rows.filter((row) => row.id !== rowId))
     const next = { ...current, rows }
     reportRef.current = next
@@ -216,6 +223,15 @@ export default function SheqSiteInspectionEntryView({
   const saveLabel =
     saveState === "saving" ? "Saving…" : saveState === "error" ? "Save failed" : "Saved"
 
+  function handleUndo() {
+    const previous = undo()
+    if (!previous) return
+    reportRef.current = previous
+    dirtyRef.current = true
+    setReport(previous)
+    void persist(previous)
+  }
+
   async function exportToPdf() {
     const { exportSheqSiteInspectionPdf } = await import("@/lib/safetyReportPdf")
     exportSheqSiteInspectionPdf({
@@ -248,7 +264,10 @@ export default function SheqSiteInspectionEntryView({
             </p>
             {alertMessage ? <p className="text-sm text-amber-800">{alertMessage}</p> : null}
           </div>
-          <ExportPdfButton onClick={() => void exportToPdf()} />
+          <div className="flex flex-wrap items-center gap-2">
+            <EntryUndoButton canUndo={canUndo} onUndo={handleUndo} />
+            <ExportPdfButton onClick={() => void exportToPdf()} />
+          </div>
         </div>
       </header>
 

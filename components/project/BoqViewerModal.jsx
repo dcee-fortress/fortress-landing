@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Icon from "@/components/icon/icon"
 import { formatBoqRate, parseBoqRateInput } from "@/lib/boqData"
+import { formatBoqBillNumber } from "@/lib/boqNumberedRows"
 
 function draftCost(item) {
   if (item?.cost !== null && item?.cost !== undefined && String(item.cost).trim() !== "") {
@@ -161,7 +162,10 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
           <table className="min-w-full border-collapse text-sm">
             <thead>
               <tr className="bg-zinc-50">
-                <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700 min-w-[18rem] w-[42%]">
+                <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700 w-20 whitespace-nowrap">
+                  Bill No.
+                </th>
+                <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700 min-w-[18rem] w-[40%]">
                   Description
                 </th>
                 <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700">
@@ -188,7 +192,32 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
             </thead>
             <tbody>
               {draftItems.map((item) => (
-                <tr key={item.id} className="bg-white">
+                <tr key={item.id} className="bg-white align-top">
+                  <td className="border border-zinc-200 px-2 py-1.5 align-top w-20">
+                    {editable ? (
+                      <input
+                        type="text"
+                        value={formatBoqBillNumber(item.itemNo) || item.itemNo || ""}
+                        onChange={(event) => {
+                          const raw = event.target.value.trim()
+                          const stored = String(item.itemNo ?? "")
+                          const parentMatch = stored.match(/^(\d+(?:\.\d+)*)([a-z])$/i)
+                          if (parentMatch && /^[a-z]$/i.test(raw)) {
+                            updateItem(item.id, "itemNo", `${parentMatch[1]}${raw.toLowerCase()}`)
+                            return
+                          }
+                          updateItem(item.id, "itemNo", raw)
+                        }}
+                        placeholder="e.g. 2.2"
+                        className="w-full rounded border border-zinc-200 bg-white px-2 py-1.5 text-sm tabular-nums font-medium text-zinc-900 outline-none ring-emerald-600/20 focus:border-emerald-400 focus:ring-2"
+                        aria-label="Bill number"
+                      />
+                    ) : (
+                      <span className="block px-1 text-sm tabular-nums font-medium text-zinc-900">
+                        {formatBoqBillNumber(item.itemNo) || "—"}
+                      </span>
+                    )}
+                  </td>
                   <td className="border border-zinc-200 px-2 py-1.5 align-top min-w-[18rem] max-w-[28rem]">
                     {editable ? (
                       <textarea

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
+import EntryUndoButton from "@/components/project/EntryUndoButton"
 import {
   PPE_ISSUED_COLUMNS,
   createPpeIssuedRow,
@@ -11,6 +12,7 @@ import {
   withPpeIssuedTotals,
   savePpeIssuedRows,
 } from "@/lib/ppeIssued"
+import { useEntryUndo } from "@/lib/useEntryUndo"
 import {
   formatMaterialCurrencyAmount,
   parsePlantCostAmount,
@@ -33,10 +35,12 @@ export default function PpeIssuedEntryView({ projectId, projectName, dayId }) {
   const [saveState, setSaveState] = useState("saved")
   const saveTimerRef = useRef(0)
   const rowsRef = useRef([])
+  const { canUndo, trackBeforeChange, undo, clear: clearUndo } = useEntryUndo()
 
   const loadRows = useCallback(() => {
+    clearUndo()
     setRows(getPpeIssuedRows(projectId, dayId))
-  }, [dayId, projectId])
+  }, [dayId, projectId, clearUndo])
 
   useEffect(() => {
     loadRows()
@@ -86,8 +90,9 @@ export default function PpeIssuedEntryView({ projectId, projectName, dayId }) {
     }
   }, [dayId, projectId])
 
-  function commitRows(updater, { immediate = false } = {}) {
+  function commitRows(updater, { immediate = false, sessionKey = null } = {}) {
     setRows((current) => {
+      trackBeforeChange(current, sessionKey)
       const draft = typeof updater === "function" ? updater(current) : updater
       const next = withPpeIssuedTotals(draft)
       if (immediate) {
@@ -101,8 +106,9 @@ export default function PpeIssuedEntryView({ projectId, projectName, dayId }) {
   }
 
   function updateRow(rowId, key, value) {
-    commitRows((current) =>
-      current.map((row) => (row.id === rowId ? { ...row, [key]: value } : row))
+    commitRows(
+      (current) => current.map((row) => (row.id === rowId ? { ...row, [key]: value } : row)),
+      { sessionKey: `${rowId}:${key}` }
     )
   }
 
@@ -115,6 +121,14 @@ export default function PpeIssuedEntryView({ projectId, projectName, dayId }) {
       const next = current.filter((row) => row.id !== rowId)
       return next.length > 0 ? next : [createPpeIssuedRow()]
     }, { immediate: true })
+  }
+
+  function handleUndo() {
+    const previous = undo()
+    if (!previous) return
+    const next = withPpeIssuedTotals(previous)
+    setRows(next)
+    void persist(next)
   }
 
   const dayTotal = rows.reduce((sum, row) => sum + (Number(row.totalCost) || 0), 0)
@@ -152,15 +166,18 @@ export default function PpeIssuedEntryView({ projectId, projectName, dayId }) {
               Day total {formatMaterialCurrencyAmount(dayTotal)}
             </p>
           </div>
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-            {saveState === "saving"
-              ? "Saving…"
-              : saveState === "pending"
-                ? "Editing…"
-                : saveState === "error"
-                  ? "Save failed"
-                  : "Saved"}
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <EntryUndoButton canUndo={canUndo} onUndo={handleUndo} />
+            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              {saveState === "saving"
+                ? "Saving…"
+                : saveState === "pending"
+                  ? "Editing…"
+                  : saveState === "error"
+                    ? "Save failed"
+                    : "Saved"}
+            </p>
+          </div>
         </div>
 
         <div className="overflow-x-auto">

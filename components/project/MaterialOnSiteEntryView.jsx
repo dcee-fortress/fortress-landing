@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/icon/icon"
+import EntryUndoButton from "@/components/project/EntryUndoButton"
 import { useProjects } from "@/components/project/ProjectsProvider"
+import { useEntryUndo } from "@/lib/useEntryUndo"
 import { useMaterialOnSiteVersion } from "@/hooks/useMaterialOnSiteVersion"
 import {
   getMaterialOnSiteDayDraft,
@@ -32,6 +34,7 @@ export default function MaterialOnSiteEntryView({ projectId, projectName, dayId 
   const draftsRef = useRef(drafts)
   const saveTimer = useRef(0)
   const pendingSave = useRef(null)
+  const { canUndo, trackBeforeChange, undo, clear: clearUndo } = useEntryUndo()
   draftsRef.current = drafts
 
   const lines = useMemo(() => {
@@ -41,6 +44,7 @@ export default function MaterialOnSiteEntryView({ projectId, projectName, dayId 
   }, [dayId, entryVersion, projectId, version])
 
   useEffect(() => {
+    clearUndo()
     setDrafts((current) => {
       const next = { ...current }
       let changed = false
@@ -53,7 +57,7 @@ export default function MaterialOnSiteEntryView({ projectId, projectName, dayId 
       }
       return changed ? next : current
     })
-  }, [dayId, lines, projectId])
+  }, [clearUndo, dayId, lines, projectId])
 
   useEffect(() => {
     return () => {
@@ -65,6 +69,8 @@ export default function MaterialOnSiteEntryView({ projectId, projectName, dayId 
 
   function updateDraft(line, patch) {
     const key = descriptionKey(line.description)
+    const sessionKey = `${key}:${Object.keys(patch).sort().join(",")}`
+    trackBeforeChange(draftsRef.current, sessionKey)
     const previous = draftsRef.current[key] || { goodsUsed: "", location: "" }
     const next = {
       ...draftsRef.current,
@@ -83,6 +89,16 @@ export default function MaterialOnSiteEntryView({ projectId, projectName, dayId 
       pendingSave.current = null
       if (pending) saveMaterialOnSiteDay(pending.projectId, pending.dayId, pending.drafts)
     }, 350)
+  }
+
+  function handleUndo() {
+    const previous = undo()
+    if (!previous) return
+    draftsRef.current = previous
+    setDrafts(previous)
+    pendingSave.current = { projectId, dayId, drafts: previous }
+    window.clearTimeout(saveTimer.current)
+    saveMaterialOnSiteDay(projectId, dayId, previous)
   }
 
   return (
@@ -110,6 +126,9 @@ export default function MaterialOnSiteEntryView({ projectId, projectName, dayId 
       </header>
 
       <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-end gap-3 border-b border-zinc-200 px-4 py-3">
+          <EntryUndoButton canUndo={canUndo} onUndo={handleUndo} />
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
