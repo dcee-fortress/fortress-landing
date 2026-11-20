@@ -161,10 +161,17 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
                   return (
                     <tr key={row.id} className="border-b border-zinc-200 align-top">
                       {RATE_BUILD_UP_COLUMNS.map((column) => (
-                        <td key={column.key} className="px-3 py-3">
+                        <td
+                          key={column.key}
+                          className={`px-3 py-3 ${
+                            column.key === "activityDescription"
+                              ? "min-w-[20rem] w-[28rem] max-w-[36rem] align-top"
+                              : ""
+                          }`}
+                        >
                           {column.key === "activityDescription" ? (
-                            <div className="min-w-[14rem] max-w-[22rem] space-y-2">
-                              <p className="whitespace-pre-wrap break-words text-sm text-zinc-900">
+                            <div className="group relative space-y-2">
+                              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-snug text-zinc-900">
                                 {row.activityDescription}
                               </p>
                               {row.memoryFilled ? (
@@ -173,7 +180,7 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
                                 </p>
                               ) : null}
                               {zim ? (
-                                <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs text-zinc-600">
+                                <div className="pointer-events-none invisible absolute left-0 top-full z-30 mt-1 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-600 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100">
                                   <p className="font-medium text-zinc-700">ZimBuild QS suggestion</p>
                                   <p>
                                     Daily cost {formatMaterialCurrencyAmount(zim.dailyCost)} · Daily

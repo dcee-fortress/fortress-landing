@@ -34,6 +34,40 @@ function boqDraftKey(boq) {
     .join("|")}`
 }
 
+function normalizeDraftItems(draftItems) {
+  return draftItems
+    .map((item) => {
+      const quantity = parseBoqRateInput(item.quantity)
+      const billRate = parseBoqRateInput(item.billRate)
+      const allowableRate = parseBoqRateInput(item.allowableRate)
+      const rate = billRate ?? allowableRate
+      const cost =
+        rate !== null && quantity !== null
+          ? Math.round(rate * quantity * 10000) / 10000
+          : parseBoqRateInput(item.cost)
+      return {
+        id: item.id,
+        itemName: String(item.itemName ?? "").trim(),
+        unit: String(item.unit ?? "").trim(),
+        itemNo: String(item.itemNo ?? "").trim(),
+        quantity,
+        allowableRate,
+        billRate,
+        rate,
+        cost,
+      }
+    })
+    .filter((item) => {
+      if (!item.itemName) return false
+      return (
+        Boolean(item.itemNo) ||
+        parseBoqRateInput(item.billRate) !== null ||
+        parseBoqRateInput(item.allowableRate) !== null ||
+        parseBoqRateInput(item.quantity) !== null
+      )
+    })
+}
+
 function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPdf }) {
   const [draftItems, setDraftItems] = useState(() => draftFromBoq(boq))
   const [saveError, setSaveError] = useState("")
@@ -45,46 +79,31 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
     setSaveError("")
   }
 
-  const handleSave = () => {
-    const normalized = draftItems
-      .map((item) => {
-        const quantity = parseBoqRateInput(item.quantity)
-        const billRate = parseBoqRateInput(item.billRate)
-        const allowableRate = parseBoqRateInput(item.allowableRate)
-        const rate = billRate ?? allowableRate
-        const cost =
-          rate !== null && quantity !== null
-            ? Math.round(rate * quantity * 10000) / 10000
-            : parseBoqRateInput(item.cost)
-        return {
-          id: item.id,
-          itemName: item.itemName.trim(),
-          unit: String(item.unit ?? "").trim(),
-          itemNo: String(item.itemNo ?? "").trim(),
-          quantity,
-          allowableRate,
-          billRate,
-          rate,
-          cost,
-        }
-      })
-      .filter((item) => {
-        if (!item.itemName) return false
-        return (
-          Boolean(item.itemNo) ||
-          parseBoqRateInput(item.billRate) !== null ||
-          parseBoqRateInput(item.allowableRate) !== null ||
-          parseBoqRateInput(item.quantity) !== null
-        )
-      })
-
-    if (normalized.length === 0) {
+  const persistItems = (items, { allowEmpty = false } = {}) => {
+    const normalized = normalizeDraftItems(items)
+    if (!allowEmpty && normalized.length === 0) {
       setSaveError("Add at least one BOQ row with a description (and item number or quantity/rate).")
-      return
+      return false
     }
-
     onSave?.(normalized)
     setSaveError("")
+    return true
+  }
+
+  const handleSave = () => {
+    persistItems(draftItems)
+  }
+
+  const handleDeleteRow = (item) => {
+    const label = String(item.itemName ?? "").trim() || "this row"
+    const confirmed = window.confirm(
+      `Delete "${label}" from this BOQ?\n\nIt will also be removed from Rate build up and every page that uses this BOQ.`
+    )
+    if (!confirmed) return
+
+    const next = draftItems.filter((row) => row.id !== item.id)
+    setDraftItems(next)
+    persistItems(next, { allowEmpty: true })
   }
 
   const hasChanges =
@@ -112,7 +131,7 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl"
+        className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-zinc-200 bg-zinc-50 px-6 py-4">
@@ -142,7 +161,7 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
           <table className="min-w-full border-collapse text-sm">
             <thead>
               <tr className="bg-zinc-50">
-                <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700">
+                <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700 min-w-[18rem] w-[42%]">
                   Description
                 </th>
                 <th className="border border-zinc-200 px-3 py-2 text-left font-semibold text-zinc-700">
@@ -160,21 +179,28 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
                 <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
                   Cost
                 </th>
+                {editable && onSave ? (
+                  <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700 w-24">
+                    Delete
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
               {draftItems.map((item) => (
                 <tr key={item.id} className="bg-white">
-                  <td className="border border-zinc-200 px-2 py-1.5">
+                  <td className="border border-zinc-200 px-2 py-1.5 align-top min-w-[18rem] max-w-[28rem]">
                     {editable ? (
-                      <input
-                        type="text"
+                      <textarea
+                        rows={Math.min(8, Math.max(2, Math.ceil(String(item.itemName ?? "").length / 48)))}
                         value={item.itemName}
                         onChange={(event) => updateItem(item.id, "itemName", event.target.value)}
-                        className="w-full rounded border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 outline-none ring-emerald-600/20 focus:border-emerald-400 focus:ring-2"
+                        className="w-full resize-y rounded border border-zinc-200 bg-white px-2 py-1.5 text-sm leading-snug text-zinc-900 whitespace-pre-wrap break-words outline-none ring-emerald-600/20 focus:border-emerald-400 focus:ring-2"
                       />
                     ) : (
-                      <span className="px-1 text-zinc-900">{item.itemName}</span>
+                      <span className="block px-1 text-sm leading-snug text-zinc-900 whitespace-pre-wrap break-words">
+                        {item.itemName}
+                      </span>
                     )}
                   </td>
                   <td className="border border-zinc-200 px-2 py-1.5">
@@ -242,6 +268,19 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
                       })()}
                     </span>
                   </td>
+                  {editable && onSave ? (
+                    <td className="border border-zinc-200 px-2 py-1.5 align-top text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteRow(item)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50"
+                        aria-label={`Delete ${item.itemName || "row"}`}
+                      >
+                        <Icon name="trash-2" size={14} />
+                        Delete
+                      </button>
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
@@ -252,8 +291,8 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
           {saveError ? <p className="mb-2 text-sm text-red-600">{saveError}</p> : null}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-zinc-600">
-              Rates and Cost (rate × quantity) fill from Rate build up when those rates exist.
-              Decimal rates are preserved (e.g. $12.50).
+              Delete a row to remove it from this BOQ, Rate build up, and other pages that use these
+              descriptions. Rates and Cost fill from Rate build up when they exist.
             </p>
             {editable && onSave ? (
               <div className="flex shrink-0 gap-2">

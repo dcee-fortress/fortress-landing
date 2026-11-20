@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import Icon from "@/components/icon/icon"
 import BoqViewerModal from "@/components/project/BoqViewerModal"
 import { applyRateBuildUpRates, syncRateBuildUpFromBoq } from "@/lib/actualCostAnalysis"
@@ -40,9 +40,13 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
   const [boqName, setBoqName] = useState("")
   const [savedBoqId, setSavedBoqId] = useState(null)
   const [viewBoq, setViewBoq] = useState(null)
+  const [listRevision, setListRevision] = useState(0)
 
-  void version
-  const projectBoqs = getProjectBoqs(projectId)
+  const projectBoqs = useMemo(() => {
+    void version
+    void listRevision
+    return getProjectBoqs(projectId)
+  }, [projectId, version, listRevision])
 
   const resetPending = () => {
     setPendingUpload(null)
@@ -135,20 +139,26 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
 
     if (viewBoq.id === "preview") {
       setPendingUpload((current) => (current ? { ...current, items } : current))
-      setViewBoq((current) => (current ? { ...current, items } : null))
+      setViewBoq((current) => (current ? { ...current, items: applyRateBuildUpRates(projectId, items) } : null))
       if (savedBoqId) {
         updateProjectBoqItems(projectId, savedBoqId, items)
         syncRateBuildUpFromBoq(projectId)
+        setListRevision((current) => current + 1)
         onUploaded?.()
       }
-      setStatus(`Updated parsed BOQ (${items.length} item${items.length === 1 ? "" : "s"}).`)
+      setStatus(`Updated BOQ (${items.length} item${items.length === 1 ? "" : "s"}). Rate build up follows these rows.`)
       return
     }
 
     updateProjectBoqItems(projectId, viewBoq.id, items)
     syncRateBuildUpFromBoq(projectId)
-    setViewBoq((current) => (current ? { ...current, items } : null))
-    setStatus(`Saved changes to "${viewBoq.name}".`)
+    setViewBoq((current) =>
+      current ? { ...current, items: applyRateBuildUpRates(projectId, items) } : null
+    )
+    setListRevision((current) => current + 1)
+    setStatus(
+      `Saved "${viewBoq.name}" (${items.length} item${items.length === 1 ? "" : "s"}). Rate build up and BOQ-linked pages updated.`
+    )
     onUploaded?.()
   }
 
@@ -165,7 +175,11 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
     if (viewBoq?.id === boq.id) {
       setViewBoq(null)
     }
+    if (savedBoqId === boq.id) {
+      resetPending()
+    }
 
+    setListRevision((current) => current + 1)
     setStatus(`Removed "${boq.name}".`)
     onUploaded?.()
   }
