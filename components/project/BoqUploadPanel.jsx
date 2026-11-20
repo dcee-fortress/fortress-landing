@@ -89,7 +89,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
       setBoqName(saved.name)
       setViewBoq(templateBoq(projectId, saved))
       setStatus(
-        `Saved ${items.length} item${items.length === 1 ? "" : "s"} from ${file.name}. Each source line is kept as its own description for Rate build up. Matching past work auto-fills from Vector Memory; Daily production is blank until you set it.`
+        `Saved ${items.length} item${items.length === 1 ? "" : "s"} from ${file.name}. Each BOQ item number is its own row with the full description. Rate build up matches those rows.`
       )
     } catch (error) {
       setStatus(error.message || "Could not read BOQ file.")
