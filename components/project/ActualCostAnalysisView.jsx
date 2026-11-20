@@ -23,6 +23,7 @@ import {
   parsePlantCostAmount,
 } from "@/lib/plantCostCalculations"
 import { getRateAnalysisHubHref } from "@/lib/rateAnalysis"
+import { applyZimBuildSuggestionToRow } from "@/lib/zimBuildQs"
 
 function computedDisplay(row, key) {
   if (key === "fuelCost" || key === "plantCost" || key === "totalCost") {
@@ -52,6 +53,10 @@ function acceptPercentEntry(value, formula) {
   return { value: text.replace("%", "").trim(), formula: "" }
 }
 
+function persistRows(projectId, next) {
+  saveActualCostAnalysisRows(projectId, next, { remember: true, syncBoq: true })
+}
+
 export default function ActualCostAnalysisView({ projectId, projectName }) {
   const { version } = useProjectData()
   const [rows, setRows] = useState([])
@@ -64,7 +69,7 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
       }
       const merged = mergeActualCostAnalysisWithBoq(projectId)
       setRows(merged)
-      saveActualCostAnalysisRows(projectId, merged)
+      saveActualCostAnalysisRows(projectId, merged, { remember: false, syncBoq: false })
     }
 
     load()
@@ -87,7 +92,18 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
       const next = current.map((row, index) =>
         index === rowIndex ? { ...row, [field]: entry.value, [`${field}Formula`]: entry.formula } : row
       )
-      saveActualCostAnalysisRows(projectId, next)
+      persistRows(projectId, next)
+      return next
+    })
+  }
+
+  const applyZimBuild = (rowIndex) => {
+    setRows((current) => {
+      const next = current.map((row, index) => {
+        if (index !== rowIndex) return row
+        return applyZimBuildSuggestionToRow(row, row.zimBuildSuggestion)
+      })
+      persistRows(projectId, next)
       return next
     })
   }
@@ -97,19 +113,21 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
       <header className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
-          href={getRateAnalysisHubHref(projectId)}
-          className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
-        >
-          <Icon name="arrow-left" size={16} />
-          Back to Rate analysis
+            href={getRateAnalysisHubHref(projectId)}
+            className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
+          >
+            <Icon name="arrow-left" size={16} />
+            Back to Rate analysis
           </Link>
           {rows.length > 0 ? <ExportPdfButton onClick={exportToPdf} /> : null}
         </div>
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Rate build up</p>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
         <p className="max-w-3xl text-zinc-500">
-          Every BOQ description is listed here, including from a PDF. Production is filled from the
-          quantity read on that BOQ. Overheads, profit, and allowable percentage take a percentage only.
+          Built from Client BOQ descriptions. Daily production is what you do in a day — not the BOQ
+          quantity. Matching descriptions auto-fill from Vector Memory; new work can use ZimBuild QS
+          market suggestions. Saving writes Actual, Bill, and Allowable rates (and Cost) back into
+          the BOQ.
         </p>
       </header>
 
@@ -117,7 +135,7 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
         <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-6 py-12 text-center">
           <p className="text-sm font-medium text-zinc-700">No BOQ uploaded yet</p>
           <p className="mt-1 text-sm text-zinc-500">
-            Upload a BOQ on Rate analysis. Its descriptions will be written here automatically.
+            Upload a Client BOQ first on Rate analysis. Its descriptions create this template.
           </p>
         </div>
       ) : (
@@ -139,14 +157,39 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
               <tbody>
                 {rows.map((row, rowIndex) => {
                   const resolved = resolvedRows[rowIndex]
+                  const zim = row.zimBuildSuggestion
                   return (
                     <tr key={row.id} className="border-b border-zinc-200 align-top">
                       {RATE_BUILD_UP_COLUMNS.map((column) => (
                         <td key={column.key} className="px-3 py-3">
                           {column.key === "activityDescription" ? (
-                            <p className="min-w-[12rem] max-w-[20rem] whitespace-pre-wrap break-words text-sm text-zinc-900">
-                              {row.activityDescription}
-                            </p>
+                            <div className="min-w-[14rem] max-w-[22rem] space-y-2">
+                              <p className="whitespace-pre-wrap break-words text-sm text-zinc-900">
+                                {row.activityDescription}
+                              </p>
+                              {row.memoryFilled ? (
+                                <p className="text-xs text-emerald-700">
+                                  Vector Memory auto-filled from a matching previous description.
+                                </p>
+                              ) : null}
+                              {zim ? (
+                                <div className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs text-zinc-600">
+                                  <p className="font-medium text-zinc-700">ZimBuild QS suggestion</p>
+                                  <p>
+                                    Daily cost {formatMaterialCurrencyAmount(zim.dailyCost)} · Daily
+                                    production {formatMaterialAmount(zim.dailyProduction)}
+                                    {zim.unit ? ` ${zim.unit}` : ""}
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={() => applyZimBuild(rowIndex)}
+                                    className="mt-1 font-medium text-zinc-800 underline-offset-2 hover:underline"
+                                  >
+                                    Apply suggestion
+                                  </button>
+                                </div>
+                              ) : null}
+                            </div>
                           ) : column.computed ? (
                             <div className="px-2 py-1.5 text-right text-sm font-medium tabular-nums text-zinc-900">
                               {computedDisplay(resolved, column.key)}
@@ -163,7 +206,10 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
                               columnLabel={column.label}
                               formatDisplay={
                                 column.percent
-                                  ? (value) => (String(value ?? "").trim() === "" ? "" : `${String(value).replace("%", "").trim()}%`)
+                                  ? (value) =>
+                                      String(value ?? "").trim() === ""
+                                        ? ""
+                                        : `${String(value).replace("%", "").trim()}%`
                                   : column.numeric
                                     ? (value) => formatEntryDisplay(column.key, value)
                                     : undefined
@@ -182,10 +228,9 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
             </table>
           </div>
           <p className="border-t border-zinc-200 bg-zinc-50 px-6 py-3 text-sm text-zinc-600">
-            Plant cost = fuel cost + plant hire. Total cost = labor cost + plant cost + material cost. Actual
-            rate = total cost ÷ production. Overheads and profit are that percentage of total cost. Bill rate =
-            (total cost + overheads + profit) ÷ production. Allowable rate = bill rate × allowable percentage +
-            bill rate. Head QS Overview multiplies these rates by the production from daily valuations.
+            Plant cost = fuel cost + plant hire. Daily cost (total) = labour + plant + material. Actual
+            rate = Daily cost ÷ Daily production. Bill rate adds overheads and profit. Allowable rate is
+            the target unit cost. Head QS Overview multiplies these rates by Junior QS daily production.
           </p>
         </section>
       )}

@@ -89,7 +89,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
       setBoqName(saved.name)
       setViewBoq(templateBoq(projectId, saved))
       setStatus(
-        `Saved ${items.length} item${items.length === 1 ? "" : "s"} from ${file.name}. Rate build up now lists these descriptions, and each BOQ quantity is the production.`
+        `Saved ${items.length} item${items.length === 1 ? "" : "s"} from ${file.name}. Rate build up lists these descriptions. Matching past work auto-fills from Vector Memory; Daily production is blank until you set it.`
       )
     } catch (error) {
       setStatus(error.message || "Could not read BOQ file.")
@@ -112,7 +112,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
       updateProjectBoqName(projectId, savedBoqId, trimmedName)
       updateProjectBoqItems(projectId, savedBoqId, pendingUpload.items)
       syncRateBuildUpFromBoq(projectId)
-      setStatus(`Saved "${trimmedName}". Rate build up uses these descriptions and quantities.`)
+      setStatus(`Saved "${trimmedName}". Rate build up uses these BOQ descriptions for Daily Cost and Daily Production.`)
       resetPending()
       onUploaded?.()
       return

@@ -4,6 +4,7 @@
 - This is a Next.js 16 application in the workspace root.
 - Main folders: app/ for routes, components/ for UI, lib/ for helpers and data logic.
 - Use the existing structure and naming patterns when making changes.
+- Construction companies (`systemType: construction`) share the Rodcroft QS stack. Spec: `docs/FORTRESS_FOR_CONSTRUCTION.md`.
 
 ## Commands
 - Start dev server: npm run dev

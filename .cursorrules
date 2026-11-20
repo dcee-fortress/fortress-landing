@@ -4,6 +4,7 @@
 - This workspace is a Next.js 16 app using React 19 and Tailwind CSS.
 - The app is organized around the app/ directory for routes and components/ for reusable UI and feature modules.
 - The main business domain is project tracking, reporting, and dashboards.
+- Construction (`systemType: construction`) is a separate system from manufacturing/fabrication. All construction subdomains share the Rodcroft QS stack. See `docs/FORTRESS_FOR_CONSTRUCTION.md`.
 
 ## Development workflow
 - Use npm for package management and scripts.

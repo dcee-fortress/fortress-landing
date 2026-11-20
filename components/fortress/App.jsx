@@ -2628,6 +2628,8 @@ function CeoDashboard({
 }) {
   const meta = getSiteCeoMetadata(site)
   const isManufacturing = site?.systemType === 'manufacturing' || meta?.template === 'prixburg'
+  // Construction companies (including Rodcroft and every construction subdomain) share
+  // the same Fortress for Construction QS stack via RodcroftTemplate.
   const content = isManufacturing ? (
     <PrixburgTemplate
       site={site}

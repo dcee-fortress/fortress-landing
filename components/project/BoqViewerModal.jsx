@@ -4,6 +4,16 @@ import { useState } from "react"
 import Icon from "@/components/icon/icon"
 import { formatBoqRate, parseBoqRateInput } from "@/lib/boqData"
 
+function draftCost(item) {
+  if (item?.cost !== null && item?.cost !== undefined && String(item.cost).trim() !== "") {
+    return item.cost
+  }
+  const rate = Number(item?.billRate ?? item?.rate)
+  const quantity = Number(item?.quantity)
+  if (!Number.isFinite(rate) || !Number.isFinite(quantity)) return ""
+  return Math.round(rate * quantity * 10000) / 10000
+}
+
 function draftFromBoq(boq) {
   return (boq?.items ?? []).map((item) => ({
     id: item.id,
@@ -14,12 +24,13 @@ function draftFromBoq(boq) {
     allowableRate: item.allowableRate ?? "",
     billRate: item.billRate ?? item.rate ?? "",
     rate: item.billRate ?? item.rate ?? "",
+    cost: draftCost(item),
   }))
 }
 
 function boqDraftKey(boq) {
   return `${boq.id}-${(boq.items ?? [])
-    .map((item) => `${item.id}:${item.itemName}:${item.unit ?? ""}:${item.quantity ?? ""}:${item.allowableRate ?? ""}:${item.billRate ?? item.rate}`)
+    .map((item) => `${item.id}:${item.itemName}:${item.unit ?? ""}:${item.quantity ?? ""}:${item.allowableRate ?? ""}:${item.billRate ?? item.rate}:${item.cost ?? ""}`)
     .join("|")}`
 }
 
@@ -36,16 +47,27 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
 
   const handleSave = () => {
     const normalized = draftItems
-      .map((item) => ({
-        id: item.id,
-        itemName: item.itemName.trim(),
-        unit: String(item.unit ?? "").trim(),
-        itemNo: String(item.itemNo ?? "").trim(),
-        quantity: parseBoqRateInput(item.quantity),
-        allowableRate: parseBoqRateInput(item.allowableRate),
-        billRate: parseBoqRateInput(item.billRate),
-        rate: parseBoqRateInput(item.billRate) ?? parseBoqRateInput(item.allowableRate),
-      }))
+      .map((item) => {
+        const quantity = parseBoqRateInput(item.quantity)
+        const billRate = parseBoqRateInput(item.billRate)
+        const allowableRate = parseBoqRateInput(item.allowableRate)
+        const rate = billRate ?? allowableRate
+        const cost =
+          rate !== null && quantity !== null
+            ? Math.round(rate * quantity * 10000) / 10000
+            : parseBoqRateInput(item.cost)
+        return {
+          id: item.id,
+          itemName: item.itemName.trim(),
+          unit: String(item.unit ?? "").trim(),
+          itemNo: String(item.itemNo ?? "").trim(),
+          quantity,
+          allowableRate,
+          billRate,
+          rate,
+          cost,
+        }
+      })
       .filter((item) => {
         if (!item.itemName) return false
         return (
@@ -76,6 +98,7 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
         allowableRate: item.allowableRate ?? "",
         billRate: item.billRate ?? item.rate ?? "",
         rate: item.billRate ?? item.rate ?? "",
+        cost: draftCost(item),
       }))
     )
 
@@ -132,6 +155,9 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
                 </th>
                 <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
                   Bill rate
+                </th>
+                <th className="border border-zinc-200 px-3 py-2 text-right font-semibold text-zinc-700">
+                  Cost
                 </th>
               </tr>
             </thead>
@@ -207,6 +233,14 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
                       </span>
                     )}
                   </td>
+                  <td className="border border-zinc-200 px-2 py-1.5">
+                    <span className="block px-1 text-right tabular-nums text-zinc-900">
+                      {(() => {
+                        const liveCost = draftCost(item)
+                        return liveCost === "" || liveCost == null ? "—" : formatBoqRate(liveCost)
+                      })()}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -217,7 +251,7 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
           {saveError ? <p className="mb-2 text-sm text-red-600">{saveError}</p> : null}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-zinc-600">
-              BOQ rates are stored in this browser and used as the reference for rate analysis.
+              Rates and Cost (rate × quantity) fill from Rate build up when those rates exist.
               Decimal rates are preserved (e.g. $12.50).
             </p>
             {editable && onSave ? (

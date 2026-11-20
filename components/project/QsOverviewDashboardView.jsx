@@ -51,7 +51,7 @@ export default function QsOverviewDashboardView({
           {projectName}
         </h1>
         <p className="max-w-3xl text-sm text-zinc-500">
-          Production comes from daily valuations. Allowable cost, bill cost, and actual cost use the
+          Production comes from daily valuations (BOQ-linked only). Allowable cost, bill cost, and actual cost use the
           allowable rate, bill rate, and actual rate from Rate build up. Margin = bill cost − actual cost
           (green positive, red negative).
         </p>
@@ -92,7 +92,11 @@ export default function QsOverviewDashboardView({
                         key={column.key}
                         className={`border border-zinc-200 px-3 py-3 ${
                           column.align === "right" ? "text-right tabular-nums" : "text-left"
-                        } ${column.key === "margin" ? marginToneClass(row.margin) : "text-zinc-900"}`}
+                        } ${
+                          column.key === "margin" || column.key === "marginPercent"
+                            ? marginToneClass(row.margin)
+                            : "text-zinc-900"
+                        }`}
                       >
                         {formatQsOverviewCell(column.key, row[column.key])}
                       </td>
@@ -129,6 +133,7 @@ export default function QsOverviewDashboardView({
                   >
                     {formatQsOverviewCell("margin", totals.actualMargin)}
                   </td>
+                  <td className="border border-zinc-200 px-3 py-3" />
                 </tr>
               </tfoot>
             ) : null}
