@@ -10,6 +10,8 @@ import { useProjectData } from "@/components/project/ProjectDataProvider"
 import { subscribeGroveStore } from "@/lib/groveClientStore"
 import { useEntryUndo } from "@/lib/useEntryUndo"
 import {
+  createPlantSubRow,
+  isPlantSubRow,
   listBoqAnalysisItems,
   mergeActualCostAnalysisWithBoq,
   RATE_BUILD_UP_COLUMNS,
@@ -59,6 +61,16 @@ function persistRows(projectId, next) {
   saveActualCostAnalysisRows(projectId, next, { remember: true, syncBoq: true })
 }
 
+function insertIndexAfterPlantGroup(rows, parentIndex) {
+  const parent = rows[parentIndex]
+  if (!parent) return parentIndex + 1
+  let index = parentIndex + 1
+  while (index < rows.length && isPlantSubRow(rows[index]) && rows[index].parentId === parent.id) {
+    index += 1
+  }
+  return index
+}
+
 export default function ActualCostAnalysisView({ projectId, projectName }) {
   const { version } = useProjectData()
   const [rows, setRows] = useState([])
@@ -97,6 +109,33 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
       const next = current.map((row, index) =>
         index === rowIndex ? { ...row, [field]: entry.value, [`${field}Formula`]: entry.formula } : row
       )
+      persistRows(projectId, next)
+      return next
+    })
+  }
+
+  const addPlantSubRow = (parentIndex) => {
+    setRows((current) => {
+      const parent = current[parentIndex]
+      if (!parent || isPlantSubRow(parent)) return current
+      trackBeforeChange(current)
+      const insertAt = insertIndexAfterPlantGroup(current, parentIndex)
+      const next = [
+        ...current.slice(0, insertAt),
+        createPlantSubRow(parent),
+        ...current.slice(insertAt),
+      ]
+      persistRows(projectId, next)
+      return next
+    })
+  }
+
+  const removePlantSubRow = (rowIndex) => {
+    setRows((current) => {
+      const target = current[rowIndex]
+      if (!target || !isPlantSubRow(target)) return current
+      trackBeforeChange(current)
+      const next = current.filter((_, index) => index !== rowIndex)
       persistRows(projectId, next)
       return next
     })
@@ -144,8 +183,8 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
         <p className="max-w-3xl text-zinc-500">
           Built from Client BOQ descriptions. Daily production is what you do in a day — not the BOQ
           quantity. Matching descriptions auto-fill from Vector Memory; new work can use ZimBuild QS
-          market suggestions. Saving writes Actual, Bill, and Allowable rates (and Cost) back into
-          the BOQ.
+          market suggestions. Use + on Plant name to add another plant line under the same
+          description. Saving writes Actual, Bill, and Allowable rates (and Cost) back into the BOQ.
         </p>
       </header>
 
@@ -159,7 +198,7 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
       ) : (
         <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
           <div className="max-h-[min(70vh,52rem)] overflow-auto px-4 py-4 sm:px-6">
-            <table className="w-full min-w-[2200px] border-collapse text-sm">
+            <table className="w-full min-w-[2100px] border-collapse text-sm">
               <thead className="sticky top-0 z-20">
                 <tr className="border-b-2 border-zinc-900 bg-zinc-900 text-left text-white">
                   {RATE_BUILD_UP_COLUMNS.map((column) => (
@@ -176,44 +215,86 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
                 {rows.map((row, rowIndex) => {
                   const resolved = resolvedRows[rowIndex]
                   const zim = row.zimBuildSuggestion
+                  const plantSub = isPlantSubRow(row)
                   return (
-                    <tr key={row.id} className="border-b border-zinc-200 align-top">
+                    <tr
+                      key={row.id}
+                      className={`border-b border-zinc-200 align-top ${plantSub ? "bg-zinc-50/80" : "bg-white"}`}
+                    >
                       {RATE_BUILD_UP_COLUMNS.map((column) => (
                         <td
                           key={column.key}
                           className={`px-3 py-3 ${
                             column.key === "activityDescription"
                               ? "min-w-[20rem] w-[28rem] max-w-[36rem] align-top"
-                              : ""
+                              : column.key === "plantName"
+                                ? "relative min-w-[10rem] align-top"
+                                : ""
                           }`}
                         >
                           {column.key === "activityDescription" ? (
-                            <div className="group relative space-y-2">
-                              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-snug text-zinc-900">
-                                {row.activityDescription}
-                              </p>
-                              {row.memoryFilled ? (
-                                <p className="text-xs text-emerald-700">
-                                  Vector Memory auto-filled from a matching previous description.
+                            plantSub ? (
+                              <span className="block px-1 text-xs text-zinc-400">└ plant</span>
+                            ) : (
+                              <div className="group relative space-y-2">
+                                <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-snug text-zinc-900">
+                                  {row.activityDescription}
                                 </p>
-                              ) : null}
-                              {zim ? (
-                                <div className="pointer-events-none invisible absolute left-0 top-full z-30 mt-1 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-600 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100">
-                                  <p className="font-medium text-zinc-700">ZimBuild QS suggestion</p>
-                                  <p>
-                                    Daily cost {formatMaterialCurrencyAmount(zim.dailyCost)} · Daily
-                                    production {formatMaterialAmount(zim.dailyProduction)}
-                                    {zim.unit ? ` ${zim.unit}` : ""}
-                                  </p>
-                                  <button
-                                    type="button"
-                                    onClick={() => applyZimBuild(rowIndex)}
-                                    className="mt-1 font-medium text-zinc-800 underline-offset-2 hover:underline"
-                                  >
-                                    Apply suggestion
-                                  </button>
-                                </div>
-                              ) : null}
+                                {zim ? (
+                                  <div className="pointer-events-none invisible absolute left-0 top-full z-30 mt-1 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-600 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100">
+                                    <p className="font-medium text-zinc-700">ZimBuild QS suggestion</p>
+                                    <p>
+                                      Daily cost {formatMaterialCurrencyAmount(zim.dailyCost)} · Daily
+                                      production {formatMaterialAmount(zim.dailyProduction)}
+                                      {zim.unit ? ` ${zim.unit}` : ""}
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={() => applyZimBuild(rowIndex)}
+                                      className="mt-1 font-medium text-zinc-800 underline-offset-2 hover:underline"
+                                    >
+                                      Apply suggestion
+                                    </button>
+                                  </div>
+                                ) : null}
+                              </div>
+                            )
+                          ) : column.key === "plantName" ? (
+                            <div className="relative pb-7">
+                              <MaterialScheduleFormulaCell
+                                projectId={projectId}
+                                description={row.activityDescription}
+                                columnKey={column.key}
+                                rawValue={row[column.key] ?? ""}
+                                formulaValue={row[`${column.key}Formula`] ?? ""}
+                                align={column.align}
+                                numeric={false}
+                                columnLabel={column.label}
+                                onChange={(value, formula) =>
+                                  updateRow(rowIndex, column.key, value, formula, false)
+                                }
+                              />
+                              {!plantSub ? (
+                                <button
+                                  type="button"
+                                  onClick={() => addPlantSubRow(rowIndex)}
+                                  title="Add plant row under this description"
+                                  aria-label="Add plant row"
+                                  className="absolute bottom-0 right-0 inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 bg-white text-zinc-700 shadow-sm transition hover:border-zinc-400 hover:bg-zinc-50"
+                                >
+                                  <Icon name="plus" size={14} />
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => removePlantSubRow(rowIndex)}
+                                  title="Remove plant row"
+                                  aria-label="Remove plant row"
+                                  className="absolute bottom-0 right-0 inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 bg-white text-zinc-500 shadow-sm transition hover:border-zinc-400 hover:bg-zinc-50 hover:text-zinc-800"
+                                >
+                                  <Icon name="x" size={13} />
+                                </button>
+                              )}
                             </div>
                           ) : column.computed ? (
                             <div className="px-2 py-1.5 text-right text-sm font-medium tabular-nums text-zinc-900">
@@ -254,8 +335,8 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
           </div>
           <p className="border-t border-zinc-200 bg-zinc-50 px-6 py-3 text-sm text-zinc-600">
             Plant cost = fuel cost + plant hire. Daily cost (total) = labour + plant + material. Actual
-            rate = Daily cost ÷ Daily production. Bill rate adds overheads and profit. Allowable rate is
-            the target unit cost. Head QS Overview multiplies these rates by Junior QS daily production.
+            rate = Daily cost ÷ Daily production. Extra plant rows under a description add into the same
+            BOQ rates. Bill rate adds overheads and profit. Allowable rate is the target unit cost.
           </p>
         </section>
       )}
