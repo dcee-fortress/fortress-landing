@@ -9,7 +9,6 @@ import MaterialScheduleFormulaCell from "@/components/project/MaterialScheduleFo
 import { subscribeGroveStore } from "@/lib/groveClientStore"
 import { useEntryUndo } from "@/lib/useEntryUndo"
 import {
-  createPlantSubRow,
   isPlantSubRow,
   listBoqAnalysisItems,
   mergeActualCostAnalysisWithBoq,
@@ -60,16 +59,6 @@ function acceptPercentEntry(value, formula) {
   if (!text) return { value: "", formula: "" }
   if (!/^\d+(\.\d+)?\s*%?$/.test(text)) return null
   return { value: text.replace("%", "").trim(), formula: "" }
-}
-
-function insertIndexAfterPlantGroup(rows, parentIndex) {
-  const parent = rows[parentIndex]
-  if (!parent) return parentIndex + 1
-  let index = parentIndex + 1
-  while (index < rows.length && isPlantSubRow(rows[index]) && rows[index].parentId === parent.id) {
-    index += 1
-  }
-  return index
 }
 
 export default function ActualCostAnalysisView({ projectId, projectName, onClose }) {
@@ -151,22 +140,6 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
       const next = current.map((row, index) =>
         index === rowIndex ? { ...row, [field]: entry.value, [`${field}Formula`]: entry.formula } : row
       )
-      persistRows(next)
-      return next
-    })
-  }
-
-  const addPlantSubRow = (parentIndex) => {
-    setRows((current) => {
-      const parent = current[parentIndex]
-      if (!parent || isPlantSubRow(parent)) return current
-      trackBeforeChange(current)
-      const insertAt = insertIndexAfterPlantGroup(current, parentIndex)
-      const next = [
-        ...current.slice(0, insertAt),
-        createPlantSubRow(parent),
-        ...current.slice(insertAt),
-      ]
       persistRows(next)
       return next
     })
@@ -334,9 +307,7 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
                           className={`px-3 py-3 ${
                             column.key === "activityDescription"
                               ? "min-w-[20rem] w-[28rem] max-w-[36rem] align-top"
-                              : column.key === "plantName"
-                                ? "relative min-w-[10rem] align-top"
-                                : ""
+                              : ""
                           }`}
                         >
                           {column.key === "activityDescription" ? (
@@ -366,33 +337,6 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
                                 ) : null}
                               </div>
                             )
-                          ) : column.key === "plantName" ? (
-                            <div className="relative pb-7">
-                              <MaterialScheduleFormulaCell
-                                projectId={projectId}
-                                description={row.activityDescription}
-                                columnKey={column.key}
-                                rawValue={row[column.key] ?? ""}
-                                formulaValue={row[`${column.key}Formula`] ?? ""}
-                                align={column.align}
-                                numeric={false}
-                                columnLabel={column.label}
-                                onChange={(value, formula) =>
-                                  updateRow(rowIndex, column.key, value, formula, false)
-                                }
-                              />
-                              {!plantSub ? (
-                                <button
-                                  type="button"
-                                  onClick={() => addPlantSubRow(rowIndex)}
-                                  title="Add plant row under this description"
-                                  aria-label="Add plant row"
-                                  className="absolute bottom-0 right-0 inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 bg-white text-zinc-700 shadow-sm transition hover:border-zinc-400 hover:bg-zinc-50"
-                                >
-                                  <Icon name="plus" size={14} />
-                                </button>
-                              ) : null}
-                            </div>
                           ) : column.computed ? (
                             <div className="px-2 py-1.5 text-right text-sm font-medium tabular-nums text-zinc-900">
                               {computedDisplay(resolved, column.key)}
@@ -444,8 +388,7 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
 
         <p className="shrink-0 border-t border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 sm:px-5">
           Plant cost = fuel cost + plant hire. Daily cost (total) = labour + plant + material. Actual
-          rate = Daily cost ÷ Daily production. Extra plant rows under a description add into the same
-          BOQ rates.
+          rate = Daily cost ÷ Daily production. Bill rate adds overheads and profit.
         </p>
       </div>
     </div>
