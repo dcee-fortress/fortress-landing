@@ -68,7 +68,7 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
           cost,
         }
       })
-      .filter((item) => Boolean(item.itemName))
+      .filter((item) => /[A-Za-z]{3,}/.test(item.itemName))
 
     if (normalized.length === 0) {
       setSaveError("Add at least one row with a description.")

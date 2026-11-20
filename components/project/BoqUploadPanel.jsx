@@ -77,7 +77,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
 
       if (items.length === 0) {
         setStatus(
-          "No BOQ rows found. The PDF needs selectable text lines. A scanned picture will not read — upload the Excel file instead."
+          "No BOQ rows found. The PDF needs text descriptions and rates. A scanned picture will not read — upload the Excel file instead."
         )
         resetPending()
         return
@@ -89,7 +89,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
       setBoqName(saved.name)
       setViewBoq(templateBoq(projectId, saved))
       setStatus(
-        `Saved ${items.length} item${items.length === 1 ? "" : "s"} from ${file.name}. Rate build up lists these descriptions. Matching past work auto-fills from Vector Memory; Daily production is blank until you set it.`
+        `Saved ${items.length} item${items.length === 1 ? "" : "s"} from ${file.name}. Each source line is kept as its own description for Rate build up. Matching past work auto-fills from Vector Memory; Daily production is blank until you set it.`
       )
     } catch (error) {
       setStatus(error.message || "Could not read BOQ file.")
