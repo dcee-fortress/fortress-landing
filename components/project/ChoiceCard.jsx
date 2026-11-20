@@ -3,6 +3,7 @@ import Link from "next/link"
 
 export default function ChoiceCard({
   href,
+  onClick,
   icon,
   title,
   description,
@@ -11,8 +12,8 @@ export default function ChoiceCard({
   hoverText = "",
   prefetch = true,
 }) {
-  return (
-    <Link href={href} prefetch={prefetch} className={`app-choice-card ${className}`.trim()}>
+  const content = (
+    <>
       <div className={`app-icon-tile ${iconClassName}`}>
         <Icon name={icon} size={22} />
       </div>
@@ -27,6 +28,20 @@ export default function ChoiceCard({
           <span className="app-silver-text">{hoverText}</span>
         </span>
       ) : null}
+    </>
+  )
+
+  if (typeof onClick === "function") {
+    return (
+      <button type="button" onClick={onClick} className={`app-choice-card text-left ${className}`.trim()}>
+        {content}
+      </button>
+    )
+  }
+
+  return (
+    <Link href={href} prefetch={prefetch} className={`app-choice-card ${className}`.trim()}>
+      {content}
     </Link>
   )
 }

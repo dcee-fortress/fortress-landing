@@ -18,6 +18,7 @@
 - Preserve app behavior unless the task explicitly requires a change.
 - Keep project data on the live shared store so Cursor localhost and the public site show the same entries.
 - Keep code changes local until the user explicitly asks to publish, push, or deploy.
+- When the user says push live / push for Rodcroft / make it live: commit if needed, then push to **both** the current branch **and `main`**. Rodcroft production (`fortress-zw.vercel.app` / `rodcroft-fortress.vercel.app`) deploys from `main` — a feature-branch-only push is not live.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

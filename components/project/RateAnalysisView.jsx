@@ -1,15 +1,17 @@
 "use client"
 
+import { useState } from "react"
 import ChoiceCard from "@/components/project/ChoiceCard"
 import Icon from "@/components/icon/icon"
 import Link from "next/link"
+import ActualCostAnalysisView from "@/components/project/ActualCostAnalysisView"
 import BoqUploadPanel from "@/components/project/BoqUploadPanel"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import { getQsOverviewHref } from "@/lib/qsOverview"
-import { getActualCostAnalysisHref } from "@/lib/rateAnalysis"
 
 export default function RateAnalysisView({ projectId, projectName }) {
   const { version, refresh } = useProjectData()
+  const [rateBuildUpOpen, setRateBuildUpOpen] = useState(false)
 
   return (
     <div className="space-y-6">
@@ -32,13 +34,21 @@ export default function RateAnalysisView({ projectId, projectName }) {
 
       <div className="app-choice-grid">
         <ChoiceCard
-          href={getActualCostAnalysisHref(projectId)}
+          onClick={() => setRateBuildUpOpen(true)}
           icon="calculator"
           title="Rate build up"
-          description="BOQ descriptions with materials, overheads, profit, and the rates used by Head QS Overview."
+          description="Opens the pricing template. Edit and scroll inside it; exit to return to this page."
           iconClassName="app-icon-tile--emerald"
         />
       </div>
+
+      {rateBuildUpOpen ? (
+        <ActualCostAnalysisView
+          projectId={projectId}
+          projectName={projectName}
+          onClose={() => setRateBuildUpOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

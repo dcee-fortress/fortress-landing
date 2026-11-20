@@ -18,7 +18,12 @@ import {
   resolveActualCostAnalysisRow,
   saveActualCostAnalysisRows,
 } from "@/lib/actualCostAnalysis"
-import { BOQ_STORAGE_KEY } from "@/lib/boqData"
+import {
+  BOQ_STORAGE_KEY,
+  getProjectBoqs,
+  normalizeBoqDescription,
+  updateProjectBoqItems,
+} from "@/lib/boqData"
 import { isFormula } from "@/lib/materialScheduleFormulas"
 import {
   formatMaterialAmount,
@@ -71,10 +76,23 @@ function insertIndexAfterPlantGroup(rows, parentIndex) {
   return index
 }
 
-export default function ActualCostAnalysisView({ projectId, projectName }) {
+export default function ActualCostAnalysisView({ projectId, projectName, onClose }) {
   const { version } = useProjectData()
   const [rows, setRows] = useState([])
   const { canUndo, trackBeforeChange, undo, clear: clearUndo } = useEntryUndo()
+  const exitHref = getRateAnalysisHubHref(projectId)
+
+  // Lock page scroll while the Rate build up template is open.
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    const previousHtmlOverflow = document.documentElement.style.overflow
+    document.body.style.overflow = "hidden"
+    document.documentElement.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.documentElement.style.overflow = previousHtmlOverflow
+    }
+  }, [])
 
   useEffect(() => {
     const load = () => {
@@ -141,6 +159,45 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
     })
   }
 
+  const deleteRow = (rowIndex) => {
+    const target = rows[rowIndex]
+    if (!target) return
+
+    if (isPlantSubRow(target)) {
+      const label = String(target.plantName ?? "").trim() || "this plant row"
+      if (!window.confirm(`Delete plant row "${label}"?`)) return
+      removePlantSubRow(rowIndex)
+      return
+    }
+
+    const label = String(target.activityDescription ?? "").trim() || "this row"
+    const confirmed = window.confirm(
+      `Delete "${label}" from Rate build up?\n\nIt will also be removed from the BOQ and every page that uses this description.`
+    )
+    if (!confirmed) return
+
+    const needle = normalizeBoqDescription(target.activityDescription)
+    setRows((current) => {
+      trackBeforeChange(current)
+      const next = current.filter(
+        (row) => row.id !== target.id && row.parentId !== target.id
+      )
+      persistRows(projectId, next)
+      return next
+    })
+
+    if (needle) {
+      for (const boq of getProjectBoqs(projectId)) {
+        const items = (boq.items ?? []).filter(
+          (item) => normalizeBoqDescription(item.itemName) !== needle
+        )
+        if (items.length !== (boq.items ?? []).length) {
+          updateProjectBoqItems(projectId, boq.id, items)
+        }
+      }
+    }
+  }
+
   const applyZimBuild = (rowIndex) => {
     setRows((current) => {
       trackBeforeChange(current)
@@ -160,44 +217,67 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
     persistRows(projectId, previous)
   }
 
-  return (
-    <div className="space-y-6">
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link
-            href={getRateAnalysisHubHref(projectId)}
-            className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
-          >
-            <Icon name="arrow-left" size={16} />
-            Back to Rate analysis
-          </Link>
-          {rows.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <EntryUndoButton canUndo={canUndo} onUndo={handleUndo} />
-              <ExportPdfButton onClick={exportToPdf} />
-            </div>
-          ) : null}
-        </div>
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Rate build up</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
-        <p className="max-w-3xl text-zinc-500">
-          Built from Client BOQ descriptions. Daily production is what you do in a day — not the BOQ
-          quantity. Matching descriptions auto-fill from Vector Memory; new work can use ZimBuild QS
-          market suggestions. Use + on Plant name to add another plant line under the same
-          description. Saving writes Actual, Bill, and Allowable rates (and Cost) back into the BOQ.
-        </p>
-      </header>
+  const exitControl =
+    typeof onClose === "function" ? (
+      <button
+        type="button"
+        onClick={onClose}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"
+      >
+        <Icon name="x" size={15} />
+        Exit template
+      </button>
+    ) : (
+      <Link
+        href={exitHref}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"
+      >
+        <Icon name="x" size={15} />
+        Exit template
+      </Link>
+    )
 
-      {rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-6 py-12 text-center">
-          <p className="text-sm font-medium text-zinc-700">No BOQ uploaded yet</p>
-          <p className="mt-1 text-sm text-zinc-500">
-            Upload a Client BOQ first on Rate analysis. Its descriptions create this template.
-          </p>
-        </div>
-      ) : (
-        <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-          <div className="max-h-[min(70vh,52rem)] overflow-auto px-4 py-4 sm:px-6">
+  return (
+    <div
+      className="fixed inset-0 z-[120] flex items-stretch justify-center bg-zinc-950/45 p-2 sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Rate build up template"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && typeof onClose === "function") onClose()
+      }}
+    >
+      <div className="flex h-full w-full max-w-[96rem] flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl">
+        <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-3 sm:px-5">
+          <div className="min-w-0 space-y-1">
+            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Rate build up template</p>
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl">
+              {projectName}
+            </h1>
+            <p className="max-w-3xl text-sm text-zinc-500">
+              Edit inside this template. Scrolling stays here until you exit.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {rows.length > 0 ? (
+              <>
+                <EntryUndoButton canUndo={canUndo} onUndo={handleUndo} />
+                <ExportPdfButton onClick={exportToPdf} />
+              </>
+            ) : null}
+            {exitControl}
+          </div>
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-auto overscroll-contain px-3 py-3 sm:px-5 sm:py-4">
+          {rows.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-6 py-12 text-center">
+              <p className="text-sm font-medium text-zinc-700">No BOQ uploaded yet</p>
+              <p className="mt-1 text-sm text-zinc-500">
+                Exit this template and upload a Client BOQ on Rate analysis first.
+              </p>
+            </div>
+          ) : (
             <table className="w-full min-w-[2100px] border-collapse text-sm">
               <thead className="sticky top-0 z-20">
                 <tr className="border-b-2 border-zinc-900 bg-zinc-900 text-left text-white">
@@ -209,6 +289,9 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
                       {column.label}
                     </th>
                   ))}
+                  <th className="sticky top-0 z-20 w-24 bg-zinc-900 px-3 py-3 text-right font-semibold">
+                    Delete
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -284,17 +367,7 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
                                 >
                                   <Icon name="plus" size={14} />
                                 </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => removePlantSubRow(rowIndex)}
-                                  title="Remove plant row"
-                                  aria-label="Remove plant row"
-                                  className="absolute bottom-0 right-0 inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 bg-white text-zinc-500 shadow-sm transition hover:border-zinc-400 hover:bg-zinc-50 hover:text-zinc-800"
-                                >
-                                  <Icon name="x" size={13} />
-                                </button>
-                              )}
+                              ) : null}
                             </div>
                           ) : column.computed ? (
                             <div className="px-2 py-1.5 text-right text-sm font-medium tabular-nums text-zinc-900">
@@ -327,19 +400,30 @@ export default function ActualCostAnalysisView({ projectId, projectName }) {
                           )}
                         </td>
                       ))}
+                      <td className="px-3 py-3 text-right align-top">
+                        <button
+                          type="button"
+                          onClick={() => deleteRow(rowIndex)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
+                        >
+                          <Icon name="trash-2" size={13} />
+                          Delete
+                        </button>
+                      </td>
                     </tr>
                   )
                 })}
               </tbody>
             </table>
-          </div>
-          <p className="border-t border-zinc-200 bg-zinc-50 px-6 py-3 text-sm text-zinc-600">
-            Plant cost = fuel cost + plant hire. Daily cost (total) = labour + plant + material. Actual
-            rate = Daily cost ÷ Daily production. Extra plant rows under a description add into the same
-            BOQ rates. Bill rate adds overheads and profit. Allowable rate is the target unit cost.
-          </p>
-        </section>
-      )}
+          )}
+        </div>
+
+        <p className="shrink-0 border-t border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 sm:px-5">
+          Plant cost = fuel cost + plant hire. Daily cost (total) = labour + plant + material. Actual
+          rate = Daily cost ÷ Daily production. Extra plant rows under a description add into the same
+          BOQ rates.
+        </p>
+      </div>
     </div>
   )
 }
