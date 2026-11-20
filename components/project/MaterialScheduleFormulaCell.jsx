@@ -31,6 +31,7 @@ export default function MaterialScheduleFormulaCell({
   onLiveChange,
   align = "left",
   numeric = false,
+  wrapText = false,
   onSelect,
   isSelected = false,
   columnLabel = "",
@@ -144,106 +145,130 @@ export default function MaterialScheduleFormulaCell({
     else entrySuggestions.update(text, element)
   }
 
+  const fieldClassName = `w-full min-w-[7rem] rounded-md border bg-white px-2 py-1.5 text-sm outline-none ${
+    isSelected
+      ? "border-blue-500 ring-2 ring-blue-500/20"
+      : "border-zinc-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+  } ${align === "right" ? "text-right tabular-nums" : "text-left"} ${
+    showAnswerWeight ? "font-bold text-zinc-900" : "text-zinc-900"
+  } ${
+    wrapText
+      ? "min-h-[2.75rem] resize-y whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-snug"
+      : ""
+  }`
+
+  const fieldHandlers = {
+    onFocus: (event) => {
+      focusedRef.current = true
+      draftRef.current = sourceRef.current
+      setDraft(sourceRef.current)
+      event.target.value = sourceRef.current
+      setDismissed(false)
+      setActiveIndex(0)
+      setMenuRect(event.currentTarget.getBoundingClientRect())
+      setMenuOpen(isFormula(sourceRef.current) || sourceRef.current === "=")
+      refreshEntrySuggestions(sourceRef.current, event.currentTarget)
+      onSelect?.()
+      onLiveChange?.(sourceRef.current)
+    },
+    onChange: (event) => {
+      const text = event.target.value
+      draftRef.current = text
+      setDraft(text)
+      setDismissed(false)
+      setActiveIndex(0)
+      setMenuRect(event.currentTarget.getBoundingClientRect())
+      setMenuOpen(text.trim().startsWith("="))
+      refreshEntrySuggestions(text, event.currentTarget)
+      onLiveChange?.(text)
+      persistDraft(text)
+    },
+    onBlur: () => {
+      focusedRef.current = false
+      entrySuggestions.close()
+      const { value, formula } = commitFormulaInput(draftRef.current, numeric)
+      rememberIfFormula(formula || draftRef.current)
+      onChange(value, formula)
+      onLiveChange?.(null)
+      showFormatted(value)
+      setMenuOpen(false)
+    },
+    onKeyDown: (event) => {
+      if (entrySuggestions.isOpen && entrySuggestions.handleKeyDown(event)) return
+
+      if (menuOpen && suggestions.length > 0) {
+        if (event.key === "ArrowDown") {
+          event.preventDefault()
+          setActiveIndex((current) => Math.min(current + 1, suggestions.length - 1))
+          return
+        }
+
+        if (event.key === "ArrowUp") {
+          event.preventDefault()
+          setActiveIndex((current) => Math.max(current - 1, 0))
+          return
+        }
+
+        if (event.key === "Tab" && suggestions[highlightedIndex]) {
+          event.preventDefault()
+          applyFormula(suggestions[highlightedIndex].formula)
+          return
+        }
+
+        if (event.key === "x" || event.key === "X") {
+          event.preventDefault()
+          dismissMenu()
+          return
+        }
+
+        if (event.key === "Escape") {
+          event.preventDefault()
+          dismissMenu()
+          return
+        }
+      }
+
+      if (event.key === "Enter" && !wrapText) {
+        event.preventDefault()
+        event.currentTarget.blur()
+      }
+      if (event.key === "Escape") {
+        event.preventDefault()
+        draftRef.current = sourceRef.current
+        setDraft(sourceRef.current)
+        event.currentTarget.value = sourceRef.current
+        persistDraft(sourceRef.current)
+        event.currentTarget.blur()
+      }
+    },
+  }
+
   return (
-    <div className="relative min-w-[7rem]">
-      <input
-        ref={inputRef}
-        {...TEXT_KEYBOARD_PROPS}
-        defaultValue={idleValue}
-        placeholder={autoAnswer ? "" : numeric ? "0 or =3*4" : ""}
-        aria-label={columnLabel}
-        aria-autocomplete="list"
-        className={`w-full min-w-[7rem] rounded-md border bg-white px-2 py-1.5 text-sm outline-none ${
-          isSelected
-            ? "border-blue-500 ring-2 ring-blue-500/20"
-            : "border-zinc-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-        } ${align === "right" ? "text-right tabular-nums" : "text-left"} ${
-          showAnswerWeight ? "font-bold text-zinc-900" : "text-zinc-900"
-        }`}
-        onFocus={(event) => {
-          focusedRef.current = true
-          draftRef.current = sourceRef.current
-          setDraft(sourceRef.current)
-          event.target.value = sourceRef.current
-          setDismissed(false)
-          setActiveIndex(0)
-          setMenuRect(event.currentTarget.getBoundingClientRect())
-          setMenuOpen(isFormula(sourceRef.current) || sourceRef.current === "=")
-          refreshEntrySuggestions(sourceRef.current, event.currentTarget)
-          onSelect?.()
-          onLiveChange?.(sourceRef.current)
-        }}
-        onChange={(event) => {
-          const text = event.target.value
-          draftRef.current = text
-          setDraft(text)
-          setDismissed(false)
-          setActiveIndex(0)
-          setMenuRect(event.currentTarget.getBoundingClientRect())
-          setMenuOpen(text.trim().startsWith("="))
-          refreshEntrySuggestions(text, event.currentTarget)
-          onLiveChange?.(text)
-          persistDraft(text)
-        }}
-        onBlur={() => {
-          focusedRef.current = false
-          entrySuggestions.close()
-          const { value, formula } = commitFormulaInput(draftRef.current, numeric)
-          rememberIfFormula(formula || draftRef.current)
-          onChange(value, formula)
-          onLiveChange?.(null)
-          showFormatted(value)
-          setMenuOpen(false)
-        }}
-        onKeyDown={(event) => {
-          if (entrySuggestions.isOpen && entrySuggestions.handleKeyDown(event)) return
-
-          if (menuOpen && suggestions.length > 0) {
-            if (event.key === "ArrowDown") {
-              event.preventDefault()
-              setActiveIndex((current) => Math.min(current + 1, suggestions.length - 1))
-              return
-            }
-
-            if (event.key === "ArrowUp") {
-              event.preventDefault()
-              setActiveIndex((current) => Math.max(current - 1, 0))
-              return
-            }
-
-            if (event.key === "Tab" && suggestions[highlightedIndex]) {
-              event.preventDefault()
-              applyFormula(suggestions[highlightedIndex].formula)
-              return
-            }
-
-            if (event.key === "x" || event.key === "X") {
-              event.preventDefault()
-              dismissMenu()
-              return
-            }
-
-            if (event.key === "Escape") {
-              event.preventDefault()
-              dismissMenu()
-              return
-            }
-          }
-
-          if (event.key === "Enter") {
-            event.preventDefault()
-            event.currentTarget.blur()
-          }
-          if (event.key === "Escape") {
-            event.preventDefault()
-            draftRef.current = sourceRef.current
-            setDraft(sourceRef.current)
-            event.currentTarget.value = sourceRef.current
-            persistDraft(sourceRef.current)
-            event.currentTarget.blur()
-          }
-        }}
-      />
+    <div className={`relative min-w-[7rem] ${wrapText ? "min-w-[10rem] max-w-[16rem]" : ""}`}>
+      {wrapText ? (
+        <textarea
+          ref={inputRef}
+          {...TEXT_KEYBOARD_PROPS}
+          rows={2}
+          defaultValue={idleValue}
+          placeholder={autoAnswer ? "" : ""}
+          aria-label={columnLabel}
+          aria-autocomplete="list"
+          className={fieldClassName}
+          {...fieldHandlers}
+        />
+      ) : (
+        <input
+          ref={inputRef}
+          {...TEXT_KEYBOARD_PROPS}
+          defaultValue={idleValue}
+          placeholder={autoAnswer ? "" : numeric ? "0 or =3*4" : ""}
+          aria-label={columnLabel}
+          aria-autocomplete="list"
+          className={fieldClassName}
+          {...fieldHandlers}
+        />
+      )}
 
       {menuOpen ? (
         <FormulaSuggestionMenu

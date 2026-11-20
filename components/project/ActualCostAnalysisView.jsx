@@ -307,7 +307,9 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
                           className={`px-3 py-3 ${
                             column.key === "activityDescription"
                               ? "min-w-[20rem] w-[28rem] max-w-[36rem] align-top"
-                              : ""
+                              : column.key === "plantName"
+                                ? "min-w-[12rem] max-w-[16rem] align-top"
+                                : ""
                           }`}
                         >
                           {column.key === "activityDescription" ? (
@@ -350,6 +352,7 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
                               formulaValue={row[`${column.key}Formula`] ?? ""}
                               align={column.align}
                               numeric={Boolean(column.numeric)}
+                              wrapText={column.key === "plantName"}
                               columnLabel={column.label}
                               formatDisplay={
                                 column.percent
