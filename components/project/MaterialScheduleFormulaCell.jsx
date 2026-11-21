@@ -31,7 +31,7 @@ export default function MaterialScheduleFormulaCell({
   onLiveChange,
   align = "left",
   numeric = false,
-  wrapText = false,
+  wrapText,
   onSelect,
   isSelected = false,
   columnLabel = "",
@@ -145,6 +145,9 @@ export default function MaterialScheduleFormulaCell({
     else entrySuggestions.update(text, element)
   }
 
+  // Descriptive / text cells wrap by default; numeric stay single-line unless forced.
+  const shouldWrap = wrapText === true || (wrapText !== false && !numeric)
+
   const fieldClassName = `w-full min-w-[7rem] rounded-md border bg-white px-2 py-1.5 text-sm outline-none ${
     isSelected
       ? "border-blue-500 ring-2 ring-blue-500/20"
@@ -152,7 +155,7 @@ export default function MaterialScheduleFormulaCell({
   } ${align === "right" ? "text-right tabular-nums" : "text-left"} ${
     showAnswerWeight ? "font-bold text-zinc-900" : "text-zinc-900"
   } ${
-    wrapText
+    shouldWrap
       ? "min-h-[2.75rem] resize-y whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-snug"
       : ""
   }`
@@ -228,7 +231,7 @@ export default function MaterialScheduleFormulaCell({
         }
       }
 
-      if (event.key === "Enter" && !wrapText) {
+      if (event.key === "Enter" && !shouldWrap) {
         event.preventDefault()
         event.currentTarget.blur()
       }
@@ -244,8 +247,8 @@ export default function MaterialScheduleFormulaCell({
   }
 
   return (
-    <div className={`relative min-w-[7rem] ${wrapText ? "min-w-[10rem] max-w-[16rem]" : ""}`}>
-      {wrapText ? (
+    <div className={`relative min-w-[7rem] ${shouldWrap ? "min-w-[10rem] max-w-[20rem]" : ""}`}>
+      {shouldWrap ? (
         <textarea
           ref={inputRef}
           {...TEXT_KEYBOARD_PROPS}

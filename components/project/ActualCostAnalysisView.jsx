@@ -6,6 +6,7 @@ import EntryUndoButton from "@/components/project/EntryUndoButton"
 import ExportPdfButton from "@/components/project/ExportPdfButton"
 import Icon from "@/components/icon/icon"
 import MaterialScheduleFormulaCell from "@/components/project/MaterialScheduleFormulaCell"
+import RateBuildUpLibraryPanel from "@/components/project/RateBuildUpLibraryPanel"
 import { subscribeGroveStore } from "@/lib/groveClientStore"
 import { useEntryUndo } from "@/lib/useEntryUndo"
 import {
@@ -18,6 +19,7 @@ import {
   parentHasPlantRows,
   PLANT_COST_COLUMN_KEYS,
   RATE_BUILD_UP_COLUMNS,
+  RATE_BUILD_UP_TEXT_KEYS,
   RATE_COLUMN_KEYS,
   resolveActualCostAnalysisRow,
   resolveGrandTotalRow,
@@ -25,6 +27,12 @@ import {
   stripRateFieldsFromRow,
   syncBoqRatesFromBuildUp,
 } from "@/lib/actualCostAnalysis"
+import {
+  captureRateBuildUpGroup,
+  pasteOntoRowGroup,
+  readClipboardPayload,
+  writeClipboardPayload,
+} from "@/lib/rateBuildUpClipboard"
 import {
   BOQ_STORAGE_KEY,
   getProjectBoqs,
@@ -65,6 +73,7 @@ function formatEntryDisplay(columnKey, value) {
   if (columnKey === "production" || columnKey === "fuelAllocated" || columnKey === "materialQty") {
     return formatMaterialAmount(numeric)
   }
+  // unitPrice, fuelPrice, plantHire, laborCost, etc.
   return formatMaterialCurrencyAmount(numeric)
 }
 
@@ -110,7 +119,7 @@ function shouldShowColumn(row, columnKey, rows) {
   }
 
   if (inPlantMode) {
-    // Main activity row: description + plant name (+) + cost fields; rates move to Grand total.
+    // Main activity row: description + plant name (+) + cost fields (incl. unit price); rates on Grand total.
     return columnKey === "plantName" || PLANT_COST_COLUMN_KEYS.has(columnKey)
   }
 
@@ -119,6 +128,8 @@ function shouldShowColumn(row, columnKey, rows) {
 
 export default function ActualCostAnalysisView({ projectId, projectName, onClose }) {
   const [rows, setRows] = useState([])
+  const [libraryOpen, setLibraryOpen] = useState(false)
+  const [contextMenu, setContextMenu] = useState(null)
   const { canUndo, trackBeforeChange, undo, clear: clearUndo } = useEntryUndo()
   const exitHref = getRateAnalysisHubHref(projectId)
   const persistTimerRef = useRef(0)
@@ -161,22 +172,60 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
   }, [])
 
   useEffect(() => {
-    const load = () => {
-      clearUndo()
+    clearUndo()
+    const load = ({ fromBoq = false } = {}) => {
       if (listBoqAnalysisItems(projectId).length === 0) {
         setRows([])
         return
       }
-      const merged = mergeActualCostAnalysisWithBoq(projectId)
+      // Prefer in-memory rows when BOQ changes so typed cells are not wiped mid-edit.
+      const current = fromBoq && rowsRef.current.length > 0 ? rowsRef.current : undefined
+      const merged = mergeActualCostAnalysisWithBoq(projectId, current)
       setRows(merged)
       saveActualCostAnalysisRows(projectId, merged, { remember: false, syncBoq: false })
     }
 
-    load()
+    load({ fromBoq: false })
     return subscribeGroveStore((key) => {
-      if (key === BOQ_STORAGE_KEY) load()
+      if (key === BOQ_STORAGE_KEY) load({ fromBoq: true })
     })
   }, [projectId, clearUndo])
+
+  useEffect(() => {
+    const onKeyDown = async (event) => {
+      const mod = event.ctrlKey || event.metaKey
+      if (!mod) return
+      const target = event.target
+      const typing =
+        target instanceof HTMLElement &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      if (typing && event.key.toLowerCase() !== "c" && event.key.toLowerCase() !== "v") return
+
+      if (event.key.toLowerCase() === "c" && contextMenu?.rowIndex != null) {
+        const payload = captureRateBuildUpGroup(rowsRef.current, contextMenu.rowIndex)
+        if (!payload) return
+        event.preventDefault()
+        await writeClipboardPayload(payload)
+        return
+      }
+
+      if (event.key.toLowerCase() === "v" && contextMenu?.rowIndex != null && !typing) {
+        const payload = await readClipboardPayload()
+        if (!payload) return
+        event.preventDefault()
+        setRows((current) => {
+          trackBeforeChange(current)
+          const next = pasteOntoRowGroup(current, contextMenu.rowIndex, payload)
+          persistRows(next, { immediate: true })
+          return next
+        })
+      }
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [contextMenu, trackBeforeChange])
 
   const resolvedRows = useMemo(() => {
     return rows.map((row) => {
@@ -351,6 +400,29 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
     persistRows(previous, { immediate: true })
   }
 
+  const copyRowGroup = async (rowIndex) => {
+    const payload = captureRateBuildUpGroup(rowsRef.current, rowIndex)
+    if (!payload) return
+    await writeClipboardPayload(payload)
+    setContextMenu(null)
+  }
+
+  const replaceRowGroup = async (rowIndex) => {
+    const payload = await readClipboardPayload()
+    if (!payload) {
+      window.alert("Nothing copied yet. Open the library or copy a build-up row first.")
+      setContextMenu(null)
+      return
+    }
+    setRows((current) => {
+      trackBeforeChange(current)
+      const next = pasteOntoRowGroup(current, rowIndex, payload)
+      persistRows(next, { immediate: true })
+      return next
+    })
+    setContextMenu(null)
+  }
+
   const exitControl =
     typeof onClose === "function" ? (
       <button
@@ -461,7 +533,7 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
       }
     }
 
-    if (column.computed) {
+    if (column.computed || column.key === "materialCost") {
       return (
         <div className="px-2 py-1.5 text-right text-sm font-medium tabular-nums text-zinc-900">
           {computedDisplay(resolved, column.key)}
@@ -478,7 +550,7 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
         formulaValue={row[`${column.key}Formula`] ?? ""}
         align={column.align}
         numeric={Boolean(column.numeric)}
-        wrapText={column.key === "plantName"}
+        wrapText={RATE_BUILD_UP_TEXT_KEYS.has(column.key) || !column.numeric}
         columnLabel={column.label}
         formatDisplay={
           column.percent
@@ -521,6 +593,15 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
           <div className="flex flex-wrap items-center gap-2">
             {rows.length > 0 ? (
               <>
+                <button
+                  type="button"
+                  onClick={() => setLibraryOpen(true)}
+                  title="Copy build-up rates"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"
+                >
+                  <Icon name="clipboard-list" size={15} />
+                  Copy / paste
+                </button>
                 <EntryUndoButton canUndo={canUndo} onUndo={handleUndo} />
                 <ExportPdfButton onClick={exportToPdf} />
               </>
@@ -562,6 +643,15 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
                   return (
                     <tr
                       key={row.id}
+                      onContextMenu={(event) => {
+                        if (grand) return
+                        event.preventDefault()
+                        setContextMenu({
+                          rowIndex,
+                          x: event.clientX,
+                          y: event.clientY,
+                        })
+                      }}
                       className={`border-b border-zinc-200 align-top ${
                         grand
                           ? "bg-amber-50/70"
@@ -605,11 +695,41 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
         </div>
 
         <p className="shrink-0 border-t border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 sm:px-5">
-          Plant cost = fuel cost + plant hire. Daily cost (total) = labour + plant + material. Actual
-          rate = Daily cost ÷ Daily production. Bill rate adds overheads and profit. Use + on Plant
-          name to add plant rows; rates then sit on the Grand total row.
+          Plant cost = fuel cost + plant hire. Material cost = material qty × unit price. Total cost =
+          labour + plant + material. Actual rate = Total ÷ Daily production. Use + for plant rows;
+          rates sit on Grand total. Copy / paste library or right-click a row to replace it.
         </p>
       </div>
+
+      <RateBuildUpLibraryPanel
+        rows={rows}
+        open={libraryOpen}
+        onClose={() => setLibraryOpen(false)}
+        onCopied={() => setLibraryOpen(false)}
+      />
+
+      {contextMenu ? (
+        <div
+          className="fixed z-[150] min-w-[11rem] rounded-lg border border-zinc-200 bg-white py-1 shadow-xl"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onMouseLeave={() => setContextMenu(null)}
+        >
+          <button
+            type="button"
+            className="block w-full px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-50"
+            onClick={() => copyRowGroup(contextMenu.rowIndex)}
+          >
+            Copy row
+          </button>
+          <button
+            type="button"
+            className="block w-full px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-50"
+            onClick={() => replaceRowGroup(contextMenu.rowIndex)}
+          >
+            Replace row
+          </button>
+        </div>
+      ) : null}
     </div>
   )
 }
