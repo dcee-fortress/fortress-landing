@@ -40,6 +40,7 @@ export default function MaterialScheduleFormulaCell({
   const inputRef = useRef(null)
   const focusedRef = useRef(false)
   const draftRef = useRef("")
+  const lastEmittedRef = useRef("")
   const source = formulaValue || String(rawValue ?? "")
   const sourceRef = useRef(source)
   const [draft, setDraft] = useState(source)
@@ -81,9 +82,27 @@ export default function MaterialScheduleFormulaCell({
   }, [source])
 
   useEffect(() => {
-    if (focusedRef.current || !inputRef.current) return
+    if (!inputRef.current) return
+    // Keep the field in sync when rows change from outside (Undo, paste, replace).
+    if (focusedRef.current) {
+      const loose = (value) => String(value ?? "").trim().replace(/%/g, "")
+      // Ignore echoes of what this cell just saved (e.g. percent strip).
+      if (
+        source === draftRef.current ||
+        source === lastEmittedRef.current ||
+        loose(source) === loose(draftRef.current) ||
+        loose(source) === loose(lastEmittedRef.current)
+      ) {
+        return
+      }
+      draftRef.current = source
+      lastEmittedRef.current = source
+      setDraft(source)
+      inputRef.current.value = source || idleValue
+      return
+    }
     inputRef.current.value = idleValue
-  }, [idleValue])
+  }, [idleValue, source])
 
   const showFormatted = (value) => {
     if (!inputRef.current) return
@@ -97,6 +116,7 @@ export default function MaterialScheduleFormulaCell({
 
   const persistDraft = (text) => {
     const { value, formula } = draftFormulaInput(text)
+    lastEmittedRef.current = formula || String(value ?? "")
     onChange(value, formula)
   }
 
@@ -190,6 +210,15 @@ export default function MaterialScheduleFormulaCell({
       focusedRef.current = false
       entrySuggestions.close()
       const { value, formula } = commitFormulaInput(draftRef.current, numeric)
+      const nextSource = formula || String(value ?? "")
+      const currentSource = formulaValue || String(rawValue ?? "")
+      // Undo/replace may have already restored props — don't write the old draft back.
+      if (nextSource === currentSource) {
+        onLiveChange?.(null)
+        showFormatted(value)
+        setMenuOpen(false)
+        return
+      }
       rememberIfFormula(formula || draftRef.current)
       onChange(value, formula)
       onLiveChange?.(null)

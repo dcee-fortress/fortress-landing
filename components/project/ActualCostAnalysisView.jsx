@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import EntryUndoButton from "@/components/project/EntryUndoButton"
 import ExportPdfButton from "@/components/project/ExportPdfButton"
@@ -12,6 +12,7 @@ import { useEntryUndo } from "@/lib/useEntryUndo"
 import {
   createGrandTotalRow,
   createPlantSubRow,
+  emptyActualCostAnalysisRow,
   isGrandTotalRow,
   isPlantSubRow,
   listBoqAnalysisItems,
@@ -130,23 +131,24 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
   const [rows, setRows] = useState([])
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [contextMenu, setContextMenu] = useState(null)
-  const { canUndo, trackBeforeChange, undo, clear: clearUndo } = useEntryUndo()
+  const [tableEpoch, setTableEpoch] = useState(0)
+  const { canUndo, trackBeforeChange, endEditSession, undo, clear: clearUndo } = useEntryUndo()
   const exitHref = getRateAnalysisHubHref(projectId)
   const persistTimerRef = useRef(0)
   const syncBoqTimerRef = useRef(0)
   const rowsRef = useRef(rows)
   rowsRef.current = rows
 
-  const flushPersist = (next, { syncBoq = false, remember = true } = {}) => {
+  const flushPersist = useCallback((next, { syncBoq = false, remember = true } = {}) => {
     saveActualCostAnalysisRows(projectId, next, { remember, syncBoq })
     if (syncBoq) return
     window.clearTimeout(syncBoqTimerRef.current)
     syncBoqTimerRef.current = window.setTimeout(() => {
       syncBoqRatesFromBuildUp(projectId)
     }, 900)
-  }
+  }, [projectId])
 
-  const persistRows = (next, { immediate = false } = {}) => {
+  const persistRows = useCallback((next, { immediate = false } = {}) => {
     window.clearTimeout(persistTimerRef.current)
     if (immediate) {
       flushPersist(next, { syncBoq: true, remember: true })
@@ -156,7 +158,7 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
     persistTimerRef.current = window.setTimeout(() => {
       flushPersist(rowsRef.current, { syncBoq: true, remember: true })
     }, 700)
-  }
+  }, [flushPersist])
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
@@ -215,17 +217,18 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
         const payload = await readClipboardPayload()
         if (!payload) return
         event.preventDefault()
-        setRows((current) => {
-          trackBeforeChange(current)
-          const next = pasteOntoRowGroup(current, contextMenu.rowIndex, payload)
-          persistRows(next, { immediate: true })
-          return next
-        })
+        trackBeforeChange(rowsRef.current)
+        endEditSession()
+        const next = pasteOntoRowGroup(rowsRef.current, contextMenu.rowIndex, payload)
+        rowsRef.current = next
+        setRows(next)
+        setTableEpoch((value) => value + 1)
+        persistRows(next, { immediate: true })
       }
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [contextMenu, trackBeforeChange])
+  }, [contextMenu, trackBeforeChange, endEditSession, persistRows])
 
   const resolvedRows = useMemo(() => {
     return rows.map((row) => {
@@ -241,109 +244,167 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
     exportRateBuildUpPdf({ projectName, rows })
   }
 
+  const syncBoqDescription = (row, previousDescription, nextDescription) => {
+    const nextText = String(nextDescription ?? "").trim()
+    const prevText = String(previousDescription ?? "").trim()
+    if (!nextText || nextText === prevText) return
+    const prevKey = normalizeBoqDescription(prevText)
+    for (const boq of getProjectBoqs(projectId)) {
+      let changed = false
+      const items = (boq.items ?? []).map((item) => {
+        const sameId = row?.boqItemId && item.id === row.boqItemId
+        const sameName = prevKey && normalizeBoqDescription(item.itemName) === prevKey
+        if (!sameId && !sameName) return item
+        changed = true
+        return { ...item, itemName: nextText }
+      })
+      if (changed) updateProjectBoqItems(projectId, boq.id, items)
+    }
+  }
+
   const updateRow = (rowIndex, field, value, formula = "", percentOnly = false) => {
     const entry = percentOnly ? acceptPercentEntry(value, formula) : { value, formula }
     if (!entry) return
+    trackBeforeChange(rowsRef.current, `${rowIndex}:${field}`)
+    const previous = rowsRef.current[rowIndex]
     setRows((current) => {
-      trackBeforeChange(current, `${rowIndex}:${field}`)
       const next = current.map((row, index) =>
         index === rowIndex ? { ...row, [field]: entry.value, [`${field}Formula`]: entry.formula } : row
       )
+      rowsRef.current = next
       persistRows(next)
       return next
     })
+    if (field === "activityDescription" && previous && !isPlantSubRow(previous) && !isGrandTotalRow(previous)) {
+      syncBoqDescription(previous, previous.activityDescription, entry.value)
+    }
+  }
+
+  const addActivityRow = () => {
+    trackBeforeChange(rowsRef.current)
+    endEditSession()
+    const stamp = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+    const boqItemId = `boq-user-${stamp}`
+    const description = "New activity"
+    const row = {
+      ...emptyActualCostAnalysisRow({ id: `aca-user-${stamp}`, itemName: description }),
+      activityDescription: description,
+      userAdded: true,
+      boqItemId,
+      parentId: undefined,
+      isPlantSubRow: false,
+      isGrandTotal: false,
+    }
+    const next = [...rowsRef.current, row]
+    rowsRef.current = next
+    setRows(next)
+    setTableEpoch((value) => value + 1)
+    persistRows(next, { immediate: true })
+
+    const boqs = getProjectBoqs(projectId)
+    const target = boqs[0]
+    if (target) {
+      updateProjectBoqItems(projectId, target.id, [
+        ...(target.items ?? []),
+        { id: boqItemId, itemName: description, userAdded: true },
+      ])
+    }
   }
 
   const addPlantSubRow = (anchorIndex) => {
-    setRows((current) => {
-      const anchor = current[anchorIndex]
-      if (!anchor || isGrandTotalRow(anchor)) return current
+    const current = rowsRef.current
+    const anchor = current[anchorIndex]
+    if (!anchor || isGrandTotalRow(anchor)) return
 
-      const parent = isPlantSubRow(anchor) ? findParentRow(current, anchor) : anchor
-      if (!parent || isPlantSubRow(parent) || isGrandTotalRow(parent)) return current
+    const parent = isPlantSubRow(anchor) ? findParentRow(current, anchor) : anchor
+    if (!parent || isPlantSubRow(parent) || isGrandTotalRow(parent)) return
 
-      trackBeforeChange(current)
-      const plant = createPlantSubRow(parent)
-      const parentIndex = current.findIndex((row) => row.id === parent.id)
-      if (parentIndex < 0) return current
+    trackBeforeChange(current)
+    endEditSession()
+    const plant = createPlantSubRow(parent)
+    const parentIndex = current.findIndex((row) => row.id === parent.id)
+    if (parentIndex < 0) return
 
-      let insertAt = parentIndex + 1
+    let insertAt = parentIndex + 1
+    while (
+      insertAt < current.length &&
+      isPlantSubRow(current[insertAt]) &&
+      current[insertAt].parentId === parent.id
+    ) {
+      insertAt += 1
+    }
+
+    const alreadyHasGrand = current.some(
+      (row) => isGrandTotalRow(row) && row.parentId === parent.id
+    )
+    const next = [...current]
+    next.splice(insertAt, 0, plant)
+
+    if (!alreadyHasGrand) {
+      const liveParent = next[parentIndex]
+      const grand = createGrandTotalRow(liveParent)
+      next[parentIndex] = {
+        ...stripRateFieldsFromRow(liveParent),
+        unit: String(liveParent.unit ?? "").trim(),
+      }
+      let grandAt = parentIndex + 1
       while (
-        insertAt < current.length &&
-        isPlantSubRow(current[insertAt]) &&
-        current[insertAt].parentId === parent.id
+        grandAt < next.length &&
+        isPlantSubRow(next[grandAt]) &&
+        next[grandAt].parentId === parent.id
       ) {
-        insertAt += 1
+        grandAt += 1
       }
+      next.splice(grandAt, 0, grand)
+    }
 
-      const alreadyHasGrand = current.some(
-        (row) => isGrandTotalRow(row) && row.parentId === parent.id
-      )
-      const next = [...current]
-      next.splice(insertAt, 0, plant)
-
-      if (!alreadyHasGrand) {
-        const liveParent = next[parentIndex]
-        const grand = createGrandTotalRow(liveParent)
-        next[parentIndex] = {
-          ...stripRateFieldsFromRow(liveParent),
-          unit: String(liveParent.unit ?? "").trim(),
-        }
-        let grandAt = parentIndex + 1
-        while (
-          grandAt < next.length &&
-          isPlantSubRow(next[grandAt]) &&
-          next[grandAt].parentId === parent.id
-        ) {
-          grandAt += 1
-        }
-        next.splice(grandAt, 0, grand)
-      }
-
-      persistRows(next)
-      return next
-    })
+    rowsRef.current = next
+    setRows(next)
+    setTableEpoch((value) => value + 1)
+    persistRows(next)
   }
 
   const removePlantSubRow = (rowIndex) => {
-    setRows((current) => {
-      const target = current[rowIndex]
-      if (!target || !isPlantSubRow(target)) return current
-      trackBeforeChange(current)
-      const parentId = target.parentId
-      let next = current.filter((_, index) => index !== rowIndex)
-      const remainingPlants = next.filter(
-        (row) => isPlantSubRow(row) && row.parentId === parentId
-      )
+    const current = rowsRef.current
+    const target = current[rowIndex]
+    if (!target || !isPlantSubRow(target)) return
+    trackBeforeChange(current)
+    endEditSession()
+    const parentId = target.parentId
+    let next = current.filter((_, index) => index !== rowIndex)
+    const remainingPlants = next.filter(
+      (row) => isPlantSubRow(row) && row.parentId === parentId
+    )
 
-      if (remainingPlants.length === 0) {
-        const grand = next.find((row) => isGrandTotalRow(row) && row.parentId === parentId)
-        next = next
-          .map((row) => {
-            if (row.id !== parentId) return row
-            return {
-              ...row,
-              unit: String(grand?.unit ?? row.unit ?? "").trim(),
-              production: String(grand?.production ?? "").trim(),
-              productionFormula: grand?.productionFormula ?? "",
-              overheads: String(grand?.overheads ?? "").trim(),
-              overheadsFormula: grand?.overheadsFormula ?? "",
-              profit: String(grand?.profit ?? "").trim(),
-              profitFormula: grand?.profitFormula ?? "",
-              allowablePercentage: String(grand?.allowablePercentage ?? "").trim(),
-              allowablePercentageFormula: grand?.allowablePercentageFormula ?? "",
-            }
-          })
-          .filter((row) => !(isGrandTotalRow(row) && row.parentId === parentId))
-      }
+    if (remainingPlants.length === 0) {
+      const grand = next.find((row) => isGrandTotalRow(row) && row.parentId === parentId)
+      next = next
+        .map((row) => {
+          if (row.id !== parentId) return row
+          return {
+            ...row,
+            unit: String(grand?.unit ?? row.unit ?? "").trim(),
+            production: String(grand?.production ?? "").trim(),
+            productionFormula: grand?.productionFormula ?? "",
+            overheads: String(grand?.overheads ?? "").trim(),
+            overheadsFormula: grand?.overheadsFormula ?? "",
+            profit: String(grand?.profit ?? "").trim(),
+            profitFormula: grand?.profitFormula ?? "",
+            allowablePercentage: String(grand?.allowablePercentage ?? "").trim(),
+            allowablePercentageFormula: grand?.allowablePercentageFormula ?? "",
+          }
+        })
+        .filter((row) => !(isGrandTotalRow(row) && row.parentId === parentId))
+    }
 
-      persistRows(next)
-      return next
-    })
+    rowsRef.current = next
+    setRows(next)
+    setTableEpoch((value) => value + 1)
+    persistRows(next)
   }
 
   const deleteRow = (rowIndex) => {
-    const target = rows[rowIndex]
+    const target = rowsRef.current[rowIndex]
     if (!target || isGrandTotalRow(target)) return
 
     if (isPlantSubRow(target)) {
@@ -360,14 +421,15 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
     if (!confirmed) return
 
     const needle = normalizeBoqDescription(target.activityDescription)
-    setRows((current) => {
-      trackBeforeChange(current)
-      const next = current.filter(
-        (row) => row.id !== target.id && row.parentId !== target.id
-      )
-      persistRows(next)
-      return next
-    })
+    trackBeforeChange(rowsRef.current)
+    endEditSession()
+    const next = rowsRef.current.filter(
+      (row) => row.id !== target.id && row.parentId !== target.id
+    )
+    rowsRef.current = next
+    setRows(next)
+    setTableEpoch((value) => value + 1)
+    persistRows(next)
 
     if (needle) {
       for (const boq of getProjectBoqs(projectId)) {
@@ -382,23 +444,29 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
   }
 
   const applyZimBuild = (rowIndex) => {
+    trackBeforeChange(rowsRef.current)
+    endEditSession()
     setRows((current) => {
-      trackBeforeChange(current)
       const next = current.map((row, index) => {
         if (index !== rowIndex) return row
         return applyZimBuildSuggestionToRow(row, row.zimBuildSuggestion)
       })
+      rowsRef.current = next
       persistRows(next)
       return next
     })
+    setTableEpoch((value) => value + 1)
   }
 
-  const handleUndo = () => {
+  const handleUndo = useCallback(() => {
     const previous = undo()
     if (!previous) return
+    endEditSession()
+    rowsRef.current = previous
     setRows(previous)
+    setTableEpoch((value) => value + 1)
     persistRows(previous, { immediate: true })
-  }
+  }, [undo, endEditSession, persistRows])
 
   const copyRowGroup = async (rowIndex) => {
     const payload = captureRateBuildUpGroup(rowsRef.current, rowIndex)
@@ -414,12 +482,13 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
       setContextMenu(null)
       return
     }
-    setRows((current) => {
-      trackBeforeChange(current)
-      const next = pasteOntoRowGroup(current, rowIndex, payload)
-      persistRows(next, { immediate: true })
-      return next
-    })
+    trackBeforeChange(rowsRef.current)
+    endEditSession()
+    const next = pasteOntoRowGroup(rowsRef.current, rowIndex, payload)
+    rowsRef.current = next
+    setRows(next)
+    setTableEpoch((value) => value + 1)
+    persistRows(next, { immediate: true })
     setContextMenu(null)
   }
 
@@ -464,9 +533,18 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
       const zim = row.zimBuildSuggestion
       return (
         <div className="group relative space-y-2">
-          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-snug text-zinc-900">
-            {row.activityDescription}
-          </p>
+          <MaterialScheduleFormulaCell
+            projectId={projectId}
+            description={row.activityDescription}
+            columnKey="activityDescription"
+            rawValue={row.activityDescription ?? ""}
+            formulaValue=""
+            align="left"
+            numeric={false}
+            wrapText
+            columnLabel="Activity description"
+            onChange={(value) => updateRow(rowIndex, "activityDescription", value, "", false)}
+          />
           {zim ? (
             <div className="pointer-events-none invisible absolute left-0 top-full z-30 mt-1 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-600 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100">
               <p className="font-medium text-zinc-700">ZimBuild QS suggestion</p>
@@ -595,6 +673,15 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
               <>
                 <button
                   type="button"
+                  onClick={addActivityRow}
+                  title="Add activity row"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"
+                >
+                  <Icon name="plus" size={15} />
+                  Add row
+                </button>
+                <button
+                  type="button"
                   onClick={() => setLibraryOpen(true)}
                   title="Copy build-up rates"
                   className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50"
@@ -635,7 +722,7 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody key={tableEpoch}>
                 {rows.map((row, rowIndex) => {
                   const resolved = resolvedRows[rowIndex]
                   const plantSub = isPlantSubRow(row)
@@ -697,15 +784,16 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
         <p className="shrink-0 border-t border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 sm:px-5">
           Plant cost = fuel cost + plant hire. Material cost = material qty × unit price. Total cost =
           labour + plant + material. Actual rate = Total ÷ Daily production. Use + for plant rows;
-          rates sit on Grand total. Copy / paste library or right-click a row to replace it.
+          rates sit on Grand total. Copy / paste opens saved BOQ files — copy a row, then
+          right-click in your template → Replace row.
         </p>
       </div>
 
       <RateBuildUpLibraryPanel
-        rows={rows}
+        projectId={projectId}
         open={libraryOpen}
         onClose={() => setLibraryOpen(false)}
-        onCopied={() => setLibraryOpen(false)}
+        onCopied={() => {}}
       />
 
       {contextMenu ? (
