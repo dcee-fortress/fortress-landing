@@ -9,12 +9,20 @@ import MaterialScheduleFormulaCell from "@/components/project/MaterialScheduleFo
 import { subscribeGroveStore } from "@/lib/groveClientStore"
 import { useEntryUndo } from "@/lib/useEntryUndo"
 import {
+  createGrandTotalRow,
+  createPlantSubRow,
+  isGrandTotalRow,
   isPlantSubRow,
   listBoqAnalysisItems,
   mergeActualCostAnalysisWithBoq,
+  parentHasPlantRows,
+  PLANT_COST_COLUMN_KEYS,
   RATE_BUILD_UP_COLUMNS,
+  RATE_COLUMN_KEYS,
   resolveActualCostAnalysisRow,
+  resolveGrandTotalRow,
   saveActualCostAnalysisRows,
+  stripRateFieldsFromRow,
   syncBoqRatesFromBuildUp,
 } from "@/lib/actualCostAnalysis"
 import {
@@ -34,8 +42,16 @@ import { getRateAnalysisHubHref } from "@/lib/rateAnalysis"
 import { applyZimBuildSuggestionToRow } from "@/lib/zimBuildQs"
 
 function computedDisplay(row, key) {
-  if (key === "fuelCost" || key === "plantCost" || key === "totalCost") {
-    if (row[key] === null || row[key] === undefined) return "—"
+  if (key === "fuelCost" || key === "plantCost" || key === "totalCost" || key === "laborCost" || key === "materialCost") {
+    if (row[key] === null || row[key] === undefined) {
+      if (key === "laborCost" && row.resolvedLaborCost != null) {
+        return formatMaterialCurrencyAmount(row.resolvedLaborCost)
+      }
+      if (key === "materialCost" && row.resolvedMaterialCost != null) {
+        return formatMaterialCurrencyAmount(row.resolvedMaterialCost)
+      }
+      return "—"
+    }
     return formatMaterialCurrencyAmount(row[key])
   }
   if (key === "rate" || key === "billRate" || key === "allowableRate") return formatMaterialRate(row[key])
@@ -59,6 +75,46 @@ function acceptPercentEntry(value, formula) {
   if (!text) return { value: "", formula: "" }
   if (!/^\d+(\.\d+)?\s*%?$/.test(text)) return null
   return { value: text.replace("%", "").trim(), formula: "" }
+}
+
+function findParentRow(rows, row) {
+  if (!row?.parentId) return null
+  return rows.find((item) => item.id === row.parentId) ?? null
+}
+
+function groupCostRows(rows, parentId) {
+  return rows.filter(
+    (row) =>
+      row.id === parentId || (isPlantSubRow(row) && row.parentId === parentId)
+  )
+}
+
+function shouldShowColumn(row, columnKey, rows) {
+  if (columnKey === "activityDescription") return true
+
+  if (isGrandTotalRow(row)) {
+    return (
+      columnKey === "plantCost" ||
+      columnKey === "laborCost" ||
+      columnKey === "materialCost" ||
+      columnKey === "totalCost" ||
+      RATE_COLUMN_KEYS.has(columnKey)
+    )
+  }
+
+  const parentId = isPlantSubRow(row) ? row.parentId : row.id
+  const inPlantMode = parentHasPlantRows(rows, parentId)
+
+  if (isPlantSubRow(row)) {
+    return PLANT_COST_COLUMN_KEYS.has(columnKey)
+  }
+
+  if (inPlantMode) {
+    // Main activity row: description + plant name (+) + cost fields; rates move to Grand total.
+    return columnKey === "plantName" || PLANT_COST_COLUMN_KEYS.has(columnKey)
+  }
+
+  return true
 }
 
 export default function ActualCostAnalysisView({ projectId, projectName, onClose }) {
@@ -85,14 +141,12 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
       flushPersist(next, { syncBoq: true, remember: true })
       return
     }
-    // Keep typing snappy: save locally first, push BOQ rates after idle.
     flushPersist(next, { syncBoq: false, remember: true })
     persistTimerRef.current = window.setTimeout(() => {
       flushPersist(rowsRef.current, { syncBoq: true, remember: true })
     }, 700)
   }
 
-  // Lock page scroll while the Rate build up template is open.
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     const previousHtmlOverflow = document.documentElement.style.overflow
@@ -119,13 +173,19 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
     }
 
     load()
-    // Only reload when the BOQ itself changes — not on every shared-storage version bump.
     return subscribeGroveStore((key) => {
       if (key === BOQ_STORAGE_KEY) load()
     })
   }, [projectId, clearUndo])
 
-  const resolvedRows = useMemo(() => rows.map(resolveActualCostAnalysisRow), [rows])
+  const resolvedRows = useMemo(() => {
+    return rows.map((row) => {
+      if (isGrandTotalRow(row)) {
+        return resolveGrandTotalRow(row, groupCostRows(rows, row.parentId))
+      }
+      return resolveActualCostAnalysisRow(row)
+    })
+  }, [rows])
 
   const exportToPdf = async () => {
     const { exportRateBuildUpPdf } = await import("@/lib/rateBuildUpPdf")
@@ -145,12 +205,89 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
     })
   }
 
+  const addPlantSubRow = (anchorIndex) => {
+    setRows((current) => {
+      const anchor = current[anchorIndex]
+      if (!anchor || isGrandTotalRow(anchor)) return current
+
+      const parent = isPlantSubRow(anchor) ? findParentRow(current, anchor) : anchor
+      if (!parent || isPlantSubRow(parent) || isGrandTotalRow(parent)) return current
+
+      trackBeforeChange(current)
+      const plant = createPlantSubRow(parent)
+      const parentIndex = current.findIndex((row) => row.id === parent.id)
+      if (parentIndex < 0) return current
+
+      let insertAt = parentIndex + 1
+      while (
+        insertAt < current.length &&
+        isPlantSubRow(current[insertAt]) &&
+        current[insertAt].parentId === parent.id
+      ) {
+        insertAt += 1
+      }
+
+      const alreadyHasGrand = current.some(
+        (row) => isGrandTotalRow(row) && row.parentId === parent.id
+      )
+      const next = [...current]
+      next.splice(insertAt, 0, plant)
+
+      if (!alreadyHasGrand) {
+        const liveParent = next[parentIndex]
+        const grand = createGrandTotalRow(liveParent)
+        next[parentIndex] = {
+          ...stripRateFieldsFromRow(liveParent),
+          unit: String(liveParent.unit ?? "").trim(),
+        }
+        let grandAt = parentIndex + 1
+        while (
+          grandAt < next.length &&
+          isPlantSubRow(next[grandAt]) &&
+          next[grandAt].parentId === parent.id
+        ) {
+          grandAt += 1
+        }
+        next.splice(grandAt, 0, grand)
+      }
+
+      persistRows(next)
+      return next
+    })
+  }
+
   const removePlantSubRow = (rowIndex) => {
     setRows((current) => {
       const target = current[rowIndex]
       if (!target || !isPlantSubRow(target)) return current
       trackBeforeChange(current)
-      const next = current.filter((_, index) => index !== rowIndex)
+      const parentId = target.parentId
+      let next = current.filter((_, index) => index !== rowIndex)
+      const remainingPlants = next.filter(
+        (row) => isPlantSubRow(row) && row.parentId === parentId
+      )
+
+      if (remainingPlants.length === 0) {
+        const grand = next.find((row) => isGrandTotalRow(row) && row.parentId === parentId)
+        next = next
+          .map((row) => {
+            if (row.id !== parentId) return row
+            return {
+              ...row,
+              unit: String(grand?.unit ?? row.unit ?? "").trim(),
+              production: String(grand?.production ?? "").trim(),
+              productionFormula: grand?.productionFormula ?? "",
+              overheads: String(grand?.overheads ?? "").trim(),
+              overheadsFormula: grand?.overheadsFormula ?? "",
+              profit: String(grand?.profit ?? "").trim(),
+              profitFormula: grand?.profitFormula ?? "",
+              allowablePercentage: String(grand?.allowablePercentage ?? "").trim(),
+              allowablePercentageFormula: grand?.allowablePercentageFormula ?? "",
+            }
+          })
+          .filter((row) => !(isGrandTotalRow(row) && row.parentId === parentId))
+      }
+
       persistRows(next)
       return next
     })
@@ -158,7 +295,7 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
 
   const deleteRow = (rowIndex) => {
     const target = rows[rowIndex]
-    if (!target) return
+    if (!target || isGrandTotalRow(target)) return
 
     if (isPlantSubRow(target)) {
       const label = String(target.plantName ?? "").trim() || "this plant row"
@@ -234,6 +371,132 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
       </Link>
     )
 
+  const renderCell = (row, rowIndex, column, resolved) => {
+    const visible = shouldShowColumn(row, column.key, rows)
+    if (!visible) {
+      return <div className="px-2 py-1.5 text-zinc-300">—</div>
+    }
+
+    const grand = isGrandTotalRow(row)
+    const plantSub = isPlantSubRow(row)
+
+    if (column.key === "activityDescription") {
+      if (grand) {
+        return (
+          <p className="px-1 text-sm font-semibold text-zinc-900">Grand total</p>
+        )
+      }
+      if (plantSub) {
+        return <span className="block px-1 text-xs text-zinc-400">└ plant</span>
+      }
+      const zim = row.zimBuildSuggestion
+      return (
+        <div className="group relative space-y-2">
+          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-snug text-zinc-900">
+            {row.activityDescription}
+          </p>
+          {zim ? (
+            <div className="pointer-events-none invisible absolute left-0 top-full z-30 mt-1 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-600 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100">
+              <p className="font-medium text-zinc-700">ZimBuild QS suggestion</p>
+              <p>
+                Daily cost {formatMaterialCurrencyAmount(zim.dailyCost)} · Daily production{" "}
+                {formatMaterialAmount(zim.dailyProduction)}
+                {zim.unit ? ` ${zim.unit}` : ""}
+              </p>
+              <button
+                type="button"
+                onClick={() => applyZimBuild(rowIndex)}
+                className="mt-1 font-medium text-zinc-800 underline-offset-2 hover:underline"
+              >
+                Apply suggestion
+              </button>
+            </div>
+          ) : null}
+        </div>
+      )
+    }
+
+    if (column.key === "plantName" && !grand) {
+      return (
+        <div className="relative pb-7">
+          <MaterialScheduleFormulaCell
+            projectId={projectId}
+            description={row.activityDescription}
+            columnKey={column.key}
+            rawValue={row[column.key] ?? ""}
+            formulaValue={row[`${column.key}Formula`] ?? ""}
+            align={column.align}
+            numeric={false}
+            wrapText
+            columnLabel={column.label}
+            onChange={(value, formula) => updateRow(rowIndex, column.key, value, formula, false)}
+          />
+          <button
+            type="button"
+            onClick={() => addPlantSubRow(rowIndex)}
+            title="Add plant row"
+            className="absolute bottom-0 right-0 inline-flex h-6 w-6 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 shadow-sm transition hover:border-zinc-400 hover:bg-zinc-50"
+          >
+            <Icon name="plus" size={14} />
+          </button>
+        </div>
+      )
+    }
+
+    if (grand) {
+      if (
+        column.key === "plantCost" ||
+        column.key === "laborCost" ||
+        column.key === "materialCost" ||
+        column.key === "totalCost" ||
+        column.key === "rate" ||
+        column.key === "billRate" ||
+        column.key === "allowableRate"
+      ) {
+        return (
+          <div className="px-2 py-1.5 text-right text-sm font-semibold tabular-nums text-zinc-900">
+            {computedDisplay(resolved, column.key)}
+          </div>
+        )
+      }
+    }
+
+    if (column.computed) {
+      return (
+        <div className="px-2 py-1.5 text-right text-sm font-medium tabular-nums text-zinc-900">
+          {computedDisplay(resolved, column.key)}
+        </div>
+      )
+    }
+
+    return (
+      <MaterialScheduleFormulaCell
+        projectId={projectId}
+        description={row.activityDescription}
+        columnKey={column.key}
+        rawValue={row[column.key] ?? ""}
+        formulaValue={row[`${column.key}Formula`] ?? ""}
+        align={column.align}
+        numeric={Boolean(column.numeric)}
+        wrapText={column.key === "plantName"}
+        columnLabel={column.label}
+        formatDisplay={
+          column.percent
+            ? (value) =>
+                String(value ?? "").trim() === ""
+                  ? ""
+                  : `${String(value).replace("%", "").trim()}%`
+            : column.numeric
+              ? (value) => formatEntryDisplay(column.key, value)
+              : undefined
+        }
+        onChange={(value, formula) =>
+          updateRow(rowIndex, column.key, value, formula, Boolean(column.percent))
+        }
+      />
+    )
+  }
+
   return (
     <div
       className="fixed inset-0 z-[120] flex items-stretch justify-center bg-zinc-950/45 p-2 sm:p-4"
@@ -294,12 +557,18 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
               <tbody>
                 {rows.map((row, rowIndex) => {
                   const resolved = resolvedRows[rowIndex]
-                  const zim = row.zimBuildSuggestion
                   const plantSub = isPlantSubRow(row)
+                  const grand = isGrandTotalRow(row)
                   return (
                     <tr
                       key={row.id}
-                      className={`border-b border-zinc-200 align-top ${plantSub ? "bg-zinc-50/80" : "bg-white"}`}
+                      className={`border-b border-zinc-200 align-top ${
+                        grand
+                          ? "bg-amber-50/70"
+                          : plantSub
+                            ? "bg-zinc-50/80"
+                            : "bg-white"
+                      }`}
                     >
                       {RATE_BUILD_UP_COLUMNS.map((column) => (
                         <td
@@ -312,74 +581,20 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
                                 : ""
                           }`}
                         >
-                          {column.key === "activityDescription" ? (
-                            plantSub ? (
-                              <span className="block px-1 text-xs text-zinc-400">└ plant</span>
-                            ) : (
-                              <div className="group relative space-y-2">
-                                <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-snug text-zinc-900">
-                                  {row.activityDescription}
-                                </p>
-                                {zim ? (
-                                  <div className="pointer-events-none invisible absolute left-0 top-full z-30 mt-1 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-600 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100">
-                                    <p className="font-medium text-zinc-700">ZimBuild QS suggestion</p>
-                                    <p>
-                                      Daily cost {formatMaterialCurrencyAmount(zim.dailyCost)} · Daily
-                                      production {formatMaterialAmount(zim.dailyProduction)}
-                                      {zim.unit ? ` ${zim.unit}` : ""}
-                                    </p>
-                                    <button
-                                      type="button"
-                                      onClick={() => applyZimBuild(rowIndex)}
-                                      className="mt-1 font-medium text-zinc-800 underline-offset-2 hover:underline"
-                                    >
-                                      Apply suggestion
-                                    </button>
-                                  </div>
-                                ) : null}
-                              </div>
-                            )
-                          ) : column.computed ? (
-                            <div className="px-2 py-1.5 text-right text-sm font-medium tabular-nums text-zinc-900">
-                              {computedDisplay(resolved, column.key)}
-                            </div>
-                          ) : (
-                            <MaterialScheduleFormulaCell
-                              projectId={projectId}
-                              description={row.activityDescription}
-                              columnKey={column.key}
-                              rawValue={row[column.key] ?? ""}
-                              formulaValue={row[`${column.key}Formula`] ?? ""}
-                              align={column.align}
-                              numeric={Boolean(column.numeric)}
-                              wrapText={column.key === "plantName"}
-                              columnLabel={column.label}
-                              formatDisplay={
-                                column.percent
-                                  ? (value) =>
-                                      String(value ?? "").trim() === ""
-                                        ? ""
-                                        : `${String(value).replace("%", "").trim()}%`
-                                  : column.numeric
-                                    ? (value) => formatEntryDisplay(column.key, value)
-                                    : undefined
-                              }
-                              onChange={(value, formula) =>
-                                updateRow(rowIndex, column.key, value, formula, Boolean(column.percent))
-                              }
-                            />
-                          )}
+                          {renderCell(row, rowIndex, column, resolved)}
                         </td>
                       ))}
                       <td className="px-3 py-3 text-right align-top">
-                        <button
-                          type="button"
-                          onClick={() => deleteRow(rowIndex)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
-                        >
-                          <Icon name="trash-2" size={13} />
-                          Delete
-                        </button>
+                        {grand ? null : (
+                          <button
+                            type="button"
+                            onClick={() => deleteRow(rowIndex)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50"
+                          >
+                            <Icon name="trash-2" size={13} />
+                            Delete
+                          </button>
+                        )}
                       </td>
                     </tr>
                   )
@@ -391,7 +606,8 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
 
         <p className="shrink-0 border-t border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 sm:px-5">
           Plant cost = fuel cost + plant hire. Daily cost (total) = labour + plant + material. Actual
-          rate = Daily cost ÷ Daily production. Bill rate adds overheads and profit.
+          rate = Daily cost ÷ Daily production. Bill rate adds overheads and profit. Use + on Plant
+          name to add plant rows; rates then sit on the Grand total row.
         </p>
       </div>
     </div>
