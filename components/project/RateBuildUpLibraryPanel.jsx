@@ -271,7 +271,9 @@ export default function RateBuildUpLibraryPanel({
                           >
                             <div
                               className={`whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-snug ${
-                                grand &&
+                                column.key === "billRate"
+                                  ? "text-base font-bold text-zinc-950"
+                                  : grand &&
                                 (column.key === "activityDescription" ||
                                   column.key === "totalCost" ||
                                   column.key === "plantCost" ||

@@ -105,7 +105,6 @@ function groupCostRows(rows, parentId) {
 
 function shouldShowColumn(row, columnKey, rows) {
   if (columnKey === "activityDescription") return true
-  if (columnKey === "boqQuantity") return !isGrandTotalRow(row) && !isPlantSubRow(row)
 
   if (isGrandTotalRow(row)) {
     return (
@@ -592,14 +591,6 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
       )
     }
 
-    if (column.key === "boqQuantity") {
-      return (
-        <span className="block px-2 py-1.5 text-right text-sm tabular-nums text-zinc-900">
-          {String(row.boqQuantity ?? "").trim() || "—"}
-        </span>
-      )
-    }
-
     if (column.key === "plantName" && !grand) {
       return (
         <div className="relative pb-7">
@@ -638,7 +629,13 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
         column.key === "allowableRate"
       ) {
         return (
-          <div className="px-2 py-1.5 text-right text-sm font-semibold tabular-nums text-zinc-900">
+          <div
+            className={`px-2 py-1.5 text-right tabular-nums ${
+              column.key === "billRate"
+                ? "text-base font-bold text-zinc-950"
+                : "text-sm font-semibold text-zinc-900"
+            }`}
+          >
             {computedDisplay(resolved, column.key)}
           </div>
         )
@@ -647,7 +644,13 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
 
     if (column.computed || column.key === "materialCost") {
       return (
-        <div className="px-2 py-1.5 text-right text-sm font-medium tabular-nums text-zinc-900">
+        <div
+          className={`px-2 py-1.5 text-right tabular-nums ${
+            column.key === "billRate"
+              ? "text-base font-bold text-zinc-950"
+              : "text-sm font-medium text-zinc-900"
+          }`}
+        >
           {computedDisplay(resolved, column.key)}
         </div>
       )

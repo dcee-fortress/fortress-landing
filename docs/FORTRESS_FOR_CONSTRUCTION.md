@@ -8,24 +8,24 @@ Link the Client BOQ, Rate Build-up, Daily Production, and Cost Control into one 
 
 ## Full flow (one line)
 
-Upload Client BOQ FIRST → App reads BOQ descriptions → App creates Build-up Template FROM those descriptions → Vector Memory auto-fills Cost, Production & Rates ONLY for descriptions that match previous BOQs → User edits new descriptions fresh with ZimBuild QS suggestion → Build-up creates 3 rates (Actual = Daily Cost ÷ Daily Production, Bill, Allowable) → Those Build-up rates automatically write into the BOQ Template → Cost = Build-up Rate × BOQ Quantity → Junior QS enters Daily Production (BOQ-linked only) → Daily Valuations Dashboard updates → Head QS Overview calculates Actual Cost, Bill Cost, Allowable Cost & Margin automatically.
+Upload Client BOQ FIRST → App reads BOQ descriptions → App creates Build-up Template FROM those descriptions → Vector Memory auto-fills Cost, Production & Rates ONLY for descriptions that match previous BOQs → User edits new descriptions fresh with ZimBuild QS suggestion → Build-up creates 3 rates (Actual = Daily Cost ÷ Daily Production, Bill, Allowable) → Those Build-up rates automatically write into the BOQ Template → Bill cost = Bill Rate × BOQ Quantity → Junior QS enters Daily Production (BOQ-linked only) → Daily Valuations Dashboard updates → Head QS Overview calculates Actual Cost, Bill Cost, Allowable Cost & Margin automatically.
 
 ---
 
 ## 1. Upload Client BOQ first
 
 - The user uploads the Client BOQ first. This is step 1, always.
-- The app reads that BOQ and extracts:
-  - **Activity Description** for each activity
-  - **BOQ Quantity / Cumulative Production** for each activity
+- The app reads that BOQ and extracts the **Bill Number**, **Activity Description**, **Unit**, and
+  **BOQ Quantity** for each activity.
+- Uploaded rates and costs are not used as Rate Build-up values.
 - Those BOQ descriptions are the foundation for everything else. Nothing exists outside the BOQ descriptions.
 
 ## 2. Build-up Rate Template from BOQ descriptions
 
 - After the BOQ is uploaded and read, Fortress creates the Build-up Rate Template.
 - The template is **not blank**. It is pre-filled with the BOQ Activity Descriptions.
-- Each row keeps the uploaded Bill Number, Activity Description, Unit, and BOQ Quantity.
-- The rate build-up shows BOQ Quantity separately from Daily Production.
+- Each row is seeded with the uploaded Bill Number, Activity Description, and Unit.
+- BOQ Quantity stays on the BOQ template; it is not a Rate Build-up column.
 - **Important:** Daily Production inside the Build-up is **not** the BOQ quantity.
 - Daily Production is the quantity produced in a day.
   - Example: BOQ says 1,000 m² total; Build-up says we do 50 m² per day.
@@ -76,9 +76,10 @@ Never start from blank for work done before. For new work, start from ZimBuild Q
 Most Client BOQs arrive with missing Cost and Rate. Fortress fills them from the Build-up:
 
 - Rates from the Build-up Rate Template write into the BOQ Template.
-- Cost is calculated with the BOQ quantity:
+- Allowable rate and bill rate on the BOQ are read-only values from Rate Build-up.
+- Bill cost is calculated with the BOQ quantity:
 
-**Cost in BOQ = Build-up Rate × BOQ Quantity / Cumulative Production**
+**Bill cost in BOQ = Bill rate × BOQ Quantity**
 
 Result: a complete Client BOQ with Rate and Cost filled from the Build-up.
 

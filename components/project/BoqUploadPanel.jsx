@@ -34,6 +34,14 @@ function templateBoq(projectId, boq) {
   return { ...boq, items: applyRateBuildUpRates(projectId, boq.items) }
 }
 
+const UPLOADED_RATE_KEYS = new Set(["rate", "billRate", "allowableRate", "actualRate", "cost"])
+
+function stripUploadedRates(items) {
+  return items.map((item) =>
+    Object.fromEntries(Object.entries(item).filter(([key]) => !UPLOADED_RATE_KEYS.has(key)))
+  )
+}
+
 export default function BoqUploadPanel({ projectId, projectName = "Project", onUploaded, version = 0 }) {
   const inputRef = useRef(null)
   const [status, setStatus] = useState("")
@@ -89,7 +97,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
     setStatus("")
 
     try {
-      const items = await parseBoqFile(file)
+      const items = stripUploadedRates(await parseBoqFile(file))
 
       if (items.length === 0) {
         setStatus(
@@ -215,8 +223,8 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
               Upload a BOQ
             </h2>
             <p className="mt-1 text-sm text-emerald-950/80">
-              Upload a bill of quantities as PDF or Excel. The app reads the descriptions, quantities, and
-              rates. Rate build up uses each BOQ quantity as production.
+              Upload a bill of quantities as PDF or Excel. The app reads bill number, description, unit, and
+              BOQ quantity. Enter daily production separately in Rate build up.
             </p>
             {projectBoqs.length > 0 ? (
               <ul className="mt-3 space-y-2">
@@ -299,8 +307,8 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
                 BOQ template
               </div>
               <p className="border-b border-emerald-100 px-3 py-2 text-xs text-emerald-900/80">
-                Quantity is the quantity read from the file. Bill rate and allowable rate show the rates
-                from Rate build up once those have been calculated.
+                Uploaded values are bill number, description, unit, and BOQ quantity. Rates come from Rate
+                build up; Bill cost = bill rate × BOQ quantity.
               </p>
               <div className="max-h-80 overflow-auto">
                 <table className="min-w-full border-collapse text-sm">
@@ -324,6 +332,9 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
                       <th className="border-b border-emerald-100 px-3 py-2 text-right font-semibold text-emerald-950">
                         Bill rate
                       </th>
+                      <th className="border-b border-emerald-100 px-3 py-2 text-right font-semibold text-emerald-950">
+                        Bill cost
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -341,7 +352,10 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
                           {formatBoqRate(item.allowableRate)}
                         </td>
                         <td className="border-b border-emerald-50 px-3 py-2 text-right tabular-nums text-zinc-900">
-                          {formatBoqRate(item.billRate ?? item.rate)}
+                          {formatBoqRate(item.billRate)}
+                        </td>
+                        <td className="border-b border-emerald-50 px-3 py-2 text-right tabular-nums font-semibold text-zinc-900">
+                          {formatBoqRate(item.cost)}
                         </td>
                       </tr>
                     ))}
