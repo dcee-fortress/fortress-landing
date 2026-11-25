@@ -71,7 +71,11 @@ function formatEntryDisplay(columnKey, value) {
   if (isFormula(value)) return String(value)
   const numeric = parsePlantCostAmount(value)
   if (numeric === null) return String(value ?? "")
-  if (columnKey === "production" || columnKey === "fuelAllocated" || columnKey === "materialQty") {
+  if (
+    columnKey === "production" ||
+    columnKey === "fuelAllocated" ||
+    columnKey === "materialQty"
+  ) {
     return formatMaterialAmount(numeric)
   }
   // unitPrice, fuelPrice, plantHire, laborCost, etc.
@@ -101,6 +105,7 @@ function groupCostRows(rows, parentId) {
 
 function shouldShowColumn(row, columnKey, rows) {
   if (columnKey === "activityDescription") return true
+  if (columnKey === "boqQuantity") return !isGrandTotalRow(row) && !isPlantSubRow(row)
 
   if (isGrandTotalRow(row)) {
     return (
@@ -244,29 +249,15 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
     exportRateBuildUpPdf({ projectName, rows })
   }
 
-  const syncBoqDescription = (row, previousDescription, nextDescription) => {
-    const nextText = String(nextDescription ?? "").trim()
-    const prevText = String(previousDescription ?? "").trim()
-    if (!nextText || nextText === prevText) return
-    const prevKey = normalizeBoqDescription(prevText)
-    for (const boq of getProjectBoqs(projectId)) {
-      let changed = false
-      const items = (boq.items ?? []).map((item) => {
-        const sameId = row?.boqItemId && item.id === row.boqItemId
-        const sameName = prevKey && normalizeBoqDescription(item.itemName) === prevKey
-        if (!sameId && !sameName) return item
-        changed = true
-        return { ...item, itemName: nextText }
-      })
-      if (changed) updateProjectBoqItems(projectId, boq.id, items)
-    }
-  }
-
   const updateRow = (rowIndex, field, value, formula = "", percentOnly = false) => {
+    const row = rowsRef.current[rowIndex]
+    if (field === "activityDescription" && row?.boqId && row?.boqItemId && !row.userAdded) {
+      return
+    }
+
     const entry = percentOnly ? acceptPercentEntry(value, formula) : { value, formula }
     if (!entry) return
     trackBeforeChange(rowsRef.current, `${rowIndex}:${field}`)
-    const previous = rowsRef.current[rowIndex]
     setRows((current) => {
       const next = current.map((row, index) =>
         index === rowIndex ? { ...row, [field]: entry.value, [`${field}Formula`]: entry.formula } : row
@@ -275,9 +266,6 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
       persistRows(next)
       return next
     })
-    if (field === "activityDescription" && previous && !isPlantSubRow(previous) && !isGrandTotalRow(previous)) {
-      syncBoqDescription(previous, previous.activityDescription, entry.value)
-    }
   }
 
   const addActivityRow = () => {
@@ -285,9 +273,15 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
     endEditSession()
     const stamp = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
     const boqItemId = `boq-user-${stamp}`
+    const target = getProjectBoqs(projectId)[0]
     const description = "New activity"
     const row = {
-      ...emptyActualCostAnalysisRow({ id: `aca-user-${stamp}`, itemName: description }),
+      ...emptyActualCostAnalysisRow({
+        id: `aca-user-${stamp}`,
+        itemName: description,
+        boqId: target?.id,
+        boqItemId,
+      }),
       activityDescription: description,
       userAdded: true,
       boqItemId,
@@ -301,8 +295,6 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
     setTableEpoch((value) => value + 1)
     persistRows(next, { immediate: true })
 
-    const boqs = getProjectBoqs(projectId)
-    const target = boqs[0]
     if (target) {
       updateProjectBoqItems(projectId, target.id, [
         ...(target.items ?? []),
@@ -416,11 +408,10 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
 
     const label = String(target.activityDescription ?? "").trim() || "this row"
     const confirmed = window.confirm(
-      `Delete "${label}" from Rate build up?\n\nIt will also be removed from the BOQ and every page that uses this description.`
+      `Delete "${label}" from Rate build up?\n\nIt will also be removed from its BOQ.`
     )
     if (!confirmed) return
 
-    const needle = normalizeBoqDescription(target.activityDescription)
     trackBeforeChange(rowsRef.current)
     endEditSession()
     const next = rowsRef.current.filter(
@@ -431,14 +422,31 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
     setTableEpoch((value) => value + 1)
     persistRows(next)
 
-    if (needle) {
-      for (const boq of getProjectBoqs(projectId)) {
-        const items = (boq.items ?? []).filter(
-          (item) => normalizeBoqDescription(item.itemName) !== needle
+    let targetBoq = target.boqId
+      ? getProjectBoqs(projectId).find((boq) => boq.id === target.boqId)
+      : null
+    const needle = normalizeBoqDescription(target.activityDescription)
+    if (!targetBoq && needle) {
+      const matches = getProjectBoqs(projectId).filter((boq) =>
+        (boq.items ?? []).some(
+          (item) =>
+            normalizeBoqDescription(item.itemName) === needle &&
+            (!target.billNo || String(item.itemNo ?? "").trim() === String(target.billNo).trim())
         )
-        if (items.length !== (boq.items ?? []).length) {
-          updateProjectBoqItems(projectId, boq.id, items)
-        }
+      )
+      if (matches.length === 1) targetBoq = matches[0]
+    }
+    if (targetBoq) {
+      const items = (targetBoq.items ?? []).filter((item) =>
+        target.boqItemId
+          ? item.id !== target.boqItemId
+          : !(
+              normalizeBoqDescription(item.itemName) === needle &&
+              (!target.billNo || String(item.itemNo ?? "").trim() === String(target.billNo).trim())
+            )
+      )
+      if (items.length !== targetBoq.items.length) {
+        updateProjectBoqItems(projectId, targetBoq.id, items)
       }
     }
   }
@@ -531,20 +539,30 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
         return <span className="block px-1 text-xs text-zinc-400">└ plant</span>
       }
       const zim = row.zimBuildSuggestion
+      const isImportedBoqItem = Boolean(row.boqId && row.boqItemId && !row.userAdded)
       return (
         <div className="group relative space-y-2">
-          <MaterialScheduleFormulaCell
-            projectId={projectId}
-            description={row.activityDescription}
-            columnKey="activityDescription"
-            rawValue={row.activityDescription ?? ""}
-            formulaValue=""
-            align="left"
-            numeric={false}
-            wrapText
-            columnLabel="Activity description"
-            onChange={(value) => updateRow(rowIndex, "activityDescription", value, "", false)}
-          />
+          {isImportedBoqItem ? (
+            <p
+              className="whitespace-pre-wrap px-1 text-sm text-zinc-900"
+              title="This description comes from the uploaded BOQ. Edit it in the BOQ data viewer."
+            >
+              {row.activityDescription}
+            </p>
+          ) : (
+            <MaterialScheduleFormulaCell
+              projectId={projectId}
+              description={row.activityDescription}
+              columnKey="activityDescription"
+              rawValue={row.activityDescription ?? ""}
+              formulaValue=""
+              align="left"
+              numeric={false}
+              wrapText
+              columnLabel="Activity description"
+              onChange={(value) => updateRow(rowIndex, "activityDescription", value, "", false)}
+            />
+          )}
           {zim ? (
             <div className="pointer-events-none invisible absolute left-0 top-full z-30 mt-1 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-600 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100">
               <p className="font-medium text-zinc-700">ZimBuild QS suggestion</p>
@@ -563,6 +581,22 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
             </div>
           ) : null}
         </div>
+      )
+    }
+
+    if (column.key === "billNo") {
+      return (
+        <span className="block px-2 py-1.5 text-sm tabular-nums text-zinc-900">
+          {!grand && !plantSub ? String(row.billNo ?? "").trim() || "—" : "—"}
+        </span>
+      )
+    }
+
+    if (column.key === "boqQuantity") {
+      return (
+        <span className="block px-2 py-1.5 text-right text-sm tabular-nums text-zinc-900">
+          {String(row.boqQuantity ?? "").trim() || "—"}
+        </span>
       )
     }
 

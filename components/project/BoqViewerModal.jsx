@@ -3,7 +3,6 @@
 import { useState } from "react"
 import Icon from "@/components/icon/icon"
 import { formatBoqRate, parseBoqRateInput } from "@/lib/boqData"
-import { formatBoqBillNumber } from "@/lib/boqNumberedRows"
 
 function draftCost(item) {
   if (item?.cost !== null && item?.cost !== undefined && String(item.cost).trim() !== "") {
@@ -197,7 +196,7 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
                     {editable ? (
                       <input
                         type="text"
-                        value={formatBoqBillNumber(item.itemNo) || item.itemNo || ""}
+                        value={item.itemNo || ""}
                         onChange={(event) => {
                           const raw = event.target.value.trim()
                           const stored = String(item.itemNo ?? "")
@@ -214,14 +213,14 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
                       />
                     ) : (
                       <span className="block px-1 text-sm tabular-nums font-medium text-zinc-900">
-                        {formatBoqBillNumber(item.itemNo) || "—"}
+                        {item.itemNo || "—"}
                       </span>
                     )}
                   </td>
                   <td className="border border-zinc-200 px-2 py-1.5 align-top min-w-[18rem] max-w-[28rem]">
                     {editable ? (
                       <textarea
-                        rows={Math.min(8, Math.max(2, Math.ceil(String(item.itemName ?? "").length / 48)))}
+                        rows={Math.max(2, Math.ceil(String(item.itemName ?? "").length / 48))}
                         value={item.itemName}
                         onChange={(event) => updateItem(item.id, "itemName", event.target.value)}
                         className="w-full resize-y rounded border border-zinc-200 bg-white px-2 py-1.5 text-sm leading-snug text-zinc-900 whitespace-pre-wrap break-words outline-none ring-emerald-600/20 focus:border-emerald-400 focus:ring-2"

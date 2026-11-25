@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useEntrySuggestions } from "@/components/project/EntrySuggestionMenu"
 import { findBoqItemForDescription, getAllBoqItemNames, searchBoqDescriptions } from "@/lib/boqData"
 import { searchDescriptionSuggestions } from "@/lib/boqDescriptionMemory"
@@ -12,19 +12,22 @@ export default function ActivityDescriptionInput({
   slotId,
   value,
   onChange,
+  sourceItem = null,
   extraDescriptions = null,
   refreshKey = 0,
   boqOnly = false,
 }) {
   const committedRef = useRef(value)
-  const editingRef = useRef(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [draftValue, setDraftValue] = useState(value ?? "")
 
   useEffect(() => {
-    if (!boqOnly || editingRef.current) return
-    if (findBoqItemForDescription(projectId, value)) {
-      committedRef.current = value
-    }
-  }, [boqOnly, projectId, value])
+    if (isEditing) return
+    const text = value ?? ""
+    if (!boqOnly) return
+    const match = findBoqItemForDescription(projectId, text, sourceItem)
+    if (match) committedRef.current = match.itemName
+  }, [boqOnly, isEditing, projectId, sourceItem, value])
 
   const extraDescriptionsResolved = useMemo(() => {
     if (extraDescriptions) return extraDescriptions
@@ -35,14 +38,15 @@ export default function ActivityDescriptionInput({
     return [...fromBoq, ...fromSlot]
   }, [projectId, dayId, slotId, refreshKey, extraDescriptions])
 
-  const acceptDescription = (next) => {
+  const acceptDescription = (next, selectedItem = null) => {
     if (!boqOnly) {
+      setDraftValue(next)
       onChange(next)
       return
     }
 
-    const match = findBoqItemForDescription(projectId, next)
-    editingRef.current = false
+    const match = findBoqItemForDescription(projectId, next, selectedItem)
+    setIsEditing(false)
     if (!match) return
     committedRef.current = match.itemName
     onChange(match.itemName)
@@ -74,25 +78,32 @@ export default function ActivityDescriptionInput({
         autoCorrect="off"
         autoCapitalize="sentences"
         enterKeyHint="enter"
-        value={value}
+        value={isEditing ? draftValue : value ?? ""}
         onChange={(event) => {
-          editingRef.current = true
-          onChange(event.target.value)
-          suggestions.update(event.target.value, event.currentTarget)
+          const next = event.target.value
+          setDraftValue(next)
+          if (boqOnly) {
+            setIsEditing(true)
+          } else {
+            onChange(next)
+          }
+          suggestions.update(next, event.currentTarget)
         }}
         onFocus={(event) => suggestions.update(event.currentTarget.value, event.currentTarget)}
         onBlur={(event) => {
           suggestions.close()
-          if (!boqOnly || !editingRef.current) return
-          editingRef.current = false
-          const match = findBoqItemForDescription(projectId, event.currentTarget.value)
+          if (!boqOnly || !isEditing) return
+          setIsEditing(false)
+          const match = findBoqItemForDescription(projectId, event.currentTarget.value, sourceItem)
           if (match) {
             committedRef.current = match.itemName
-            if (match.itemName !== event.currentTarget.value) onChange(match.itemName)
+            onChange(match.itemName)
             return
           }
           const previous = findBoqItemForDescription(projectId, committedRef.current)
-          onChange(previous ? previous.itemName : "")
+          const restored = previous ? previous.itemName : ""
+          committedRef.current = restored
+          setDraftValue(restored)
         }}
         onKeyDown={(event) => {
           suggestions.handleKeyDown(event)

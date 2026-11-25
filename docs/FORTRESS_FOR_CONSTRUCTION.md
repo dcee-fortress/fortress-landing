@@ -24,8 +24,10 @@ Upload Client BOQ FIRST → App reads BOQ descriptions → App creates Build-up 
 
 - After the BOQ is uploaded and read, Fortress creates the Build-up Rate Template.
 - The template is **not blank**. It is pre-filled with the BOQ Activity Descriptions.
-- **Important:** Quantities inside the Build-up are **not** the BOQ quantities.
-- Build-up quantities are **Daily Production** (production done in a day).
+- Each row keeps the uploaded Bill Number, Activity Description, Unit, and BOQ Quantity.
+- The rate build-up shows BOQ Quantity separately from Daily Production.
+- **Important:** Daily Production inside the Build-up is **not** the BOQ quantity.
+- Daily Production is the quantity produced in a day.
   - Example: BOQ says 1,000 m² total; Build-up says we do 50 m² per day.
 - For each BOQ Activity Description there is a matching Build-up row waiting for Daily Cost and Daily Production.
 

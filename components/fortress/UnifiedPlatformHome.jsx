@@ -7,6 +7,8 @@ import FortressApp from "@/components/fortress/App"
 import { RODCROFT_CHADCOMBE_PROJECT_ID } from "@/components/fortress/fortressMetadata"
 
 const RODCROFT_HOSTS = new Set([
+  "localhost",
+  "127.0.0.1",
   "fortress-zw.vercel.app",
   "www.fortress-zw.vercel.app",
   "fortress-zw.com",
@@ -24,7 +26,14 @@ export default function UnifiedPlatformHome({ initialHost = "" }) {
       ? window.location.hostname.toLowerCase()
       : String(initialHost || "").toLowerCase().split(":")[0]
 
-  const isRodcroftHost = RODCROFT_HOSTS.has(host)
+  const localTenant =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("subdomain")?.toLowerCase()
+      : ""
+  const isRodcroftHost =
+    RODCROFT_HOSTS.has(host) ||
+    host === "rodcroft.localhost" ||
+    localTenant === "rodcroft"
   const isLegacyRodcroftDirect =
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("mode") === "rodcroft-native"

@@ -63,8 +63,8 @@ export function useEntrySuggestions(search, apply, { enterSelects = false, below
   const close = useCallback(() => setOpen(null), [])
   useCloseOnOutsideScroll(isOpen, close)
 
-  const choose = (value) => {
-    apply(value)
+  const choose = (value, selectedItem = null) => {
+    apply(value, selectedItem)
     close()
   }
 
@@ -78,7 +78,7 @@ export function useEntrySuggestions(search, apply, { enterSelects = false, below
       count: suggestions.length,
       highlighted,
       setActiveIndex,
-      choose: (index) => choose(suggestions[index].value),
+      choose: (index) => choose(suggestions[index].value, suggestions[index]),
       close,
       enterSelects,
     })
@@ -203,11 +203,11 @@ export function SuggestionCard({
         style={{ maxHeight: placement ? placement.listMaxHeight : 288 }}
       >
         {items.map((item, index) => (
-          <li key={item.key} role="option" aria-selected={index === activeIndex} data-index={index}>
+          <li key={item.key ?? item.value} role="option" aria-selected={index === activeIndex} data-index={index}>
             <button
               type="button"
               onMouseEnter={() => onHover(index)}
-              onClick={() => onSelect(item.value)}
+              onClick={() => onSelect(item.value, item)}
               className={`block w-full border-l-2 px-3 py-2 text-left ${
                 index === activeIndex
                   ? "border-blue-500 bg-blue-50 text-blue-900"

@@ -197,7 +197,14 @@ function MaterialScheduleEditor({
     0
   )
 
-  const updateRow = useCallback((rowIndex, field, value, formula = "") => {
+  const updateRow = useCallback((rowIndex, field, value, formula = "", selectedBoqItem = null) => {
+    let boqItem = null
+    if (field === "activityDescription") {
+      const source = selectedBoqItem ?? rowsRef.current[rowIndex]
+      boqItem = findBoqItemForDescription(projectId, value, source)
+      if (!boqItem) return
+      value = boqItem.itemName
+    }
     hasEditedRef.current = true
     setSavedMessage("")
     const formulaField = getMaterialFormulaFieldKey(field)
@@ -207,6 +214,13 @@ function MaterialScheduleEditor({
         if (index !== rowIndex) return row
         return {
           ...row,
+          ...(boqItem
+            ? {
+                boqId: boqItem.boqId,
+                boqItemId: boqItem.boqItemId || boqItem.id,
+                billNo: boqItem.itemNo ?? "",
+              }
+            : {}),
           [field]: value,
           [formulaField]: formula,
         }
@@ -214,7 +228,7 @@ function MaterialScheduleEditor({
       rowsRef.current = next
       return next
     })
-  }, [trackBeforeChange])
+  }, [projectId, trackBeforeChange])
 
   const addRow = () => {
     markEdited()
@@ -631,9 +645,12 @@ function MaterialScheduleEditor({
                               dayId={dayId}
                               slotId={slotId}
                               value={rawValue}
+                              sourceItem={row}
                               extraDescriptions={activitySuggestions}
                               boqOnly
-                              onChange={(value) => updateRow(rowIndex, fieldKey, value)}
+                              onChange={(value, selectedBoqItem) =>
+                                updateRow(rowIndex, fieldKey, value, "", selectedBoqItem)
+                              }
                             />
                           ) : simplifiedEntry && column.computed ? (
                             <div

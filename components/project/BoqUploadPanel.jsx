@@ -1,10 +1,12 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Icon from "@/components/icon/icon"
 import BoqViewerModal from "@/components/project/BoqViewerModal"
 import { applyRateBuildUpRates, syncRateBuildUpFromBoq } from "@/lib/actualCostAnalysis"
+import { subscribeGroveStore } from "@/lib/groveClientStore"
 import {
+  BOQ_STORAGE_KEY,
   addProjectBoq,
   formatBoqRate,
   getProjectBoqs,
@@ -47,6 +49,16 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
     void listRevision
     return getProjectBoqs(projectId)
   }, [projectId, version, listRevision])
+  const pendingBoqItems =
+    projectBoqs.find((boq) => boq.id === savedBoqId)?.items ?? pendingUpload?.items ?? []
+
+  useEffect(
+    () =>
+      subscribeGroveStore((key) => {
+        if (key === BOQ_STORAGE_KEY) setListRevision((current) => current + 1)
+      }),
+    []
+  )
 
   const resetPending = () => {
     setPendingUpload(null)
@@ -114,7 +126,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
 
     if (savedBoqId) {
       updateProjectBoqName(projectId, savedBoqId, trimmedName)
-      updateProjectBoqItems(projectId, savedBoqId, pendingUpload.items)
+      updateProjectBoqItems(projectId, savedBoqId, pendingBoqItems)
       syncRateBuildUpFromBoq(projectId)
       setStatus(`Saved "${trimmedName}". Rate build up uses these BOQ descriptions for Daily Cost and Daily Production.`)
       resetPending()
@@ -125,11 +137,11 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
     addProjectBoq(projectId, {
       name: trimmedName,
       fileName: pendingUpload.fileName,
-      items: pendingUpload.items,
+      items: pendingBoqItems,
     })
     syncRateBuildUpFromBoq(projectId)
 
-    setStatus(`Added "${trimmedName}" with ${pendingUpload.items.length} BOQ items.`)
+    setStatus(`Added "${trimmedName}" with ${pendingBoqItems.length} BOQ items.`)
     resetPending()
     onUploaded?.()
   }
@@ -169,7 +181,12 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
 
     if (!confirmed) return
 
-    removeProjectBoq(projectId, boq.id)
+    const removed = removeProjectBoq(projectId, boq.id)
+    if (!removed) {
+      setStatus(`Could not find "${boq.name}" to remove. Refresh the page and try again.`)
+      return
+    }
+
     syncRateBuildUpFromBoq(projectId)
 
     if (viewBoq?.id === boq.id) {
@@ -290,6 +307,9 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
                   <thead>
                     <tr className="bg-emerald-50 text-left">
                       <th className="border-b border-emerald-100 px-3 py-2 font-semibold text-emerald-950">
+                        Bill No.
+                      </th>
+                      <th className="border-b border-emerald-100 px-3 py-2 font-semibold text-emerald-950">
                         Description
                       </th>
                       <th className="border-b border-emerald-100 px-3 py-2 font-semibold text-emerald-950">
@@ -307,9 +327,12 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
                     </tr>
                   </thead>
                   <tbody>
-                    {applyRateBuildUpRates(projectId, pendingUpload.items).map((item) => (
+                    {applyRateBuildUpRates(projectId, pendingBoqItems).map((item) => (
                       <tr key={item.id}>
-                        <td className="border-b border-emerald-50 px-3 py-2 text-zinc-900">{item.itemName}</td>
+                        <td className="border-b border-emerald-50 px-3 py-2 tabular-nums text-zinc-900">
+                          {item.itemNo || "—"}
+                        </td>
+                        <td className="whitespace-pre-wrap border-b border-emerald-50 px-3 py-2 text-zinc-900">{item.itemName}</td>
                         <td className="border-b border-emerald-50 px-3 py-2 text-zinc-700">{item.unit || "—"}</td>
                         <td className="border-b border-emerald-50 px-3 py-2 text-right tabular-nums text-zinc-900">
                           {item.quantity == null || item.quantity === "" ? "—" : item.quantity}
@@ -352,7 +375,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
                       buildPreviewBoq({
                         name: boqName,
                         fileName: pendingUpload.fileName,
-                        items: pendingUpload.items,
+                        items: pendingBoqItems,
                       })
                     )
                   )
@@ -369,7 +392,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
                     buildPreviewBoq({
                       name: boqName,
                       fileName: pendingUpload.fileName,
-                      items: pendingUpload.items,
+                      items: pendingBoqItems,
                     })
                   )
                 }
