@@ -43,7 +43,7 @@ import {
 } from "@/lib/materialFormulaMemory"
 import { sortSlots } from "@/lib/dailySlots"
 import { formatMaterialCurrencyAmount, formatMaterialAmount } from "@/lib/plantCostCalculations"
-import { getAllBoqItemNames } from "@/lib/boqData"
+import { findBoqItemForDescription, getAllBoqItemNames } from "@/lib/boqData"
 import { useEntryUndo } from "@/lib/useEntryUndo"
 
 const MATERIAL_MEMORY_KEYS = ["details", "plantName", "unit"]
