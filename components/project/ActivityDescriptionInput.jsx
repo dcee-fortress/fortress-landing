@@ -7,16 +7,16 @@ import { searchDescriptionSuggestions } from "@/lib/boqDescriptionMemory"
 import { getActivityDescriptionsForSlot } from "@/lib/materialSchedule"
 
 function resolveBoqMatch(projectId, text, selectedItem = null, sourceItem = null) {
-  const exact = findBoqItemForDescription(projectId, text, selectedItem ?? sourceItem)
-  if (exact) return exact
-
-  const fromSelected = selectedItem?.value || selectedItem?.itemName
-  if (fromSelected) {
-    const selectedMatch = findBoqItemForDescription(projectId, fromSelected, selectedItem)
-    if (selectedMatch) return selectedMatch
+  if (selectedItem?.boqId && (selectedItem.boqItemId || selectedItem.value || selectedItem.itemName)) {
+    const selectedText = selectedItem.itemName || selectedItem.value || text
+    const fromSelected = findBoqItemForDescription(projectId, selectedText, selectedItem)
+    if (fromSelected) return fromSelected
   }
 
-  const suggestions = searchBoqDescriptions(projectId, text || "", 1)
+  const exact = findBoqItemForDescription(projectId, text, sourceItem)
+  if (exact) return exact
+
+  const suggestions = searchBoqDescriptions(projectId, text || "", 8)
   if (!suggestions[0]) return null
   return findBoqItemForDescription(projectId, suggestions[0].value, suggestions[0])
 }
@@ -32,19 +32,16 @@ export default function ActivityDescriptionInput({
   refreshKey = 0,
   boqOnly = false,
 }) {
-  const committedRef = useRef(value)
-  const [isEditing, setIsEditing] = useState(false)
+  const committedRef = useRef(value ?? "")
   const [draftValue, setDraftValue] = useState(value ?? "")
+  const editingRef = useRef(false)
 
   useEffect(() => {
-    if (isEditing) return
+    if (editingRef.current) return
     const text = value ?? ""
     committedRef.current = text
     setDraftValue(text)
-    if (!boqOnly) return
-    const match = findBoqItemForDescription(projectId, text, sourceItem)
-    if (match) committedRef.current = match.itemName
-  }, [boqOnly, isEditing, projectId, sourceItem, value])
+  }, [value])
 
   const extraDescriptionsResolved = useMemo(() => {
     if (extraDescriptions) return extraDescriptions
@@ -57,22 +54,26 @@ export default function ActivityDescriptionInput({
 
   const acceptDescription = (next, selectedItem = null) => {
     if (!boqOnly) {
+      editingRef.current = false
       setDraftValue(next)
-      setIsEditing(false)
+      committedRef.current = next
       onChange(next)
-      return
+      return true
     }
 
     const match = resolveBoqMatch(projectId, next, selectedItem, sourceItem)
-    setIsEditing(false)
     if (!match) {
-      // Keep what the user typed in the field; do not flash an error or wipe it.
+      // Keep the typed text visible. Never clear the cell or throw.
+      editingRef.current = true
       setDraftValue(next ?? "")
-      return
+      return false
     }
+
+    editingRef.current = false
     committedRef.current = match.itemName
     setDraftValue(match.itemName)
     onChange(match.itemName, match)
+    return true
   }
 
   const search = (query) => {
@@ -92,22 +93,14 @@ export default function ActivityDescriptionInput({
     title: boqOnly ? "BOQ descriptions" : "Previous entries",
   })
 
-  const commitFromDraft = (text) => {
-    if (!boqOnly) {
-      setIsEditing(false)
-      onChange(text)
-      return true
+  const fillFromTab = () => {
+    const query = draftValue
+    let matches = boqOnly ? searchBoqDescriptions(projectId, query) : search(query)
+    if (!matches.length && boqOnly) {
+      matches = searchBoqDescriptions(projectId, "")
     }
-    const match = resolveBoqMatch(projectId, text, null, sourceItem)
-    setIsEditing(false)
-    if (!match) {
-      setDraftValue(text ?? "")
-      return false
-    }
-    committedRef.current = match.itemName
-    setDraftValue(match.itemName)
-    onChange(match.itemName, match)
-    return true
+    if (!matches.length) return false
+    return acceptDescription(matches[0].value, matches[0])
   }
 
   return (
@@ -119,26 +112,29 @@ export default function ActivityDescriptionInput({
         autoCorrect="off"
         autoCapitalize="sentences"
         enterKeyHint="enter"
-        value={isEditing ? draftValue : value ?? ""}
+        value={draftValue}
         onChange={(event) => {
           const next = event.target.value
+          editingRef.current = true
           setDraftValue(next)
-          if (boqOnly) {
-            setIsEditing(true)
-          } else {
-            onChange(next)
-          }
+          if (!boqOnly) onChange(next)
           suggestions.update(next, event.currentTarget)
         }}
         onFocus={(event) => suggestions.update(event.currentTarget.value, event.currentTarget)}
-        onBlur={(event) => {
+        onBlur={() => {
           suggestions.close()
-          if (!boqOnly || !isEditing) return
-          const text = event.currentTarget.value
-          if (!commitFromDraft(text) && !String(text ?? "").trim()) {
-            const restored = committedRef.current || ""
-            setDraftValue(restored)
+          if (!boqOnly) {
+            editingRef.current = false
+            return
           }
+          if (!editingRef.current) return
+          const text = draftValue
+          if (!String(text ?? "").trim()) {
+            editingRef.current = false
+            setDraftValue(committedRef.current || "")
+            return
+          }
+          acceptDescription(text, null)
         }}
         onKeyDown={(event) => {
           if (event.key === "Tab" && !event.shiftKey) {
@@ -146,13 +142,8 @@ export default function ActivityDescriptionInput({
               suggestions.handleKeyDown(event)
               return
             }
-            const query = isEditing ? draftValue : value ?? ""
-            const matches = boqOnly
-              ? searchBoqDescriptions(projectId, query)
-              : search(query)
-            if (matches.length > 0) {
+            if (fillFromTab()) {
               event.preventDefault()
-              acceptDescription(matches[0].value, matches[0])
               suggestions.close()
               return
             }

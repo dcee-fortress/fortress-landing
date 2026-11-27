@@ -200,14 +200,20 @@ function MaterialScheduleEditor({
   const updateRow = useCallback((rowIndex, field, value, formula = "", selectedBoqItem = null) => {
     let boqItem = null
     if (field === "activityDescription") {
-      const source = selectedBoqItem ?? rowsRef.current[rowIndex]
+      const selectedText = selectedBoqItem?.itemName || selectedBoqItem?.value || value
       boqItem =
-        findBoqItemForDescription(projectId, value, source) ||
-        findBoqItemForDescription(
-          projectId,
-          selectedBoqItem?.itemName || selectedBoqItem?.value || value,
-          selectedBoqItem
-        )
+        findBoqItemForDescription(projectId, selectedText, selectedBoqItem) ||
+        findBoqItemForDescription(projectId, value, selectedBoqItem ?? rowsRef.current[rowIndex])
+      if (!boqItem && selectedBoqItem?.boqId && selectedText) {
+        boqItem = {
+          itemName: selectedText,
+          boqId: selectedBoqItem.boqId,
+          boqItemId: selectedBoqItem.boqItemId || selectedBoqItem.id,
+          id: selectedBoqItem.boqItemId || selectedBoqItem.id,
+          itemNo: selectedBoqItem.itemNo ?? "",
+          unit: selectedBoqItem.unit ?? "",
+        }
+      }
       if (!boqItem) return
       value = boqItem.itemName
     }
