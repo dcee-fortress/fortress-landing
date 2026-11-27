@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url"
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
   serverExternalPackages: ["better-sqlite3", "pg"],
   // Silence Next 16 Turbopack warning when a webpack() config is present.
   turbopack: {},
