@@ -43,10 +43,29 @@ import {
 } from "@/lib/materialFormulaMemory"
 import { sortSlots } from "@/lib/dailySlots"
 import { formatMaterialCurrencyAmount, formatMaterialAmount } from "@/lib/plantCostCalculations"
-import { findBoqItemForDescription, getAllBoqItemNames } from "@/lib/boqData"
+import { getAllBoqItemNames } from "@/lib/boqData"
 import { useEntryUndo } from "@/lib/useEntryUndo"
 
 const MATERIAL_MEMORY_KEYS = ["details", "plantName", "unit"]
+
+/** Build a BOQ link from ActivityDescriptionInput's already-resolved match. Never looks up by name here. */
+function boqItemFromSelection(selectedBoqItem, fallbackText = "") {
+  if (!selectedBoqItem || typeof selectedBoqItem !== "object") return null
+  const itemName = String(
+    selectedBoqItem.itemName || selectedBoqItem.value || fallbackText || ""
+  ).trim()
+  const boqId = String(selectedBoqItem.boqId ?? "").trim()
+  const boqItemId = String(selectedBoqItem.boqItemId || selectedBoqItem.id || "").trim()
+  if (!itemName || !boqId) return null
+  return {
+    itemName,
+    boqId,
+    boqItemId,
+    id: boqItemId,
+    itemNo: selectedBoqItem.itemNo ?? "",
+    unit: selectedBoqItem.unit ?? "",
+  }
+}
 
 function loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType) {
   return readMaterialScheduleEditorRows(projectId, dayId, slotId, scheduleType)
@@ -200,33 +219,17 @@ function MaterialScheduleEditor({
   const updateRow = useCallback((rowIndex, field, value, formula = "", selectedBoqItem = null) => {
     let boqItem = null
     if (field === "activityDescription") {
-      const selectedText = selectedBoqItem?.itemName || selectedBoqItem?.value || value
-      // Prefer identity already resolved by ActivityDescriptionInput (avoids unbound lookup + loops).
-      if (selectedBoqItem?.boqId && selectedText) {
-        boqItem = {
-          itemName: selectedText,
-          boqId: selectedBoqItem.boqId,
-          boqItemId: selectedBoqItem.boqItemId || selectedBoqItem.id,
-          id: selectedBoqItem.boqItemId || selectedBoqItem.id,
-          itemNo: selectedBoqItem.itemNo ?? "",
-          unit: selectedBoqItem.unit ?? "",
-        }
-      }
-      if (!boqItem && typeof findBoqItemForDescription === "function") {
-        boqItem =
-          findBoqItemForDescription(projectId, selectedText, selectedBoqItem) ||
-          findBoqItemForDescription(projectId, value, selectedBoqItem ?? rowsRef.current[rowIndex])
-      }
+      // ActivityDescriptionInput resolves the BOQ match (it imports findBoqItemForDescription).
+      // Do not call findBoqItemForDescription here — that was the unbound ReferenceError on Webpack.
+      boqItem = boqItemFromSelection(selectedBoqItem, value)
       if (!boqItem) return
-      const nextDescription = String(boqItem.itemName ?? "").trim()
-      if (!nextDescription) return
+      const nextDescription = boqItem.itemName
       const current = rowsRef.current[rowIndex]
-      // Same BOQ acceptance again — skip setState to avoid update loops / stack overflow.
       if (
         current &&
         String(current.activityDescription ?? "").trim() === nextDescription &&
         String(current.boqId ?? "") === String(boqItem.boqId ?? "") &&
-        String(current.boqItemId ?? "") === String(boqItem.boqItemId || boqItem.id || "")
+        String(current.boqItemId ?? "") === String(boqItem.boqItemId ?? "")
       ) {
         return
       }
@@ -255,7 +258,7 @@ function MaterialScheduleEditor({
       rowsRef.current = next
       return next
     })
-  }, [projectId, trackBeforeChange])
+  }, [trackBeforeChange])
 
   const addRow = () => {
     markEdited()

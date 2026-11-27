@@ -6,19 +6,53 @@ import { findBoqItemForDescription, getAllBoqItemNames, searchBoqDescriptions } 
 import { searchDescriptionSuggestions } from "@/lib/boqDescriptionMemory"
 import { getActivityDescriptionsForSlot } from "@/lib/materialSchedule"
 
+function normalizeMatch(match, fallbackText = "") {
+  if (!match || typeof match !== "object") return null
+  const itemName = String(match.itemName || match.value || fallbackText || "").trim()
+  const boqId = String(match.boqId ?? "").trim()
+  const boqItemId = String(match.boqItemId || match.id || "").trim()
+  if (!itemName || !boqId) return null
+  return {
+    ...match,
+    itemName,
+    value: itemName,
+    boqId,
+    boqItemId,
+    id: boqItemId,
+    itemNo: match.itemNo ?? "",
+    unit: match.unit ?? "",
+  }
+}
+
+function lookupBoq(projectId, text, source = null) {
+  if (typeof findBoqItemForDescription !== "function") return null
+  try {
+    return findBoqItemForDescription(projectId, text, source)
+  } catch {
+    return null
+  }
+}
+
 function resolveBoqMatch(projectId, text, selectedItem = null, sourceItem = null) {
+  // Click/Tab often already carries boqId — use it without another lookup.
+  const fromPayload = normalizeMatch(selectedItem, text)
+  if (fromPayload) return fromPayload
+
   if (selectedItem?.boqId && (selectedItem.boqItemId || selectedItem.value || selectedItem.itemName)) {
     const selectedText = selectedItem.itemName || selectedItem.value || text
-    const fromSelected = findBoqItemForDescription(projectId, selectedText, selectedItem)
+    const fromSelected = normalizeMatch(lookupBoq(projectId, selectedText, selectedItem), selectedText)
     if (fromSelected) return fromSelected
   }
 
-  const exact = findBoqItemForDescription(projectId, text, sourceItem)
+  const exact = normalizeMatch(lookupBoq(projectId, text, sourceItem), text)
   if (exact) return exact
 
   const suggestions = searchBoqDescriptions(projectId, text || "", 8)
   if (!suggestions[0]) return null
-  return findBoqItemForDescription(projectId, suggestions[0].value, suggestions[0])
+  return (
+    normalizeMatch(suggestions[0], suggestions[0].value) ||
+    normalizeMatch(lookupBoq(projectId, suggestions[0].value, suggestions[0]), suggestions[0].value)
+  )
 }
 
 export default function ActivityDescriptionInput({
