@@ -201,7 +201,13 @@ function MaterialScheduleEditor({
     let boqItem = null
     if (field === "activityDescription") {
       const source = selectedBoqItem ?? rowsRef.current[rowIndex]
-      boqItem = findBoqItemForDescription(projectId, value, source)
+      boqItem =
+        findBoqItemForDescription(projectId, value, source) ||
+        findBoqItemForDescription(
+          projectId,
+          selectedBoqItem?.itemName || selectedBoqItem?.value || value,
+          selectedBoqItem
+        )
       if (!boqItem) return
       value = boqItem.itemName
     }

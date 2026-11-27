@@ -6,6 +6,21 @@ import { findBoqItemForDescription, getAllBoqItemNames, searchBoqDescriptions } 
 import { searchDescriptionSuggestions } from "@/lib/boqDescriptionMemory"
 import { getActivityDescriptionsForSlot } from "@/lib/materialSchedule"
 
+function resolveBoqMatch(projectId, text, selectedItem = null, sourceItem = null) {
+  const exact = findBoqItemForDescription(projectId, text, selectedItem ?? sourceItem)
+  if (exact) return exact
+
+  const fromSelected = selectedItem?.value || selectedItem?.itemName
+  if (fromSelected) {
+    const selectedMatch = findBoqItemForDescription(projectId, fromSelected, selectedItem)
+    if (selectedMatch) return selectedMatch
+  }
+
+  const suggestions = searchBoqDescriptions(projectId, text || "", 1)
+  if (!suggestions[0]) return null
+  return findBoqItemForDescription(projectId, suggestions[0].value, suggestions[0])
+}
+
 export default function ActivityDescriptionInput({
   projectId,
   dayId,
@@ -24,6 +39,8 @@ export default function ActivityDescriptionInput({
   useEffect(() => {
     if (isEditing) return
     const text = value ?? ""
+    committedRef.current = text
+    setDraftValue(text)
     if (!boqOnly) return
     const match = findBoqItemForDescription(projectId, text, sourceItem)
     if (match) committedRef.current = match.itemName
@@ -41,15 +58,21 @@ export default function ActivityDescriptionInput({
   const acceptDescription = (next, selectedItem = null) => {
     if (!boqOnly) {
       setDraftValue(next)
+      setIsEditing(false)
       onChange(next)
       return
     }
 
-    const match = findBoqItemForDescription(projectId, next, selectedItem)
+    const match = resolveBoqMatch(projectId, next, selectedItem, sourceItem)
     setIsEditing(false)
-    if (!match) return
+    if (!match) {
+      // Keep what the user typed in the field; do not flash an error or wipe it.
+      setDraftValue(next ?? "")
+      return
+    }
     committedRef.current = match.itemName
-    onChange(match.itemName)
+    setDraftValue(match.itemName)
+    onChange(match.itemName, match)
   }
 
   const search = (query) => {
@@ -68,6 +91,24 @@ export default function ActivityDescriptionInput({
     below: true,
     title: boqOnly ? "BOQ descriptions" : "Previous entries",
   })
+
+  const commitFromDraft = (text) => {
+    if (!boqOnly) {
+      setIsEditing(false)
+      onChange(text)
+      return true
+    }
+    const match = resolveBoqMatch(projectId, text, null, sourceItem)
+    setIsEditing(false)
+    if (!match) {
+      setDraftValue(text ?? "")
+      return false
+    }
+    committedRef.current = match.itemName
+    setDraftValue(match.itemName)
+    onChange(match.itemName, match)
+    return true
+  }
 
   return (
     <div className="relative min-w-[12rem] max-w-[20rem]">
@@ -93,24 +134,34 @@ export default function ActivityDescriptionInput({
         onBlur={(event) => {
           suggestions.close()
           if (!boqOnly || !isEditing) return
-          setIsEditing(false)
-          const match = findBoqItemForDescription(projectId, event.currentTarget.value, sourceItem)
-          if (match) {
-            committedRef.current = match.itemName
-            onChange(match.itemName)
-            return
+          const text = event.currentTarget.value
+          if (!commitFromDraft(text) && !String(text ?? "").trim()) {
+            const restored = committedRef.current || ""
+            setDraftValue(restored)
           }
-          const previous = findBoqItemForDescription(projectId, committedRef.current)
-          const restored = previous ? previous.itemName : ""
-          committedRef.current = restored
-          setDraftValue(restored)
         }}
         onKeyDown={(event) => {
+          if (event.key === "Tab" && !event.shiftKey) {
+            if (suggestions.isOpen) {
+              suggestions.handleKeyDown(event)
+              return
+            }
+            const query = isEditing ? draftValue : value ?? ""
+            const matches = boqOnly
+              ? searchBoqDescriptions(projectId, query)
+              : search(query)
+            if (matches.length > 0) {
+              event.preventDefault()
+              acceptDescription(matches[0].value, matches[0])
+              suggestions.close()
+              return
+            }
+          }
           suggestions.handleKeyDown(event)
         }}
         placeholder={
           boqOnly
-            ? "Type a BOQ number or letters, then choose the description"
+            ? "Type a BOQ number or letters, then press Tab"
             : "Type activity — BOQ matches suggested"
         }
         className="w-full resize-y rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm leading-snug text-zinc-900 break-words whitespace-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
