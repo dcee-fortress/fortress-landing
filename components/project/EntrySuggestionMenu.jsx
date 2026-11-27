@@ -254,6 +254,13 @@ export default function EntrySuggestionMenu({
         key: item.key || `${item.boqId || "boq"}:${item.boqItemId || item.id || index}:${item.value}`,
         value: item.value,
         hint: item.hint,
+        // Keep BOQ identity so click-accept matches Tab (boqId / boqItemId / itemNo).
+        boqId: item.boqId,
+        boqItemId: item.boqItemId || item.id,
+        id: item.boqItemId || item.id,
+        itemNo: item.itemNo,
+        itemName: item.itemName || item.value,
+        unit: item.unit,
       }))}
       activeIndex={activeIndex}
       onHover={onHover}

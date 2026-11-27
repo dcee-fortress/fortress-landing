@@ -3,7 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Icon from "@/components/icon/icon"
 import BoqViewerModal from "@/components/project/BoqViewerModal"
-import { applyRateBuildUpRates, syncRateBuildUpFromBoq } from "@/lib/actualCostAnalysis"
+import {
+  applyRateBuildUpRates,
+  readActualCostAnalysisRows,
+  syncRateBuildUpFromBoq,
+} from "@/lib/actualCostAnalysis"
+import { rememberRateBuildUpRows } from "@/lib/rateBuildUpMemory"
 import { subscribeGroveStore } from "@/lib/groveClientStore"
 import {
   BOQ_STORAGE_KEY,
@@ -188,6 +193,11 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
     )
 
     if (!confirmed) return
+
+    // Snapshot this project's rate build-up before BOQ removal so re-upload restores cells.
+    Promise.resolve(
+      rememberRateBuildUpRows(projectId, readActualCostAnalysisRows(projectId))
+    ).catch(() => {})
 
     const removed = removeProjectBoq(projectId, boq.id)
     if (!removed) {

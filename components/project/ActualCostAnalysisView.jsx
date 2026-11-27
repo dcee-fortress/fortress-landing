@@ -34,6 +34,7 @@ import {
   readClipboardPayload,
   writeClipboardPayload,
 } from "@/lib/rateBuildUpClipboard"
+import { rememberRateBuildUpRows } from "@/lib/rateBuildUpMemory"
 import {
   BOQ_STORAGE_KEY,
   getProjectBoqs,
@@ -413,6 +414,11 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
 
     trackBeforeChange(rowsRef.current)
     endEditSession()
+    // Remember this project's build-up before wipe so re-adding the same BOQ restores it.
+    const removedGroup = rowsRef.current.filter(
+      (row) => row.id === target.id || row.parentId === target.id
+    )
+    Promise.resolve(rememberRateBuildUpRows(projectId, removedGroup)).catch(() => {})
     const next = rowsRef.current.filter(
       (row) => row.id !== target.id && row.parentId !== target.id
     )

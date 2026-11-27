@@ -201,10 +201,8 @@ function MaterialScheduleEditor({
     let boqItem = null
     if (field === "activityDescription") {
       const selectedText = selectedBoqItem?.itemName || selectedBoqItem?.value || value
-      boqItem =
-        findBoqItemForDescription(projectId, selectedText, selectedBoqItem) ||
-        findBoqItemForDescription(projectId, value, selectedBoqItem ?? rowsRef.current[rowIndex])
-      if (!boqItem && selectedBoqItem?.boqId && selectedText) {
+      // Prefer identity already resolved by ActivityDescriptionInput (avoids unbound lookup + loops).
+      if (selectedBoqItem?.boqId && selectedText) {
         boqItem = {
           itemName: selectedText,
           boqId: selectedBoqItem.boqId,
@@ -214,8 +212,25 @@ function MaterialScheduleEditor({
           unit: selectedBoqItem.unit ?? "",
         }
       }
+      if (!boqItem && typeof findBoqItemForDescription === "function") {
+        boqItem =
+          findBoqItemForDescription(projectId, selectedText, selectedBoqItem) ||
+          findBoqItemForDescription(projectId, value, selectedBoqItem ?? rowsRef.current[rowIndex])
+      }
       if (!boqItem) return
-      value = boqItem.itemName
+      const nextDescription = String(boqItem.itemName ?? "").trim()
+      if (!nextDescription) return
+      const current = rowsRef.current[rowIndex]
+      // Same BOQ acceptance again — skip setState to avoid update loops / stack overflow.
+      if (
+        current &&
+        String(current.activityDescription ?? "").trim() === nextDescription &&
+        String(current.boqId ?? "") === String(boqItem.boqId ?? "") &&
+        String(current.boqItemId ?? "") === String(boqItem.boqItemId || boqItem.id || "")
+      ) {
+        return
+      }
+      value = nextDescription
     }
     hasEditedRef.current = true
     setSavedMessage("")
