@@ -250,7 +250,11 @@ export default function EntrySuggestionMenu({
       rect={rect}
       below={below}
       title={title}
-      items={suggestions.map((item) => ({ key: item.value, value: item.value, hint: item.hint }))}
+      items={suggestions.map((item, index) => ({
+        key: item.key || `${item.boqId || "boq"}:${item.boqItemId || item.id || index}:${item.value}`,
+        value: item.value,
+        hint: item.hint,
+      }))}
       activeIndex={activeIndex}
       onHover={onHover}
       onSelect={onSelect}
