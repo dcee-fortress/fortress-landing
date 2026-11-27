@@ -62,6 +62,15 @@ export default function ActivityDescriptionInput({
   const committedRef = useRef(value ?? "")
   const [draftValue, setDraftValue] = useState(value ?? "")
   const editingRef = useRef(false)
+  const textareaRef = useRef(null)
+
+  const fitTextareaHeight = () => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = "auto"
+    const nextHeight = Math.max(el.scrollHeight, 48)
+    el.style.height = `${nextHeight}px`
+  }
 
   useEffect(() => {
     if (editingRef.current) return
@@ -69,6 +78,10 @@ export default function ActivityDescriptionInput({
     committedRef.current = text
     setDraftValue(text)
   }, [value])
+
+  useEffect(() => {
+    fitTextareaHeight()
+  }, [draftValue])
 
   const extraDescriptionsResolved = useMemo(() => {
     if (extraDescriptions) return extraDescriptions
@@ -131,9 +144,10 @@ export default function ActivityDescriptionInput({
   }
 
   return (
-    <div className="relative w-full min-w-[12rem] max-w-[22rem]">
+    <div className="relative w-full min-w-[14rem] max-w-[26rem]">
       <textarea
-        rows={3}
+        ref={textareaRef}
+        rows={1}
         wrap="soft"
         inputMode="text"
         autoComplete="off"
@@ -147,8 +161,12 @@ export default function ActivityDescriptionInput({
           setDraftValue(next)
           if (!boqOnly) onChange(next)
           suggestions.update(next, event.currentTarget)
+          requestAnimationFrame(fitTextareaHeight)
         }}
-        onFocus={(event) => suggestions.update(event.currentTarget.value, event.currentTarget)}
+        onFocus={(event) => {
+          fitTextareaHeight()
+          suggestions.update(event.currentTarget.value, event.currentTarget)
+        }}
         onBlur={() => {
           suggestions.close()
           if (!boqOnly) {
@@ -183,7 +201,7 @@ export default function ActivityDescriptionInput({
             ? "Choose a BOQ description (Tab or pick from list)"
             : "Type activity — BOQ matches suggested"
         }
-        className="box-border block w-full min-h-[4.5rem] resize-y overflow-x-hidden whitespace-pre-wrap break-words rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm leading-snug text-zinc-900 outline-none [overflow-wrap:anywhere] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+        className="box-border block w-full min-h-[2.75rem] resize-none overflow-hidden whitespace-pre-wrap break-words rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm leading-snug text-zinc-900 outline-none [overflow-wrap:anywhere] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
         aria-autocomplete="list"
       />
       {suggestions.menu}
