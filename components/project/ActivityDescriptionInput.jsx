@@ -12,8 +12,8 @@ function normalizeMatch(match, fallbackText = "") {
   const boqId = String(match.boqId ?? "").trim()
   const boqItemId = String(match.boqItemId || match.id || "").trim()
   if (!itemName || !boqId) return null
+  // Plain fields only — never spread `match` (avoids circular graphs → stack overflow).
   return {
-    ...match,
     itemName,
     value: itemName,
     boqId,

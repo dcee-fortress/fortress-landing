@@ -67,6 +67,17 @@ function boqItemFromSelection(selectedBoqItem, fallbackText = "") {
   }
 }
 
+function rowsSnapshotEqual(left, right) {
+  if (left === right) return true
+  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false
+  try {
+    return JSON.stringify(left) === JSON.stringify(right)
+  } catch {
+    // Circular / oversized row graphs must not blow the call stack during compare.
+    return false
+  }
+}
+
 function loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType) {
   return readMaterialScheduleEditorRows(projectId, dayId, slotId, scheduleType)
 }
@@ -163,9 +174,7 @@ function MaterialScheduleEditor({
     if (hasEditedRef.current) return
 
     const nextRows = loadMaterialScheduleRows(projectId, dayId, slotId, scheduleType)
-    setRows((current) =>
-      JSON.stringify(current) === JSON.stringify(nextRows) ? current : nextRows
-    )
+    setRows((current) => (rowsSnapshotEqual(current, nextRows) ? current : nextRows))
   }, [version, projectId, dayId, slotId, scheduleType])
 
   useEffect(() => {
@@ -238,8 +247,9 @@ function MaterialScheduleEditor({
     hasEditedRef.current = true
     setSavedMessage("")
     const formulaField = getMaterialFormulaFieldKey(field)
+    // Track undo BEFORE setRows so setDepth is never nested inside the updater.
+    trackBeforeChange(rowsRef.current, `${rowIndex}:${field}`)
     setRows((current) => {
-      trackBeforeChange(current, `${rowIndex}:${field}`)
       const next = current.map((row, index) => {
         if (index !== rowIndex) return row
         return {
@@ -263,8 +273,8 @@ function MaterialScheduleEditor({
   const addRow = () => {
     markEdited()
     setSavedMessage("")
+    trackBeforeChange(rowsRef.current)
     setRows((current) => {
-      trackBeforeChange(current)
       const next = [...current, createMaterialRow("", dayId)]
       rowsRef.current = next
       persistDraft(next)
@@ -275,8 +285,8 @@ function MaterialScheduleEditor({
   const deleteRow = (rowId) => {
     markEdited()
     setSavedMessage("")
+    trackBeforeChange(rowsRef.current)
     setRows((current) => {
-      trackBeforeChange(current)
       const next = current.filter((row) => row.id !== rowId)
       rowsRef.current = next
       persistDraft(next)
