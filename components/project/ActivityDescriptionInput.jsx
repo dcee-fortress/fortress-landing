@@ -11,7 +11,7 @@ function normalizeMatch(match, fallbackText = "") {
   const itemName = String(match.itemName || match.value || fallbackText || "").trim()
   const boqId = String(match.boqId ?? "").trim()
   const boqItemId = String(match.boqItemId || match.id || "").trim()
-  if (!itemName || !boqId) return null
+  if (!itemName || (!boqId && !boqItemId)) return null
   // Plain fields only — never spread `match` (avoids circular graphs → stack overflow).
   return {
     itemName,
@@ -20,7 +20,7 @@ function normalizeMatch(match, fallbackText = "") {
     boqItemId,
     id: boqItemId,
     itemNo: match.itemNo ?? "",
-    unit: match.unit ?? "",
+    unit: String(match.unit ?? "").trim(),
   }
 }
 
@@ -44,15 +44,8 @@ function resolveBoqMatch(projectId, text, selectedItem = null, sourceItem = null
     if (fromSelected) return fromSelected
   }
 
-  const exact = normalizeMatch(lookupBoq(projectId, text, sourceItem), text)
-  if (exact) return exact
-
-  const suggestions = searchBoqDescriptions(projectId, text || "", 8)
-  if (!suggestions[0]) return null
-  return (
-    normalizeMatch(suggestions[0], suggestions[0].value) ||
-    normalizeMatch(lookupBoq(projectId, suggestions[0].value, suggestions[0]), suggestions[0].value)
-  )
+  // Typed text must match an uploaded BOQ item exactly — no free-text, no fuzzy first-hit.
+  return normalizeMatch(lookupBoq(projectId, text, sourceItem), text)
 }
 
 export default function ActivityDescriptionInput({
@@ -97,9 +90,9 @@ export default function ActivityDescriptionInput({
 
     const match = resolveBoqMatch(projectId, next, selectedItem, sourceItem)
     if (!match) {
-      // Keep the typed text visible. Never clear the cell or throw.
-      editingRef.current = true
-      setDraftValue(next ?? "")
+      // Valuations entry accepts only uploaded BOQ descriptions.
+      editingRef.current = false
+      setDraftValue(committedRef.current || "")
       return false
     }
 
@@ -138,9 +131,10 @@ export default function ActivityDescriptionInput({
   }
 
   return (
-    <div className="relative min-w-[12rem] max-w-[20rem]">
+    <div className="relative w-full min-w-[12rem] max-w-[22rem]">
       <textarea
-        rows={2}
+        rows={3}
+        wrap="soft"
         inputMode="text"
         autoComplete="off"
         autoCorrect="off"
@@ -186,10 +180,10 @@ export default function ActivityDescriptionInput({
         }}
         placeholder={
           boqOnly
-            ? "Type a BOQ number or letters, then press Tab"
+            ? "Choose a BOQ description (Tab or pick from list)"
             : "Type activity — BOQ matches suggested"
         }
-        className="w-full resize-y rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm leading-snug text-zinc-900 break-words whitespace-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+        className="box-border block w-full min-h-[4.5rem] resize-y overflow-x-hidden whitespace-pre-wrap break-words rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm leading-snug text-zinc-900 outline-none [overflow-wrap:anywhere] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
         aria-autocomplete="list"
       />
       {suggestions.menu}

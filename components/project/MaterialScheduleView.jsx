@@ -43,12 +43,39 @@ import {
 } from "@/lib/materialFormulaMemory"
 import { sortSlots } from "@/lib/dailySlots"
 import { formatMaterialCurrencyAmount, formatMaterialAmount } from "@/lib/plantCostCalculations"
-import { getAllBoqItemNames } from "@/lib/boqData"
+import {
+  getAllBoqItemNames,
+  getProjectBoqs,
+  normalizeBoqDescription,
+} from "@/lib/boqData"
 import { useEntryUndo } from "@/lib/useEntryUndo"
 
 const MATERIAL_MEMORY_KEYS = ["details", "plantName", "unit"]
 
-/** Build a BOQ link from ActivityDescriptionInput's already-resolved match. Never looks up by name here. */
+/**
+ * Local BOQ matcher defined in this file so Webpack cannot throw
+ * ReferenceError: findBoqItemForDescription is not defined.
+ */
+function matchBoqItemForActivityDescription(projectId, description, source = null) {
+  const items = getProjectBoqs(projectId).flatMap((boq) => boq.items ?? [])
+  if (items.length === 0) return null
+
+  const needle = normalizeBoqDescription(description)
+  const sourceBoqItemId = source?.boqItemId ? String(source.boqItemId) : ""
+  if (source?.boqId && sourceBoqItemId) {
+    const byId = items.find(
+      (item) =>
+        String(item.boqId ?? "") === String(source.boqId) &&
+        String(item.boqItemId ?? item.id ?? "") === sourceBoqItemId
+    )
+    if (byId && (!needle || normalizeBoqDescription(byId.itemName) === needle)) return byId
+  }
+
+  if (!needle) return null
+  return items.find((item) => normalizeBoqDescription(item.itemName) === needle) ?? null
+}
+
+/** Prefer an already-resolved selection payload from ActivityDescriptionInput. */
 function boqItemFromSelection(selectedBoqItem, fallbackText = "") {
   if (!selectedBoqItem || typeof selectedBoqItem !== "object") return null
   const itemName = String(
@@ -56,7 +83,8 @@ function boqItemFromSelection(selectedBoqItem, fallbackText = "") {
   ).trim()
   const boqId = String(selectedBoqItem.boqId ?? "").trim()
   const boqItemId = String(selectedBoqItem.boqItemId || selectedBoqItem.id || "").trim()
-  if (!itemName || !boqId) return null
+  if (!itemName) return null
+  if (!boqId && !boqItemId) return null
   return {
     itemName,
     boqId,
@@ -226,26 +254,43 @@ function MaterialScheduleEditor({
   )
 
   const updateRow = useCallback((rowIndex, field, value, formula = "", selectedBoqItem = null) => {
-    let boqItem = null
-    if (field === "activityDescription") {
-      // ActivityDescriptionInput resolves the BOQ match (it imports findBoqItemForDescription).
-      // Do not call findBoqItemForDescription here — that was the unbound ReferenceError on Webpack.
-      boqItem = boqItemFromSelection(selectedBoqItem, value)
-      if (!boqItem) return
-      const nextDescription = boqItem.itemName
-      const current = rowsRef.current[rowIndex]
-      if (
-        current &&
-        String(current.activityDescription ?? "").trim() === nextDescription &&
-        String(current.boqId ?? "") === String(boqItem.boqId ?? "") &&
-        String(current.boqItemId ?? "") === String(boqItem.boqItemId ?? "")
-      ) {
-        return
-      }
-      value = nextDescription
-    }
     hasEditedRef.current = true
     setSavedMessage("")
+    let nextValue = value
+    let boqLink = null
+
+    if (field === "activityDescription") {
+      // Valuations entry: only persist descriptions that exist on the uploaded BOQ.
+      const cleared = !String(value ?? "").trim()
+      if (cleared) {
+        nextValue = ""
+        boqLink = {
+          boqId: undefined,
+          boqItemId: undefined,
+          billNo: "",
+          unit: "",
+        }
+      } else {
+        const fromSelection = boqItemFromSelection(selectedBoqItem, value)
+        const fromLookup =
+          fromSelection ||
+          matchBoqItemForActivityDescription(
+            projectId,
+            value,
+            selectedBoqItem ?? rowsRef.current[rowIndex]
+          )
+        if (!fromLookup) return
+        nextValue = fromLookup.itemName
+        boqLink = {
+          boqId: fromLookup.boqId,
+          boqItemId: fromLookup.boqItemId || fromLookup.id,
+          billNo: String(fromLookup.itemNo ?? "").trim(),
+          // Unit always comes from the matched BOQ line.
+          unit: String(fromLookup.unit ?? "").trim(),
+        }
+      }
+    }
+
     const formulaField = getMaterialFormulaFieldKey(field)
     // Track undo BEFORE setRows so setDepth is never nested inside the updater.
     trackBeforeChange(rowsRef.current, `${rowIndex}:${field}`)
@@ -254,21 +299,15 @@ function MaterialScheduleEditor({
         if (index !== rowIndex) return row
         return {
           ...row,
-          ...(boqItem
-            ? {
-                boqId: boqItem.boqId,
-                boqItemId: boqItem.boqItemId || boqItem.id,
-                billNo: boqItem.itemNo ?? "",
-              }
-            : {}),
-          [field]: value,
+          ...(boqLink || null),
+          [field]: nextValue,
           [formulaField]: formula,
         }
       })
       rowsRef.current = next
       return next
     })
-  }, [trackBeforeChange])
+  }, [projectId, trackBeforeChange])
 
   const addRow = () => {
     markEdited()
@@ -675,7 +714,7 @@ function MaterialScheduleEditor({
                           onMouseLeave={showsHoverCard ? closeHoverCard : undefined}
                           className={`px-3 py-3 ${
                             column.key === "activityDescription" || column.key === "details"
-                              ? "min-w-[12rem] max-w-[20rem]"
+                              ? "min-w-[12rem] max-w-[22rem] whitespace-normal break-words [overflow-wrap:anywhere]"
                               : ""
                           }`}
                         >
@@ -692,6 +731,29 @@ function MaterialScheduleEditor({
                                 updateRow(rowIndex, fieldKey, value, "", selectedBoqItem)
                               }
                             />
+                          ) : column.key === "details" ? (
+                            <MemoryTextInput
+                              multiline
+                              rows={2}
+                              inputMode="text"
+                              autoCorrect="off"
+                              autoCapitalize="sentences"
+                              enterKeyHint="enter"
+                              value={rawValue}
+                              suggest={suggestFor(row, "details")}
+                              suggestOnFocus
+                              openBelow
+                              onChange={(value) => updateRow(rowIndex, fieldKey, value)}
+                              placeholder="Add row details"
+                              className="w-full resize-y rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm leading-snug text-zinc-900 break-words whitespace-pre-wrap outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                            />
+                          ) : column.key === "unit" ? (
+                            <div
+                              className="px-2 py-1.5 text-sm text-zinc-900"
+                              title="Unit is taken automatically from the selected BOQ description"
+                            >
+                              {String(row.unit ?? "").trim() || "—"}
+                            </div>
                           ) : simplifiedEntry && column.computed ? (
                             <div
                               className="px-2 py-1.5 text-right text-sm font-medium tabular-nums text-zinc-900"
@@ -709,22 +771,6 @@ function MaterialScheduleEditor({
                             >
                               {resolvedDisplay}
                             </div>
-                          ) : column.key === "details" ? (
-                            <MemoryTextInput
-                              multiline
-                              rows={2}
-                              inputMode="text"
-                              autoCorrect="off"
-                              autoCapitalize="sentences"
-                              enterKeyHint="enter"
-                              value={rawValue}
-                              suggest={suggestFor(row, "details")}
-                              suggestOnFocus
-                              openBelow
-                              onChange={(value) => updateRow(rowIndex, fieldKey, value)}
-                              placeholder="Add row details"
-                              className="w-full resize-y rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                            />
                           ) : (
                             <MaterialScheduleFormulaCell
                               projectId={projectId}
@@ -790,7 +836,7 @@ function MaterialScheduleEditor({
               <tr className="border-t-2 border-zinc-900 bg-zinc-50 font-semibold">
                 {simplifiedEntry ? (
                   <>
-                    <td colSpan={3} className="px-3 py-4 text-zinc-900">
+                    <td colSpan={4} className="px-3 py-4 text-zinc-900">
                       Grand Total ({schedule.shortLabel})
                     </td>
                     <td className="px-3 py-4 text-right tabular-nums text-zinc-900">
@@ -834,7 +880,7 @@ function MaterialScheduleEditor({
             ) : (
               <p className="text-sm text-zinc-500">
                 {simplifiedEntry
-                  ? "Pick the BOQ activity description, enter unit and production. QS Overview calculates allowable/bill/actual costs after Save."
+                  ? "Pick a BOQ activity description only — unit fills from the BOQ. Enter details and production, then Save."
                   : "This entry rolls onto later days you have not edited. Dashboards update when you press Save."}
               </p>
             )}
