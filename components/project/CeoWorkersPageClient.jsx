@@ -142,13 +142,14 @@ function CeoWorkersView({ projectId, projectName }) {
 
   const headCounts = hasHydrated ? getHeadCounts(projectId) : null
 
-  async function exportToPdf() {
+  async function exportToPdf(mode = "download") {
     if (!headCounts) return
     const { exportWorkersPdf } = await import("@/lib/ceoReportPdf")
-    exportWorkersPdf({
+    await exportWorkersPdf({
       projectName: projectName || "Project",
       reportDate: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
       headCounts,
+      mode,
     })
   }
 
@@ -174,7 +175,12 @@ function CeoWorkersView({ projectId, projectName }) {
               {projectName || "Project"}
             </h1>
           </div>
-          {headCounts ? <ExportPdfButton onClick={exportToPdf} /> : null}
+          {headCounts ? (
+            <ExportPdfButton
+              onClick={() => exportToPdf("download")}
+              onShareWhatsApp={() => exportToPdf("whatsapp")}
+            />
+          ) : null}
         </div>
         <CumulativePeriodNote projectId={projectId} />
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">

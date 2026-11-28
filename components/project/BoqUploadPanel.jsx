@@ -20,6 +20,7 @@ import {
   updateProjectBoqItems,
   updateProjectBoqName,
 } from "@/lib/boqData"
+import { propagateBoqItemDescriptionEdits } from "@/lib/boqDescriptionSync"
 
 function defaultBoqName(fileName) {
   return fileName?.replace(/\.[^.]+$/, "") ?? ""
@@ -161,12 +162,14 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
 
   const handleBoqSave = (items) => {
     if (!viewBoq) return
+    const previousItems = viewBoq.items ?? []
 
     if (viewBoq.id === "preview") {
       setPendingUpload((current) => (current ? { ...current, items } : current))
       setViewBoq((current) => (current ? { ...current, items: applyRateBuildUpRates(projectId, items) } : null))
       if (savedBoqId) {
         updateProjectBoqItems(projectId, savedBoqId, items)
+        propagateBoqItemDescriptionEdits(projectId, previousItems, items)
         syncRateBuildUpFromBoq(projectId)
         setListRevision((current) => current + 1)
         onUploaded?.()
@@ -176,6 +179,7 @@ export default function BoqUploadPanel({ projectId, projectName = "Project", onU
     }
 
     updateProjectBoqItems(projectId, viewBoq.id, items)
+    propagateBoqItemDescriptionEdits(projectId, previousItems, items)
     syncRateBuildUpFromBoq(projectId)
     setViewBoq((current) =>
       current ? { ...current, items: applyRateBuildUpRates(projectId, items) } : null

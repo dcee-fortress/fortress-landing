@@ -41,6 +41,7 @@ import {
   normalizeBoqDescription,
   updateProjectBoqItems,
 } from "@/lib/boqData"
+import { renameActivityDescriptionEverywhere } from "@/lib/boqDescriptionSync"
 import { isFormula } from "@/lib/materialScheduleFormulas"
 import {
   formatMaterialAmount,
@@ -244,19 +245,62 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
     })
   }, [rows])
 
-  const exportToPdf = async () => {
+  const exportToPdf = async (mode = "download") => {
     const { exportRateBuildUpPdf } = await import("@/lib/rateBuildUpPdf")
-    exportRateBuildUpPdf({ projectName, rows })
+    const source = rowsRef.current.length ? rowsRef.current : rows
+    const exportRows = source.map((row) => {
+      if (isGrandTotalRow(row)) {
+        return { ...row, ...resolveGrandTotalRow(row, groupCostRows(source, row.parentId)) }
+      }
+      return { ...row, ...resolveActualCostAnalysisRow(row) }
+    })
+    await exportRateBuildUpPdf({ projectName, rows: exportRows, mode })
   }
 
   const updateRow = (rowIndex, field, value, formula = "", percentOnly = false) => {
     const row = rowsRef.current[rowIndex]
-    if (field === "activityDescription" && row?.boqId && row?.boqItemId && !row.userAdded) {
+    const entry = percentOnly ? acceptPercentEntry(value, formula) : { value, formula }
+    if (!entry) return
+
+    if (field === "activityDescription") {
+      const previous = String(row?.activityDescription ?? "").trim()
+      const nextText = String(entry.value ?? "").trim()
+      if (!nextText || normalizeBoqDescription(previous) === normalizeBoqDescription(nextText)) {
+        return
+      }
+      trackBeforeChange(rowsRef.current, `${rowIndex}:${field}`)
+      renameActivityDescriptionEverywhere(projectId, {
+        oldDescription: previous,
+        newDescription: nextText,
+        boqId: row?.boqId || "",
+        boqItemId: row?.boqItemId || "",
+        skipRateBuildUp: true,
+      })
+      setRows((current) => {
+        const parentId = current[rowIndex]?.id
+        const next = current.map((item, index) => {
+          if (index === rowIndex) {
+            return { ...item, activityDescription: nextText }
+          }
+          if (
+            parentId &&
+            (isPlantSubRow(item) || isGrandTotalRow(item)) &&
+            item.parentId === parentId
+          ) {
+            return {
+              ...item,
+              activityDescription: isGrandTotalRow(item) ? "Grand total" : nextText,
+            }
+          }
+          return item
+        })
+        rowsRef.current = next
+        persistRows(next, { immediate: true })
+        return next
+      })
       return
     }
 
-    const entry = percentOnly ? acceptPercentEntry(value, formula) : { value, formula }
-    if (!entry) return
     trackBeforeChange(rowsRef.current, `${rowIndex}:${field}`)
     setRows((current) => {
       const next = current.map((row, index) =>
@@ -544,30 +588,20 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
         return <span className="block px-1 text-xs text-zinc-400">└ plant</span>
       }
       const zim = row.zimBuildSuggestion
-      const isImportedBoqItem = Boolean(row.boqId && row.boqItemId && !row.userAdded)
       return (
         <div className="group relative space-y-2">
-          {isImportedBoqItem ? (
-            <p
-              className="whitespace-pre-wrap px-1 text-sm text-zinc-900"
-              title="This description comes from the uploaded BOQ. Edit it in the BOQ data viewer."
-            >
-              {row.activityDescription}
-            </p>
-          ) : (
-            <MaterialScheduleFormulaCell
-              projectId={projectId}
-              description={row.activityDescription}
-              columnKey="activityDescription"
-              rawValue={row.activityDescription ?? ""}
-              formulaValue=""
-              align="left"
-              numeric={false}
-              wrapText
-              columnLabel="Activity description"
-              onChange={(value) => updateRow(rowIndex, "activityDescription", value, "", false)}
-            />
-          )}
+          <MaterialScheduleFormulaCell
+            projectId={projectId}
+            description={row.activityDescription}
+            columnKey="activityDescription"
+            rawValue={row.activityDescription ?? ""}
+            formulaValue=""
+            align="left"
+            numeric={false}
+            wrapText
+            columnLabel="Activity description"
+            onChange={(value) => updateRow(rowIndex, "activityDescription", value, "", false)}
+          />
           {zim ? (
             <div className="pointer-events-none invisible absolute left-0 top-full z-30 mt-1 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-600 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100">
               <p className="font-medium text-zinc-700">ZimBuild QS suggestion</p>
@@ -708,7 +742,8 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
               {projectName}
             </h1>
             <p className="max-w-3xl text-sm text-zinc-500">
-              Edit inside this template. Scrolling stays here until you exit.
+              Edit descriptions and costs here. Description changes update the BOQ and every
+              valuations page using that activity. Export PDF includes Share to WhatsApp.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -733,9 +768,19 @@ export default function ActualCostAnalysisView({ projectId, projectName, onClose
                   Copy / paste
                 </button>
                 <EntryUndoButton canUndo={canUndo} onUndo={handleUndo} />
-                <ExportPdfButton onClick={exportToPdf} />
+                <ExportPdfButton
+                  className="z-[60]"
+                  onClick={() => void exportToPdf("download")}
+                  onShareWhatsApp={() => void exportToPdf("whatsapp")}
+                />
               </>
-            ) : null}
+            ) : (
+              <ExportPdfButton
+                className="z-[60]"
+                disabled
+                onClick={() => {}}
+              />
+            )}
             {exitControl}
           </div>
         </header>

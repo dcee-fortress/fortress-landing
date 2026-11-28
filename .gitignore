@@ -47,3 +47,17 @@ data/grove-shared-storage.local.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Serwist / PWA generated service worker
+/public/sw.js
+/public/swe-worker-*.js
+/public/workbox-*.js
+
+# Capacitor native project local artifacts
+/android/.gradle
+/android/app/build
+/android/build
+/android/captures
+/android/local.properties
+/ios/App/Pods
+/ios/App/Podfile.lock

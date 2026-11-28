@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Icon from "@/components/icon/icon"
+import ExportPdfButton from "@/components/project/ExportPdfButton"
 import { exportTableExcel, exportTablePdf } from "@/lib/tableExport"
 
 const buttonClass =
@@ -18,12 +19,11 @@ export default function TableExportButtons({
   const [busy, setBusy] = useState("")
   const payload = { columns, rows, title, projectName, filename, showTotal }
 
-  async function run(kind) {
+  async function runExcel() {
     if (busy) return
-    setBusy(kind)
+    setBusy("excel")
     try {
-      if (kind === "pdf") await exportTablePdf(payload)
-      else await exportTableExcel(payload)
+      await exportTableExcel(payload)
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Could not export this table.")
     } finally {
@@ -33,26 +33,32 @@ export default function TableExportButtons({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button
-        type="button"
+      <ExportPdfButton
         disabled={Boolean(busy)}
-        onClick={(event) => {
-          event.preventDefault()
-          event.stopPropagation()
-          void run("pdf")
+        onClick={async () => {
+          setBusy("pdf")
+          try {
+            await exportTablePdf({ ...payload, mode: "download" })
+          } finally {
+            setBusy("")
+          }
         }}
-        className={buttonClass}
-      >
-        <Icon name="file-down" size={15} />
-        Export PDF
-      </button>
+        onShareWhatsApp={async () => {
+          setBusy("whatsapp")
+          try {
+            await exportTablePdf({ ...payload, mode: "whatsapp" })
+          } finally {
+            setBusy("")
+          }
+        }}
+      />
       <button
         type="button"
         disabled={Boolean(busy)}
         onClick={(event) => {
           event.preventDefault()
           event.stopPropagation()
-          void run("excel")
+          void runExcel()
         }}
         className={buttonClass}
       >

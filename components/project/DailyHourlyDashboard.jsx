@@ -24,9 +24,16 @@ export default function DailyHourlyDashboard({
   const liveSlot = slot
   const summary = summarizeEarnedValueActivities(liveSlot.activities ?? [])
 
-  const exportToPdf = async () => {
+  const exportToPdf = async (mode = "download") => {
     const { exportHourlyDashboardPdf } = await import("@/lib/earnedValuePdf")
-    exportHourlyDashboardPdf({ projectName, dayLabel, dayId, slot: liveSlot, summary })
+    await exportHourlyDashboardPdf({
+      projectName,
+      dayLabel,
+      dayId,
+      slot: liveSlot,
+      summary,
+      mode,
+    })
   }
 
   const handleTimeChange = (field, value) => {

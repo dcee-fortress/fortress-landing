@@ -950,9 +950,9 @@ body {
     width: 100%;
     min-width: 0;
     max-width: 100%;
-    overflow-x: auto;
-    overflow-y: visible;
-    overscroll-behavior-x: contain;
+    max-height: min(70vh, 52rem);
+    overflow: auto;
+    overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x pan-y;
     border: 1px solid #e4e4e7;
@@ -961,6 +961,7 @@ body {
 }
 
 .operator-register-scroll::-webkit-scrollbar {
+    width: 12px;
     height: 14px;
 }
 
@@ -973,14 +974,23 @@ body {
     background: #f4f4f5;
 }
 
-@media (max-width: 767px) {
-    .operator-register-sticky {
-        position: static !important;
-        left: auto !important;
-        z-index: auto !important;
-        box-shadow: none !important;
-        max-width: none !important;
-    }
+/* separate + spacing 0 keeps position:sticky reliable (collapse breaks it). */
+.operator-register-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+/* Keep identity columns pinned while day cells scroll — including phones. */
+.operator-register-sticky {
+    position: sticky !important;
+}
+
+/* Column headings stay fixed while scrolling vertically, like Rate build-up. */
+.operator-register-sticky-head {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 30;
+    background-clip: padding-box;
 }
 
 .overflow-x-auto {

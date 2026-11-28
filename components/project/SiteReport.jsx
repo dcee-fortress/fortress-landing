@@ -78,7 +78,7 @@ export default function SiteReport({ projectName, projectId, period, file }) {
     }, 400)
   }
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = async (mode = "download") => {
     if (isExportingPdf) return
     setIsExportingPdf(true)
     try {
@@ -88,6 +88,7 @@ export default function SiteReport({ projectName, projectId, period, file }) {
         fileLabel: reportHeading(period, file),
         fileId,
         documentHtml,
+        mode,
       })
     } catch (error) {
       window.alert(
@@ -113,8 +114,10 @@ export default function SiteReport({ projectName, projectId, period, file }) {
           </Link>
           {notesReady ? (
             <ExportPdfButton
-              onClick={() => void handleExportPdf()}
-              className={isExportingPdf ? "opacity-60" : ""}
+              label="Export report"
+              disabled={isExportingPdf}
+              onClick={() => handleExportPdf("download")}
+              onShareWhatsApp={() => handleExportPdf("whatsapp")}
             />
           ) : null}
         </div>
@@ -134,8 +137,10 @@ export default function SiteReport({ projectName, projectId, period, file }) {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Site report document</h2>
           {notesReady ? (
             <ExportPdfButton
-              onClick={() => void handleExportPdf()}
-              className={isExportingPdf ? "opacity-60" : ""}
+              label="Export report"
+              disabled={isExportingPdf}
+              onClick={() => handleExportPdf("download")}
+              onShareWhatsApp={() => handleExportPdf("whatsapp")}
             />
           ) : null}
         </div>

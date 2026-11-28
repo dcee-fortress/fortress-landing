@@ -398,7 +398,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
   const dateHeading = isDailyReport ? formatDayLabelFromId(report.id) : formatWeekRange(report.id)
   const sitePhotos = dedupeProgressPhotos(report.progressUpdate?.photos)
 
-  const exportFullReportPdf = async () => {
+  const exportFullReportPdf = async (mode = "download") => {
     const liveHtml =
       documentSectionRef.current?.querySelector(".rich-text-editor__content")?.innerHTML ||
       (isActualProgressUpdate ? actualProgressContent : report.progressSummary)
@@ -432,6 +432,7 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
         weatherElement: weatherRef.current,
         documentHtml: liveHtml,
         photos: await hydrateProgressPhotos(sitePhotos),
+        mode,
       })
     } catch (error) {
       window.alert(
@@ -491,7 +492,8 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
           {isActualProgressUpdate && (
             <ExportPdfButton
               className={`px-3 py-1.5 text-xs ${isExportingPdf ? "pointer-events-none opacity-60" : ""}`}
-              onClick={exportFullReportPdf}
+              onClick={() => exportFullReportPdf("download")}
+              onShareWhatsApp={() => exportFullReportPdf("whatsapp")}
             />
           )}
           {reportType === "daily" && (
@@ -571,7 +573,8 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
                 {isActualProgressUpdate && (
                   <ExportPdfButton
                     className={isExportingPdf ? "pointer-events-none opacity-60" : ""}
-                    onClick={exportFullReportPdf}
+                    onClick={() => exportFullReportPdf("download")}
+                    onShareWhatsApp={() => exportFullReportPdf("whatsapp")}
                   />
                 )}
               </div>
@@ -886,7 +889,8 @@ function ProgressReportEditor({ projectName, projectId, reportId, reportType = "
           </p>
           <ExportPdfButton
             className={isExportingPdf ? "pointer-events-none opacity-60" : "px-4 py-2.5"}
-            onClick={exportFullReportPdf}
+            onClick={() => exportFullReportPdf("download")}
+            onShareWhatsApp={() => exportFullReportPdf("whatsapp")}
           />
         </div>
       ) : null}

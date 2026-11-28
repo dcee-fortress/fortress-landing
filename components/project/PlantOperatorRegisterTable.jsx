@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useProjectData } from "@/components/project/ProjectDataProvider"
 import TableCellInput from "@/components/project/TableCellInput"
+import TableExportButtons from "@/components/project/TableExportButtons"
 import {
   createEmptyRegisterRow,
   ensurePlantOperatorRegistersExist,
@@ -23,14 +24,16 @@ const IDENTITY_LEFT = IDENTITY_COLUMNS.reduce((offsets, column, index) => {
   return offsets
 }, [])
 
-function stickyStyle(index, background) {
+/** Sticky left identity cells; header row also sticks to the top like Rate build-up. */
+function stickyIdentityStyle(index, { background, isHeader = false } = {}) {
   return {
     position: "sticky",
     left: IDENTITY_LEFT[index],
+    top: isHeader ? 0 : undefined,
     width: IDENTITY_COLUMNS[index].width,
     minWidth: IDENTITY_COLUMNS[index].width,
     maxWidth: IDENTITY_COLUMNS[index].width,
-    zIndex: 40 - index,
+    zIndex: isHeader ? 40 - index : 20 - index,
     background,
   }
 }
@@ -62,7 +65,7 @@ function AttendanceCell({ day, value, onCycle }) {
   )
 }
 
-export default function PlantOperatorRegisterTable({ projectId, monthId }) {
+export default function PlantOperatorRegisterTable({ projectId, projectName, monthId }) {
   const { refresh, version } = useProjectData()
   const { daysInMonth, monthName } = getMonthRegisterMeta(monthId)
   const [register, setRegister] = useState(() => getPlantOperatorRegisterData(projectId, monthId))
@@ -180,6 +183,36 @@ export default function PlantOperatorRegisterTable({ projectId, monthId }) {
 
   const dayNumbers = Array.from({ length: daysInMonth }, (_, index) => index + 1)
 
+  const exportColumns = [
+    ...IDENTITY_COLUMNS.map((column) => ({
+      key: column.field,
+      label: column.label,
+      align: "left",
+      kind: "text",
+    })),
+    ...dayNumbers.map((day) => ({
+      key: `day-${day}`,
+      label: String(day),
+      align: "center",
+      kind: "text",
+      total: false,
+    })),
+  ]
+
+  const exportRows = (register.rows ?? []).map((row) => {
+    const next = {
+      supplier: row.supplier,
+      plant: row.plant,
+      operatorName: row.operatorName,
+      plantNumber: row.plantNumber,
+    }
+    for (const day of dayNumbers) {
+      const mark = row.attendance?.[String(day)]
+      next[`day-${day}`] = mark === "present" ? "✓" : mark === "absent" ? "X" : ""
+    }
+    return next
+  })
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -187,54 +220,52 @@ export default function PlantOperatorRegisterTable({ projectId, monthId }) {
           Add an operator, then use the day boxes beside their name.{" "}
           <span className="font-semibold text-emerald-700">Click once for ✓</span>.{" "}
           <span className="font-semibold text-rose-700">Click again for X</span>. The next click
-          is a tick again.
-          Scroll sideways to see every day of {monthName}.
+          is a tick again. Supplier, plant name, operator, plant number, and the day headings stay
+          fixed while you scroll.
         </p>
-        <button
-          type="button"
-          onClick={addRow}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
-        >
-          Add operator row
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <TableExportButtons
+            columns={exportColumns}
+            rows={exportRows}
+            title={`Plant register · ${monthName}`}
+            projectName={projectName || "Project"}
+            filename={`plant-register-${monthId}`}
+            showTotal={false}
+          />
+          <button
+            type="button"
+            onClick={addRow}
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
+          >
+            Add operator row
+          </button>
+        </div>
       </div>
 
       <div ref={daysScrollRef} className="operator-register-scroll">
-        <table className="min-w-max border-collapse text-sm">
+        <table className="operator-register-table min-w-max text-sm">
           <thead>
-            <tr className="bg-zinc-50">
+            <tr className="bg-zinc-900 text-white">
               {IDENTITY_COLUMNS.map((column, index) => (
                 <th
                   key={column.field}
-                  rowSpan={2}
-                  style={stickyStyle(index, "#fafafa")}
-                  className="operator-register-sticky border border-zinc-200 px-2 py-2 text-left font-semibold text-zinc-800 shadow-[1px_0_0_0_#e4e4e7]"
+                  style={stickyIdentityStyle(index, { background: "#18181b", isHeader: true })}
+                  className="operator-register-sticky operator-register-sticky-head border border-zinc-700 px-2 py-2.5 text-left font-semibold shadow-[2px_0_0_0_#3f3f46]"
                 >
                   {column.label}
                 </th>
               ))}
-              <th
-                colSpan={daysInMonth}
-                className="border border-zinc-200 bg-zinc-100 px-3 py-2 text-center text-sm font-semibold tracking-wide text-zinc-800"
-              >
-                {monthName}
-              </th>
-              <th
-                rowSpan={2}
-                className="border border-zinc-200 bg-zinc-50 px-3 py-2 text-left font-semibold text-zinc-800"
-              >
-                {" "}
-              </th>
-            </tr>
-            <tr className="bg-zinc-50">
               {dayNumbers.map((day) => (
                 <th
                   key={day}
-                  className="min-w-[2.75rem] border border-zinc-200 px-1 py-2 text-center text-xs font-semibold text-zinc-600"
+                  className="operator-register-sticky-head min-w-[2.75rem] border border-zinc-700 px-1 py-2.5 text-center text-xs font-semibold"
                 >
                   {day}
                 </th>
               ))}
+              <th className="operator-register-sticky-head border border-zinc-700 px-3 py-2.5 text-left font-semibold">
+                {" "}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -244,8 +275,8 @@ export default function PlantOperatorRegisterTable({ projectId, monthId }) {
                   {IDENTITY_COLUMNS.map((column, index) => (
                     <td
                       key={column.field}
-                      style={stickyStyle(index, "#ffffff")}
-                      className="operator-register-sticky border border-zinc-200 px-2 py-2 shadow-[1px_0_0_0_#e4e4e7]"
+                      style={stickyIdentityStyle(index, { background: "#ffffff" })}
+                      className="operator-register-sticky border border-zinc-200 px-2 py-2 shadow-[2px_0_0_0_#e4e4e7]"
                     >
                       <TableCellInput
                         value={row[column.field]}

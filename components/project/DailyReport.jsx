@@ -74,9 +74,9 @@ export default function DailyReport({ projectName, projectId, file, hideHourlyDa
     persistSlots(slots.map((slot) => (slot.id === updatedSlot.id ? updatedSlot : slot)))
   }
 
-  const exportDailyTotal = async () => {
+  const exportDailyTotal = async (mode = "download") => {
     const { exportDailyTotalPdf } = await import("@/lib/earnedValuePdf")
-    exportDailyTotalPdf({ projectName, file, summary })
+    await exportDailyTotalPdf({ projectName, file, summary, mode })
   }
 
   return (

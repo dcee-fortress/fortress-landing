@@ -63,18 +63,18 @@ export default function PpeIssuedRollupView({
   const visiblePeriods =
     periods.length > 0 ? periods.filter((period) => period.lines.length > 0) : []
 
-  function exportToPdf() {
-    void import("@/lib/safetyReportPdf").then(({ exportPpeIssuedDashboardPdf }) => {
-      const lines = visiblePeriods.flatMap((period) => period.lines || [])
-      exportPpeIssuedDashboardPdf({
-        projectName,
-        title: title || "PPE issued dashboard",
-        periodLabel:
-          mode === "project-to-date"
-            ? "Project to date"
-            : visiblePeriods.map((period) => period.label).join(", ") || title,
-        lines,
-      })
+  async function exportToPdf(exportMode = "download") {
+    const { exportPpeIssuedDashboardPdf } = await import("@/lib/safetyReportPdf")
+    const lines = visiblePeriods.flatMap((period) => period.lines || [])
+    await exportPpeIssuedDashboardPdf({
+      projectName,
+      title: title || "PPE issued dashboard",
+      periodLabel:
+        mode === "project-to-date"
+          ? "Project to date"
+          : visiblePeriods.map((period) => period.label).join(", ") || title,
+      lines,
+      mode: exportMode,
     })
   }
 
@@ -99,7 +99,10 @@ export default function PpeIssuedRollupView({
             </h1>
             <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">{description}</p>
           </div>
-          <ExportPdfButton onClick={exportToPdf} />
+          <ExportPdfButton
+            onClick={() => void exportToPdf("download")}
+            onShareWhatsApp={() => void exportToPdf("whatsapp")}
+          />
         </div>
       </header>
 

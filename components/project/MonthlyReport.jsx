@@ -14,9 +14,9 @@ export default function MonthlyReport({ projectName, projectId, file }) {
   const summary = getMonthSummary(file.id)
   const inProgress = isMonthlyFileInProgress(file)
 
-  const exportToPdf = async () => {
+  const exportToPdf = async (mode = "download") => {
     const { exportMonthlyReportPdf } = await import("@/lib/earnedValuePdf")
-    exportMonthlyReportPdf({ projectName, file, summary })
+    await exportMonthlyReportPdf({ projectName, file, summary, mode })
   }
 
   return (

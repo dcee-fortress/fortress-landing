@@ -135,7 +135,7 @@ function BoqViewerModalContent({ boq, editable = true, onClose, onSave, onViewPd
             </h2>
             <p className="mt-1 text-sm text-zinc-500">
               {editable
-                ? "Edit descriptions, unit, and quantity. Rates and bill cost come from Rate build up."
+                ? "Edit descriptions, unit, and quantity. Description edits update Rate build up and every page using that activity. Rates and bill cost come from Rate build up."
                 : null}
               {boq.fileName ? `${editable ? " " : ""}${boq.fileName} · ` : ""}
               {draftItems.length} item{draftItems.length === 1 ? "" : "s"}

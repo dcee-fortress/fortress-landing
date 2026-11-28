@@ -24,7 +24,10 @@ export default function ProjectToDateCostCard({ summary, onExportPdf }) {
 
       {onExportPdf ? (
         <div className="no-print mt-3">
-          <ExportPdfButton onClick={onExportPdf} />
+          <ExportPdfButton
+            onClick={() => onExportPdf("download")}
+            onShareWhatsApp={() => onExportPdf("whatsapp")}
+          />
         </div>
       ) : null}
     </div>

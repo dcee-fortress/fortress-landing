@@ -58,9 +58,9 @@ export default function ProjectToDateReport({
     year: "numeric",
   })
 
-  const exportToPdf = async () => {
+  const exportToPdf = async (mode = "download") => {
     const { exportProjectToDatePdf } = await import("@/lib/earnedValuePdf")
-    exportProjectToDatePdf({ projectName, summary, reportDate })
+    await exportProjectToDatePdf({ projectName, summary, reportDate, mode })
   }
 
   return (
@@ -73,7 +73,12 @@ export default function ProjectToDateReport({
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">{projectName}</h1>
           <CumulativePeriodNote projectId={projectId} />
         </div>
-        {headerExport ? <ExportPdfButton onClick={exportToPdf} /> : null}
+        {headerExport ? (
+          <ExportPdfButton
+            onClick={() => exportToPdf("download")}
+            onShareWhatsApp={() => exportToPdf("whatsapp")}
+          />
+        ) : null}
       </header>
 
       {children ? <div className="no-print">{children}</div> : null}

@@ -131,10 +131,10 @@ export default function CashBookRollupView({
 
   const exportPeriod = exportable && mode === "project-to-date" ? periods[0] : null
 
-  async function exportToPdf() {
+  async function exportToPdf(mode = "download") {
     if (!exportPeriod) return
     const { exportCashBookProjectToDatePdf } = await import("@/lib/ceoReportPdf")
-    exportCashBookProjectToDatePdf({
+    await exportCashBookProjectToDatePdf({
       projectName: projectName || "Project",
       title,
       bookLabel: book.label,
@@ -142,6 +142,7 @@ export default function CashBookRollupView({
       totals: exportPeriod.totals,
       lines: exportPeriod.lines,
       dayCount: exportPeriod.dayIds.length,
+      mode,
     })
   }
 
@@ -165,7 +166,12 @@ export default function CashBookRollupView({
               {projectName || "Project"}
             </h1>
           </div>
-          {exportPeriod ? <ExportPdfButton onClick={exportToPdf} /> : null}
+          {exportPeriod ? (
+            <ExportPdfButton
+              onClick={() => exportToPdf("download")}
+              onShareWhatsApp={() => exportToPdf("whatsapp")}
+            />
+          ) : null}
         </div>
         <p className="max-w-2xl text-sm text-zinc-500 sm:text-base">{description}</p>
         {mode === "project-to-date" ? <CumulativePeriodNote projectId={projectId} /> : null}

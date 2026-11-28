@@ -73,7 +73,10 @@ export default function EarnedValueReportTable({
 
       {onExportPdf ? (
         <div className="no-print mt-3 px-4">
-          <ExportPdfButton onClick={onExportPdf} />
+          <ExportPdfButton
+            onClick={() => onExportPdf("download")}
+            onShareWhatsApp={() => onExportPdf("whatsapp")}
+          />
         </div>
       ) : null}
     </div>

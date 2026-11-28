@@ -370,11 +370,23 @@ export default function SheqIncidentEntryView({ projectId, projectName, dayId })
             <ExportPdfButton
               onClick={() => {
                 void import("@/lib/safetyReportPdf").then(({ exportSheqIncidentPdf }) => {
-                  exportSheqIncidentPdf({
+                  void exportSheqIncidentPdf({
                     projectId,
                     projectName,
                     fileId,
                     dayLabel,
+                    mode: "download",
+                  })
+                })
+              }}
+              onShareWhatsApp={() => {
+                void import("@/lib/safetyReportPdf").then(({ exportSheqIncidentPdf }) => {
+                  void exportSheqIncidentPdf({
+                    projectId,
+                    projectName,
+                    fileId,
+                    dayLabel,
+                    mode: "whatsapp",
                   })
                 })
               }}

@@ -1,0 +1,21 @@
+{
+  "appId": "app.rodcroft.fortress",
+  "appName": "Rodcroft",
+  "webDir": "capacitor-www",
+  "server": {
+    "url": "https://rodcroft-fortress.vercel.app",
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "backgroundColor": "#f4f4f5"
+    },
+    "StatusBar": {
+      "style": "DARK"
+    }
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

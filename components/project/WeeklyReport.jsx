@@ -57,9 +57,9 @@ export default function WeeklyReport({ projectName, projectId, file, embedded = 
   const summary = getWeekSummary(file.id)
   const inProgress = isWeeklyFileInProgress(file)
 
-  const exportToPdf = async () => {
+  const exportToPdf = async (mode = "download") => {
     const { exportWeeklyReportPdf } = await import("@/lib/earnedValuePdf")
-    exportWeeklyReportPdf({ projectName, file, summary })
+    await exportWeeklyReportPdf({ projectName, file, summary, mode })
   }
 
   if (embedded) {

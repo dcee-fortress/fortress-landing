@@ -15,14 +15,14 @@ export default function SiteStaffRegisterView({ projectName, projectId, file }) 
   const inProgress = isMonthlyFileInProgress(file)
   const { monthName } = getMonthRegisterMeta(file.id)
 
-  function exportToPdf() {
-    void import("@/lib/safetyReportPdf").then(({ exportSiteStaffAttendancePdf }) => {
-      exportSiteStaffAttendancePdf({
-        projectId,
-        projectName,
-        monthId: file.id,
-        monthLabel: formatSiteStaffRegisterLabel(file),
-      })
+  async function exportToPdf(mode = "download") {
+    const { exportSiteStaffAttendancePdf } = await import("@/lib/safetyReportPdf")
+    await exportSiteStaffAttendancePdf({
+      projectId,
+      projectName,
+      monthId: file.id,
+      monthLabel: formatSiteStaffRegisterLabel(file),
+      mode,
     })
   }
 
@@ -46,7 +46,10 @@ export default function SiteStaffRegisterView({ projectName, projectId, file }) 
             </h1>
             <p className="text-zinc-500">{projectName}</p>
           </div>
-          <ExportPdfButton onClick={exportToPdf} />
+          <ExportPdfButton
+            onClick={() => void exportToPdf("download")}
+            onShareWhatsApp={() => void exportToPdf("whatsapp")}
+          />
         </header>
       </div>
 

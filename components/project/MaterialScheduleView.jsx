@@ -365,9 +365,9 @@ function MaterialScheduleEditor({
     }
   }
 
-  const exportToPdf = async () => {
+  const exportToPdf = async (mode = "download") => {
     const { exportMaterialSchedulePdf } = await import("@/lib/materialSchedulePdf")
-    exportMaterialSchedulePdf({
+    await exportMaterialSchedulePdf({
       projectName,
       dayLabel,
       slotLabel,
@@ -377,6 +377,7 @@ function MaterialScheduleEditor({
       rows: resolvedRows,
       grandTotal,
       productionTotal,
+      mode,
     })
   }
 
@@ -884,7 +885,10 @@ function MaterialScheduleEditor({
                   : "This entry rolls onto later days you have not edited. Dashboards update when you press Save."}
               </p>
             )}
-            <ExportPdfButton onClick={exportToPdf} />
+            <ExportPdfButton
+              onClick={() => exportToPdf("download")}
+              onShareWhatsApp={() => exportToPdf("whatsapp")}
+            />
             <button
               type="button"
               onClick={handleSave}

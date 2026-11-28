@@ -59,7 +59,11 @@ export default function PlantOperatorRegisterView({ projectName, projectId, file
         </div>
 
         <div className="min-w-0 px-3 py-6 sm:px-6">
-          <PlantOperatorRegisterTable projectId={projectId} monthId={file.id} />
+          <PlantOperatorRegisterTable
+            projectId={projectId}
+            projectName={projectName}
+            monthId={file.id}
+          />
         </div>
       </article>
     </div>

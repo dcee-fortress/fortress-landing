@@ -1,4 +1,12 @@
 import { fileURLToPath } from "node:url"
+import withSerwistInit from "@serwist/next"
+
+const withSerwist = withSerwistInit({
+  swSrc: "app/sw.js",
+  swDest: "public/sw.js",
+  // Keep SW off in local turbopack/dev; production `next build --webpack` generates it.
+  disable: process.env.NODE_ENV === "development",
+})
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -149,4 +157,4 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+export default withSerwist(nextConfig)

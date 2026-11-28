@@ -232,14 +232,15 @@ export default function SheqSiteInspectionEntryView({
     void persist(previous)
   }
 
-  async function exportToPdf() {
+  async function exportToPdf(mode = "download") {
     const { exportSheqSiteInspectionPdf } = await import("@/lib/safetyReportPdf")
-    exportSheqSiteInspectionPdf({
+    await exportSheqSiteInspectionPdf({
       projectId,
       projectName,
       period,
       periodId,
       periodLabel,
+      mode,
     })
   }
 
@@ -266,7 +267,10 @@ export default function SheqSiteInspectionEntryView({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <EntryUndoButton canUndo={canUndo} onUndo={handleUndo} />
-            <ExportPdfButton onClick={() => void exportToPdf()} />
+            <ExportPdfButton
+              onClick={() => void exportToPdf("download")}
+              onShareWhatsApp={() => void exportToPdf("whatsapp")}
+            />
           </div>
         </div>
       </header>

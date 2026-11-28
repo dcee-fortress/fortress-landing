@@ -25,14 +25,14 @@ export default function DailyPpeIssuedDayView({ projectId, projectName, dayId })
   const hasData = hasPpeIssuedDataForDay(projectId, dayId)
   const lines = getPpeIssuedDashboardLinesForDay(projectId, dayId)
 
-  function exportToPdf() {
-    void import("@/lib/safetyReportPdf").then(({ exportPpeIssuedDashboardPdf }) => {
-      exportPpeIssuedDashboardPdf({
-        projectName,
-        title: "Daily PPE issued dashboard",
-        periodLabel: dayLabel,
-        lines,
-      })
+  async function exportToPdf(mode = "download") {
+    const { exportPpeIssuedDashboardPdf } = await import("@/lib/safetyReportPdf")
+    await exportPpeIssuedDashboardPdf({
+      projectName,
+      title: "Daily PPE issued dashboard",
+      periodLabel: dayLabel,
+      lines,
+      mode,
     })
   }
 
@@ -59,7 +59,10 @@ export default function DailyPpeIssuedDayView({ projectId, projectName, dayId })
               the PPE issued entry. Matching descriptions are combined.
             </p>
           </div>
-          <ExportPdfButton onClick={exportToPdf} />
+          <ExportPdfButton
+            onClick={() => void exportToPdf("download")}
+            onShareWhatsApp={() => void exportToPdf("whatsapp")}
+          />
         </div>
       </header>
 

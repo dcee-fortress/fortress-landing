@@ -18,9 +18,9 @@ import {
 import { getEquipmentInUseReport } from "@/lib/equipmentInUse"
 import { getPlantOperatorsHref } from "@/lib/plantOperatorRegisters"
 
-async function exportEquipmentPdf(projectName, report, period) {
+async function exportEquipmentPdf(projectName, report, period, mode = "download") {
   const { exportEquipmentInUsePdf } = await import("@/lib/equipmentInUsePdf")
-  exportEquipmentInUsePdf({ projectName, report, period })
+  await exportEquipmentInUsePdf({ projectName, report, period, mode })
 }
 
 function HoursCell({ value, onChange, placeholder }) {
@@ -152,7 +152,20 @@ function EquipmentInUseDailyTable({ projectId, projectName, fileId, report }) {
           </button>
           <ExportPdfButton
             onClick={() =>
-              exportEquipmentPdf(projectName, { ...report, equipment: rows, totalCount: rows.length }, "daily")
+              exportEquipmentPdf(
+                projectName,
+                { ...report, equipment: rows, totalCount: rows.length },
+                "daily",
+                "download"
+              )
+            }
+            onShareWhatsApp={() =>
+              exportEquipmentPdf(
+                projectName,
+                { ...report, equipment: rows, totalCount: rows.length },
+                "daily",
+                "whatsapp"
+              )
             }
           />
         </div>
@@ -336,7 +349,8 @@ export default function EquipmentInUseTable({
           </div>
 
           <ExportPdfButton
-            onClick={() => exportEquipmentPdf(projectName, report, period)}
+            onClick={() => exportEquipmentPdf(projectName, report, period, "download")}
+            onShareWhatsApp={() => exportEquipmentPdf(projectName, report, period, "whatsapp")}
           />
         </div>
       )}
@@ -349,7 +363,8 @@ export default function EquipmentInUseTable({
             ticks.
           </p>
           <ExportPdfButton
-            onClick={() => exportEquipmentPdf(projectName, report, period)}
+            onClick={() => exportEquipmentPdf(projectName, report, period, "download")}
+            onShareWhatsApp={() => exportEquipmentPdf(projectName, report, period, "whatsapp")}
           />
         </div>
       )}

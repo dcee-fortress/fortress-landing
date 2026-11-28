@@ -234,12 +234,25 @@ export default function SheqWeeklyReportView({
           <ExportPdfButton
             onClick={() => {
               void import("@/lib/safetyReportPdf").then(({ exportSheqWeeklyReportPdf }) => {
-                exportSheqWeeklyReportPdf({
+                void exportSheqWeeklyReportPdf({
                   projectId,
                   projectName,
                   weekId,
                   weekLabel,
                   variant,
+                  mode: "download",
+                })
+              })
+            }}
+            onShareWhatsApp={() => {
+              void import("@/lib/safetyReportPdf").then(({ exportSheqWeeklyReportPdf }) => {
+                void exportSheqWeeklyReportPdf({
+                  projectId,
+                  projectName,
+                  weekId,
+                  weekLabel,
+                  variant,
+                  mode: "whatsapp",
                 })
               })
             }}
