@@ -31,6 +31,7 @@ function blankRow() {
   }
 }
 
+/** Material left always = materials brought on site − material used (every entry). */
 function leftFor(row) {
   const brought = parsePlantCostAmount(row.broughtOnSite) ?? 0
   const used = parsePlantCostAmount(row.materialUsed) ?? 0

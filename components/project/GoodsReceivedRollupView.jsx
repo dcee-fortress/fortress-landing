@@ -122,10 +122,12 @@ export default function GoodsReceivedRollupView({
               <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
                   <div>
-                    <h2 className="text-base font-semibold text-zinc-900">{period.label}</h2>
+                    <h2 className="text-base font-semibold text-zinc-900">
+                      {mode === "project-to-date" ? "Fuel consumed table" : period.label}
+                    </h2>
                     <p className="mt-0.5 text-sm text-zinc-500">
                       {mode === "project-to-date"
-                        ? "Each fuel name is one line. Fuel consumed quantities and total costs from every daily entry are added together."
+                        ? "Project to date fuel consumed — Fuel name, Unit, Quantity of fuel consumed, and Total cost. Cumulative totals from every daily fuel consumed file."
                         : "Rolled up from the daily fuel consumed entry. The same fuel name is one line."}
                     </p>
                   </div>
