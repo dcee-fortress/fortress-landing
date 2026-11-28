@@ -29,16 +29,15 @@ export function ProjectsProvider({ children }) {
 
     void import("@/lib/sharedPersistence").then(({ startSharedPersistence }) => {
       if (cancelled) return
-      // Refresh immediately so session-cache projects appear without waiting.
+      // Refresh immediately so session/localStorage projects appear without waiting.
       refresh()
       stopSharedPersistence = startSharedPersistence()
       window.addEventListener("grove-shared-storage-change", handleSharedStorageChange)
-      // Stay on the opening screen until the first download finishes.
-      // A short timeout was marking the page ready and then showing nothing on a slow bundle.
+      // Never hold the brand loading screen for long — offline must feel instant.
       timeoutId = window.setTimeout(() => {
         setSyncReady(true)
         refresh()
-      }, 90_000)
+      }, 1_500)
       void stopSharedPersistence.ready?.then(() => {
         window.clearTimeout(timeoutId)
         setSyncReady(true)
